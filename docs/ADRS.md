@@ -1,0 +1,91 @@
+# Architecture Decision Records
+Short form. Status: all ACCEPTED (founder-confirmed, June 2026). Do not reverse
+without a new ADR and founder sign-off.
+
+**ADR-001 — .NET 10 LTS, Blazor WASM PWA + separate ASP.NET Core API.**
+Max founder-stack reuse; cleanest separation; Razor components lift into MAUI
+Blazor Hybrid later. PWA-first sidesteps app-store alcohol review during validation.
+
+**ADR-002 — Single PostgreSQL 16 + pgvector for everything.**
+Relational + vector similarity in one engine; HNSW covers far beyond MVP scale.
+No separate vector DB, no ML infra.
+
+**ADR-003 — Docker everywhere; no IIS.**
+Dev/prod parity (Win11+WSL2 compose ↔ VPS compose). pgvector friction disappears;
+deploy story is one set of compose files.
+
+**ADR-004 — Hetzner VPS from day one as CI deploy target.**
+Stable preview URL enables phone-first gate reviews; no personal-machine exposure;
+~€5/mo. Cloudflare in front.
+
+**ADR-005 — Private monorepo, personal account → org transfer pre-launch.
+Branch protection; agents merge via PR only; CI required.**
+
+**ADR-006 — DB-backed feature-flag/settings system in the foundation.**
+Phase-dependent behavior (match-% display, thresholds, prompts) is config, not
+code. Origin: founder's "eager now, conservative at scale" requirement.
+
+**ADR-007 — Hand-rolled CF v1 (Pearson, mean-centered, nightly batch).**
+Transparent, sufficient at MVP scale. Upgrade path: ML.NET Matrix Factorization.
+Deep learning deferred indefinitely.
+
+**ADR-008 — Canonical drink = (producer, product, category).**
+Package format = rating metadata. Wine vintage = rating metadata, single entity.
+ABV = metadata + dedup signal, not identity. Minimizes dedup surface.
+
+**ADR-009 — 8 attribute dims per category; 6-dim cross-category bridge**
+(sweetness, bitterness/tannin, body, smoke, fruit, acidity). Stored 0–1,
+displayed 0–10. Style-baseline inheritance + per-drink overrides w/ provenance
++ confidence.
+
+**ADR-010 — Pseudonymous identity; birth-year-only persistence.**
+No real-name fields. Full DOB captured transiently for the 21+ gate, never stored.
+
+**ADR-011 — Auth: email+password, Google, Apple; soft verification.**
+Apple now avoids native-wrap rework (store rule). OAuth paths capture DOB
+post-auth before activation. Rate immediately; verify ≤7 days.
+
+**ADR-012 — Ratings pseudonymous-public by default w/ per-rating private toggle;
+history kept** (re-rating appends; engine uses most recent).
+
+**ADR-013 — Sectioned rec feed:** Up Your Alley / Stretch a Little / Wildcard
+(+ Loved by Your Matches). No hidden blend dial; confidence-adaptive wildcards;
+every rec carries its "because." Mirrors venue four-shelf vocabulary.
+
+**ADR-014 — Match score = blended (attribute similarity + co-rating agreement,
+density-weighted); named matches** (handle + %, hide-me toggle, one-way only).
+Eager-labeled display behind a flag with conservative mode for scale.
+
+**ADR-015 — Check-in is the session primitive; Home Bar is a private virtual
+venue** auto-created per user, default rating location, excluded from discovery.
+Venue menus personalize on check-in (teaser before). No GPS proximity v1.
+Backlog: Home Bar inventory/library.
+
+**ADR-016 — No consumption-volume/frequency incentives, ever.**
+Weekly streaks only; distinct-drink counts only. Ethics + Apple 1.4.3 alignment.
+
+**ADR-017 — First-party analytics only:** events table in our Postgres + admin
+retention dashboard. No third-party trackers.
+
+**ADR-018 — Deletion: user chooses full delete vs anonymize-contributions;
+PII deleted either way.** Self-serve JSON export.
+
+**ADR-019 — Weekly email digest only in MVP** (no web push; iOS PWA push is
+install-gated/flaky). Blocks config-flagged.
+
+**ADR-020 — Seeding strategy: local-depth.** Corridor-priority product coverage
+before national breadth. Open Brewery DB = producers only (it has no products).
+
+**ADR-021 — Brand system v1; dark-only MVP.**
+Tokens (--bb-*) single styling source from Sprint 0; two-temperature grammar
+(amber=beverage, teal=intelligence); Space Grotesk + Inter self-hosted; light
+mode deferred pending its own contrast pass; dev site behind auth until the
+trademark gate clears. Wordmark amber-"Brain" = documented exception.
+
+**ADR-022 — Moat posture: data asset first, venues as revenue proof.**
+The cross-category attribute dataset is the only compounding asset (grows
+without founder hours); corridor venue density is the defensible revenue
+proof. Sequence: M1–4 maximize data machinery; M4–8 founder hours to venues.
+Data-asset metrics dashboarded beside retention. Untappd cross-category launch
+triggers RE-EVALUATION, not auto-fold, if venue renewals or dataset depth hold
+value. Home Bar library deliberately remains distant backlog (founder, 2026-06-11).
