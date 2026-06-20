@@ -18,14 +18,16 @@ services:
     ports: []
 
   api:
-    image: ${API_IMAGE:-ghcr.io/OWNER/barbrain-api:latest}
+    # Default matches the lowercased GHCR names the deploy pipeline pushes;
+    # CI/deploy.sh override via $API_IMAGE / $WEB_IMAGE with the commit SHA tag.
+    image: ${API_IMAGE:-ghcr.io/kylestephens01-boop/barbrain-api:latest}
     restart: unless-stopped
     ports: []
     environment:
       ASPNETCORE_ENVIRONMENT: Production
 
   web:
-    image: ${WEB_IMAGE:-ghcr.io/OWNER/barbrain-web:latest}
+    image: ${WEB_IMAGE:-ghcr.io/kylestephens01-boop/barbrain-web:latest}
     restart: unless-stopped
     ports:
       - "80:80"

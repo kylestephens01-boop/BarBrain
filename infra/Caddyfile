@@ -1,9 +1,23 @@
 # Caddy serves the Blazor WASM static site and reverse-proxies API routes to the
 # `api` service so the SPA is same-origin with the API (no CORS). Local dev runs
 # plain HTTP on :80 (mapped to host :5000); TLS in prod is fronted by Cloudflare.
+#
+# Dev-site privacy (brand gate, until the trademark knockout clears): the PRIMARY
+# mechanism is Cloudflare Access on the dev hostname (HUMAN-CHECKLIST 3) — it
+# gates at the edge and does NOT affect origin localhost health checks. If you
+# prefer an origin-side fallback, uncomment the basic_auth block below. It
+# exempts /health and /version so the deploy health check still works. Generate
+# the hash with:  docker run --rm caddy caddy hash-password --plaintext '<pw>'
 :80 {
 	root * /srv
 	encode gzip zstd
+
+	# --- Optional origin-side dev privacy (fallback to Cloudflare Access) ---
+	# @diagnostics path /health /version
+	# @protected not path /health /version
+	# basic_auth @protected {
+	#     barbrain <BCRYPT_HASH_HERE>
+	# }
 
 	# API surface → api container. Keep this list in sync with the API routes.
 	@api path /api/* /health /version
