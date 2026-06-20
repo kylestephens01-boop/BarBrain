@@ -1,0 +1,12 @@
+[
+  {
+    "key": "home.banner_text",
+    "value": "Know what you'll love.",
+    "description": "String rendered on the web home page. Flip via the admin API to prove the feature-flag pipeline (Sprint 0 acceptance criterion)."
+  },
+  {
+    "key": "home.show_status",
+    "value": "true",
+    "description": "Whether the home page shows the live API health/version line. Demonstrates a typed (bool) feature flag."
+  }
+]
