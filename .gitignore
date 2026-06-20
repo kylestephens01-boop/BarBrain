@@ -1,0 +1,32 @@
+# --- .NET ------------------------------------------------------------------
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+.vs/
+artifacts/
+TestResults/
+coverage/
+*.coverage
+*.trx
+
+# --- Secrets / env ---------------------------------------------------------
+.env
+*.env
+!**/.env.example
+appsettings.*.local.json
+
+# --- Node / Playwright (tests/e2e) -----------------------------------------
+node_modules/
+tests/e2e/node_modules/
+tests/e2e/test-results/
+tests/e2e/playwright-report/
+tests/e2e/blob-report/
+playwright/.cache/
+
+# --- OS / editor -----------------------------------------------------------
+.DS_Store
+Thumbs.db
+*.swp

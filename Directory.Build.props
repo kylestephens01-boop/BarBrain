@@ -1,0 +1,12 @@
+<Project>
+  <!-- Common properties for every BarBrain project. -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Product version. The git SHA is injected at build/deploy time via
+         -p:SourceRevisionId=<sha> (CI) and surfaced by GET /version. -->
+    <Version>0.0.0</Version>
+    <Product>BarBrain</Product>
+  </PropertyGroup>
+</Project>

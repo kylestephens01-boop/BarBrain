@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/api/">
+    <Project Path="src/api/BarBrain.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/shared/">
+    <Project Path="src/shared/BarBrain.Shared.csproj" />
+  </Folder>
+  <Folder Name="/src/web/">
+    <Project Path="src/web/BarBrain.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/BarBrain.Api.Tests/BarBrain.Api.Tests.csproj" />
+  </Folder>
+</Solution>
