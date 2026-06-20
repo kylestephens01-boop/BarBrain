@@ -1,0 +1,203 @@
+/* =============================================================================
+   Base layout + reset. Consumes design tokens ONLY (no hardcoded colors/fonts).
+   DARK-ONLY (ADR-021). Loaded after design-tokens.css and fonts.css.
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bb-ink);
+  color: var(--bb-coaster);
+  font-family: var(--bb-font-ui);
+  font-weight: var(--bb-fw-regular);
+  font-size: var(--bb-fs-body);
+  line-height: var(--bb-lh-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  min-height: 100dvh;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--bb-font-display);
+  font-weight: var(--bb-fw-medium);
+  margin: 0 0 0.5rem;
+}
+
+h1 { font-size: var(--bb-fs-h1); line-height: var(--bb-lh-h1); }
+h2 { font-size: var(--bb-fs-h2); line-height: var(--bb-lh-h2); }
+
+a {
+  color: var(--bb-synapse);
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+:focus-visible {
+  outline: 2px solid var(--bb-synapse);
+  outline-offset: 2px;
+}
+
+/* --- App shell ----------------------------------------------------------- */
+.bb-app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.bb-main {
+  flex: 1;
+  width: 100%;
+  max-width: 480px;       /* phone-first */
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+
+/* --- Cards (--bb-surface, radius, padding per DESIGN-REFERENCE) ---------- */
+.bb-card {
+  background-color: var(--bb-surface);
+  border-radius: var(--bb-radius);
+  padding: 14px;
+}
+
+.bb-card + .bb-card { margin-top: 12px; }
+
+/* --- Typography helpers -------------------------------------------------- */
+.bb-display {
+  font-family: var(--bb-font-display);
+  font-weight: var(--bb-fw-medium);
+  font-size: var(--bb-fs-display);
+  line-height: var(--bb-lh-display);
+}
+
+.bb-muted {
+  color: var(--bb-text-muted);
+  font-size: var(--bb-fs-caption);
+  line-height: var(--bb-lh-caption);
+}
+
+.bb-label {
+  font-weight: var(--bb-fw-medium);
+  font-size: var(--bb-fs-label);
+  line-height: var(--bb-lh-label);
+}
+
+/* Two-temperature accents — never decorative. Amber = beverage, teal = brains. */
+.bb-synapse { color: var(--bb-synapse); }
+.bb-pour { color: var(--bb-pour); }
+
+.bb-stat {
+  font-family: var(--bb-font-display);
+  font-weight: var(--bb-fw-medium);
+  font-size: var(--bb-fs-stat);
+  line-height: var(--bb-lh-stat);
+}
+
+/* --- Home page foundation copy ------------------------------------------ */
+.bb-banner {
+  font-size: var(--bb-fs-body);
+  line-height: var(--bb-lh-body);
+  color: var(--bb-coaster);
+  margin: 0 0 20px;
+}
+
+.bb-foundation-note {
+  margin-top: 16px;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--bb-synapse);
+}
+
+/* --- Status pill (Sprint 0 health line) --------------------------------- */
+.bb-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--bb-fs-caption);
+  line-height: var(--bb-lh-caption);
+  color: var(--bb-text-muted);
+}
+.bb-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--bb-stroke);
+  flex: 0 0 auto;
+}
+.bb-dot--ok { background-color: var(--bb-synapse); }
+.bb-dot--down { background-color: var(--bb-bitters); }
+
+/* --- Blazor loading + error UI (restyled to tokens, dark-only) ---------- */
+.loading-progress {
+  position: fixed;
+  display: block;
+  width: 8rem;
+  height: 8rem;
+  top: calc(50% - 4rem);
+  left: calc(50% - 4rem);
+}
+.loading-progress circle {
+  fill: none;
+  stroke: var(--bb-surface);
+  stroke-width: 0.6rem;
+  transform-origin: 50% 50%;
+  transform: rotate(-90deg);
+}
+.loading-progress circle:last-child {
+  stroke: var(--bb-synapse);
+  stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
+  transition: stroke-dasharray 0.05s ease-in-out;
+}
+.loading-progress-text {
+  position: absolute;
+  text-align: center;
+  font-family: var(--bb-font-display);
+  font-weight: var(--bb-fw-medium);
+  inset: calc(50% - 0.6rem) 0 auto 0;
+  color: var(--bb-text-muted);
+}
+.loading-progress-text:after {
+  content: var(--blazor-load-percentage-text, "Loading");
+}
+
+#blazor-error-ui {
+  background: var(--bb-bitters);
+  color: var(--bb-coaster);
+  bottom: 0;
+  box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+  display: none;
+  left: 0;
+  padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+  position: fixed;
+  width: 100%;
+  z-index: 1000;
+}
+#blazor-error-ui .reload { color: var(--bb-coaster); text-decoration: underline; }
+#blazor-error-ui .dismiss {
+  cursor: pointer;
+  position: absolute;
+  right: 0.75rem;
+  top: 0.5rem;
+}
+
+.blazor-error-boundary {
+  background: var(--bb-bitters);
+  padding: 1rem;
+  color: var(--bb-coaster);
+}
+.blazor-error-boundary::after {
+  content: "An error has occurred.";
+}

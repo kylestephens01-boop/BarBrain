@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>BarBrain — Know what you'll love.</title>
+    <base href="/" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#141A24" />
+    <link rel="preload" id="webassembly" />
+
+    <!-- Brand foundation: tokens are the single styling source (docs/BRAND.md). -->
+    <link rel="stylesheet" href="css/design-tokens.css" />
+    <link rel="stylesheet" href="css/fonts.css" />
+    <link rel="stylesheet" href="css/app.css" />
+    <link href="BarBrain.Web.styles.css" rel="stylesheet" />
+
+    <!-- Preload above-the-fold font weights. Commented until the WOFF2 files
+         land (HUMAN-CHECKLIST item 14); preloading missing files only warns.
+         Uncomment together with adding wwwroot/fonts/*.woff2.
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+          href="fonts/space-grotesk-500.woff2" />
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+          href="fonts/inter-400.woff2" />
+    -->
+
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link href="manifest.webmanifest" rel="manifest" />
+    <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
+    <script type="importmap"></script>
+</head>
+
+<body>
+    <div id="app">
+        <svg class="loading-progress">
+            <circle r="40%" cx="50%" cy="50%" />
+            <circle r="40%" cx="50%" cy="50%" />
+        </svg>
+        <div class="loading-progress-text"></div>
+    </div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="." class="reload">Reload</a>
+        <span class="dismiss" aria-label="Dismiss" role="button">&times;</span>
+    </div>
+    <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
+    <script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });</script>
+</body>
+
+</html>

@@ -1,0 +1,42 @@
+/* =============================================================================
+   Self-hosted fonts (docs/BRAND.md). WOFF2 ONLY — never load fonts from a CDN.
+   Two weights each: Space Grotesk (display) + Inter (UI), 400/500.
+
+   The .woff2 binaries are a human deliverable (HUMAN-CHECKLIST item 14) and are
+   NOT yet in the repo. Until they land, font-display:swap falls back to the
+   system-ui stack declared in the --bb-font-* tokens — the layout still renders
+   correctly, just without the brand typefaces. Drop the files in
+   wwwroot/fonts/ (see fonts/README.md) and these rules light up automatically.
+   ========================================================================== */
+
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/space-grotesk-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../fonts/space-grotesk-500.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/inter-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../fonts/inter-500.woff2') format('woff2');
+}
