@@ -2,8 +2,10 @@
 > Agents: update this at the END of every session. Keep it short and factual.
 
 ## Current sprint
-Sprint 0 — Foundation. Local development stack built; CI/CD + VPS deploy deferred
-until the VPS is provisioned (founder's call this session).
+Sprint 0 — Foundation. Local development stack built; CI/CD + VPS deploy now
+DRAFTED (workflows + scripts in repo). The PR pipeline runs on GitHub-hosted
+runners with no VPS, so it gates PRs immediately; the deploy pipeline goes live
+once the VPS + secrets land (HUMAN-CHECKLIST 2,3,5).
 
 ## Done
 - Solution skeleton (`.slnx`): `src/shared` (contracts), `src/api` (minimal API),
@@ -30,7 +32,18 @@ until the VPS is provisioned (founder's call this session).
   when no daemon (SkippableFact) so `dotnet test` is green locally.
 - Playwright e2e project (`tests/e2e`): smoke (page loads, health ok, screenshot
   artifact) + config targeting the compose stack.
-- Docs: root `README.md` (quickstart) + `docs/RUNBOOK.md` skeleton.
+- Docs: root `README.md` (quickstart) + `docs/RUNBOOK.md` (provisioning, deploy,
+  rollback, dev-site privacy now filled in).
+- CI/CD drafted: `.github/workflows/ci.yml` (PR pipeline — build+test incl.
+  Testcontainers integration, dedicated contrast job, Playwright e2e w/ screenshot
+  artifacts; runs on GitHub runners, NO VPS needed) and `.github/workflows/
+  deploy.yml` (main — build/push GHCR images, SSH deploy, SHA health check;
+  secret-gated). Contrast enforcement is a C# test (`ContrastTests`, Category
+  trait) parsing design-tokens.css, incl. text-on-surface pairs — runs locally.
+- Ops scripts: `infra/provision.sh` (idempotent VPS hardening: Docker, UFW
+  22/80/443 only, fail2ban, unattended-upgrades) and `infra/deploy.sh` (manual
+  deploy + health check). Dev-site privacy: Cloudflare Access primary, Caddy
+  basic-auth fallback (commented in `infra/Caddyfile`).
 
 ## In progress
 (none — clean stopping point)
@@ -53,10 +66,12 @@ until the VPS is provisioned (founder's call this session).
 - API migrates + seeds on startup, behind `Database:MigrateOnStartup` (default on).
 - Added a second seeded flag `home.show_status` (bool) so the typed bool accessor
   is exercised end-to-end alongside the string flag.
-- DEFERRED per founder ("CI + deployment once the VPS is set up"): GitHub Actions
-  PR/main pipelines, contrast CI job, VPS provisioning script, deploy/rollback
-  scripts (`infra/deploy.sh`), dev-site auth. Compose + Caddy prod overlay are
-  stubbed and ready for these.
+- CI/deploy were drafted this session (founder asked to prep them while the VPS
+  is pending). They are authored but NOT yet exercised end-to-end: the deploy
+  pipeline needs the VPS + secrets, and even the PR pipeline only truly runs once
+  pushed to GitHub. Treat the first real CI run as the verification step.
+- Image names: GHCR uses lowercase `ghcr.io/<owner>/barbrain-{api,web}`; the prod
+  overlay defaults and deploy scripts derive/lowercase this automatically.
 
 ## Doc inconsistency to flag (not an ADR conflict)
 - Muted-text token: `docs/BRAND.md` says `--bb-text-muted`; `docs/design/
@@ -70,7 +85,10 @@ here: `dotnet build` (solution, 0 warnings) and `dotnet test` (2 passed, 6 skipp
 for absent Docker). All three run in CI / on a dev machine with Docker + Node.
 
 ## Next session should
-Stand up CI once HUMAN-CHECKLIST 2,3,5 are done: PR pipeline (build → test →
-Playwright smoke w/ screenshot artifacts → contrast job), main pipeline (build
-images → GHCR → SSH deploy → health check), branch protection, dev-site auth.
-Then add the VPS provisioning + deploy scripts. Add fonts/logo assets (item 14).
+Once HUMAN-CHECKLIST 1,2,3,5 are done: push and watch the first CI run (fix any
+runner-only issues), set the CI checks as required in branch protection, run
+`infra/provision.sh` on the VPS, configure Cloudflare Access, do the first
+`infra/deploy.sh prod`, and confirm `dev.barbrain.app/health` returns version+sha.
+That closes the remaining Sprint 0 acceptance criteria. Then add fonts/logo
+assets (item 14) and start Sprint 1 (catalog schema — the expensive-to-reverse
+gate).

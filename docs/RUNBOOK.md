@@ -1,8 +1,8 @@
 # RUNBOOK
 
-Operational playbook for BarBrain. Skeleton as of Sprint 0; deploy/rollback
-sections are filled in when the VPS is provisioned (HUMAN-CHECKLIST 2–5) and CI
-is wired up.
+Operational playbook for BarBrain. CI and deploy/rollback procedures are drafted
+(workflows + scripts in the repo); they go live once the VPS is provisioned and
+secrets are set (HUMAN-CHECKLIST 2–5).
 
 ## Topology (target)
 Single Hetzner VPS running docker compose: `web` (Caddy → Blazor WASM static +
@@ -24,18 +24,47 @@ Health: http://localhost:5000/health · stop: `docker compose -f infra/docker-co
 - `GET /version` → `{ version, sha }`. Confirms which build is live.
 - The deploy gate polls `/health` and asserts the expected `sha`.
 
-## Deploy (preview / prod) — TODO (pending VPS + CI)
-> Filled in with the CI pipeline. Intended shape:
-> 1. CI builds `api` + `web` images, pushes to GHCR tagged with the commit SHA.
-> 2. SSH to the VPS; `docker compose pull && docker compose -f infra/docker-compose.yml -f infra/docker-compose.prod.yml up -d`.
-> 3. Wait for `/health` to report the new SHA; fail the deploy if it doesn't.
-> Manual escape hatch: `./infra/deploy.sh preview` (script TODO).
+## VPS provisioning (one-time)
+Run on a fresh Ubuntu 24.04 box as root (idempotent — safe to re-run):
+```bash
+REPO_URL=https://github.com/<owner>/BarBrain.git ./infra/provision.sh
+```
+Installs Docker + compose, locks the firewall to **22/80/443 only**, enables
+fail2ban + unattended security upgrades, and checks the repo out to
+`/opt/barbrain`. Then `cp infra/.env.example infra/.env` and fill secrets.
 
-## Rollback — TODO (pending VPS + CI)
-> Intended shape: re-point the `api`/`web` image tags to the previous good SHA
-> and `up -d` again; `/health` confirms the rollback SHA. Database: migrations
-> are additive; a rollback of code does NOT auto-revert a migration. If a
-> migration must be undone, do it deliberately (see below) — never on a whim.
+## Dev-site privacy (brand gate)
+The dev hostname stays private until the trademark knockout clears. **Primary:**
+Cloudflare Access on the dev hostname (HUMAN-CHECKLIST 3) — gates at the edge,
+doesn't affect origin `localhost` health checks. **Fallback:** uncomment the
+`basic_auth` block in `infra/Caddyfile` (it exempts `/health` + `/version`).
+
+## Deploy (auto on merge to main)
+`.github/workflows/deploy.yml`:
+1. Builds `api` + `web` images, pushes to GHCR tagged `:latest` and `:<sha>`.
+2. SSHes to the VPS, checks out the SHA, `docker compose -f infra/docker-compose.yml -f infra/docker-compose.prod.yml pull && up -d`.
+3. Polls `http://localhost/version` on the VPS until the deployed SHA is live;
+   fails the deploy if it never appears.
+
+Requires secrets: `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`, `GHCR_TOKEN`.
+
+Manual deploy / first deploy / hotfix (run on the VPS in `/opt/barbrain`):
+```bash
+./infra/deploy.sh prod      # or: preview
+```
+
+## Rollback
+Re-point the image tags to the previous good SHA and bring the stack back up:
+```bash
+cd /opt/barbrain
+git checkout -q <previous-good-sha>
+API_IMAGE=ghcr.io/<owner>/barbrain-api:<previous-good-sha> \
+WEB_IMAGE=ghcr.io/<owner>/barbrain-web:<previous-good-sha> \
+  ./infra/deploy.sh prod
+```
+`/health` confirms the rollback SHA. **Database:** migrations are additive; a
+code rollback does NOT auto-revert a migration. Undo a migration deliberately
+(see below) — never on a whim.
 
 ## Migrations
 ```bash
