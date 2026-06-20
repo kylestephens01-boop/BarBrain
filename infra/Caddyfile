@@ -1,0 +1,23 @@
+# Caddy serves the Blazor WASM static site and reverse-proxies API routes to the
+# `api` service so the SPA is same-origin with the API (no CORS). Local dev runs
+# plain HTTP on :80 (mapped to host :5000); TLS in prod is fronted by Cloudflare.
+:80 {
+	root * /srv
+	encode gzip zstd
+
+	# API surface → api container. Keep this list in sync with the API routes.
+	@api path /api/* /health /version
+	handle @api {
+		reverse_proxy api:8080
+	}
+
+	# Everything else is the SPA: serve the file or fall back to index.html.
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
+
+	# Don't cache the WASM bootstrap/service worker; let fingerprinted assets cache.
+	@nocache path /index.html /service-worker.js /manifest.webmanifest
+	header @nocache Cache-Control "no-cache"
+}

@@ -1,0 +1,58 @@
+# BarBrain — local development stack (ADR-003: Docker everywhere, no IIS).
+#   web  → http://localhost:5000   (Blazor WASM via Caddy; proxies /api,/health)
+#   api  → reachable at http://localhost:5000/health and (loopback) :8080
+#   db   → Postgres 16 + pgvector, bound to loopback only
+#
+# Usage (from repo root):  docker compose -f infra/docker-compose.yml up --build
+# Copy infra/.env.example to infra/.env first to set secrets.
+name: barbrain
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: barbrain
+      POSTGRES_USER: barbrain
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-barbrain}
+    ports:
+      # Loopback only — for local tooling (psql, dotnet ef). NEVER exposed in
+      # prod (Hard Rule 8). The prod overlay drops this mapping entirely.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U barbrain -d barbrain"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: ..
+      dockerfile: src/api/Dockerfile
+      args:
+        GIT_SHA: ${GIT_SHA:-local}
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ConnectionStrings__Default: "Host=postgres;Port=5432;Database=barbrain;Username=barbrain;Password=${POSTGRES_PASSWORD:-barbrain}"
+      Admin__Token: ${ADMIN_TOKEN:-}
+      GIT_SHA: ${GIT_SHA:-local}
+    ports:
+      # Loopback only, for direct API testing during dev. Prod reaches the API
+      # solely through Caddy; the overlay removes this mapping.
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ..
+      dockerfile: src/web/Dockerfile
+    ports:
+      - "5000:80"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
