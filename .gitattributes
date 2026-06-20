@@ -1,0 +1,15 @@
+# Normalize line endings: store LF in the repo for all text files. Keeps shell
+# scripts, Dockerfiles, and YAML working on Linux/VPS/CI regardless of the
+# committer's OS (Windows autocrlf converts on checkout only).
+* text=auto eol=lf
+
+# Shell scripts and container/CI files must be LF.
+*.sh    text eol=lf
+Dockerfile text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+
+# Binary assets — never touch.
+*.png   binary
+*.ico   binary
+*.woff2 binary
