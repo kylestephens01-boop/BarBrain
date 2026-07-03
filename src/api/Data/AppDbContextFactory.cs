@@ -17,10 +17,8 @@ public sealed class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbConte
             Environment.GetEnvironmentVariable("ConnectionStrings__Default")
             ?? "Host=localhost;Port=5432;Database=barbrain;Username=barbrain;Password=barbrain";
 
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseNpgsql(connectionString)
-            .Options;
-
-        return new AppDbContext(options);
+        var builder = new DbContextOptionsBuilder<AppDbContext>();
+        builder.UseBarBrainNpgsql(connectionString, enableRetry: false);
+        return new AppDbContext(builder.Options);
     }
 }

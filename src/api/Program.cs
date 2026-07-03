@@ -11,7 +11,7 @@ var connectionString = builder.Configuration.GetConnectionString("Default")
     ?? throw new InvalidOperationException("ConnectionStrings:Default is not configured.");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString, npgsql => npgsql.EnableRetryOnFailure()));
+    options.UseBarBrainNpgsql(connectionString));
 
 // --- Feature flags / settings (ADR-006) -------------------------------------
 builder.Services.AddMemoryCache();

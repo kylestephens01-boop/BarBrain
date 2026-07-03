@@ -57,10 +57,11 @@ public sealed class PostgresFixture : IAsyncLifetime
 
     public static AppDbContext CreateContext(string connectionString)
     {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseNpgsql(connectionString)
-            .Options;
-        return new AppDbContext(options);
+        // Same provider config as the app (incl. EnableDynamicJson for the
+        // events jsonb column) so tests exercise the real mapping behavior.
+        var builder = new DbContextOptionsBuilder<AppDbContext>();
+        builder.UseBarBrainNpgsql(connectionString, enableRetry: false);
+        return new AppDbContext(builder.Options);
     }
 
     /// <summary>
