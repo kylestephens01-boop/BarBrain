@@ -66,10 +66,13 @@ once the VPS + secrets land (HUMAN-CHECKLIST 2,3,5).
 - API migrates + seeds on startup, behind `Database:MigrateOnStartup` (default on).
 - Added a second seeded flag `home.show_status` (bool) so the typed bool accessor
   is exercised end-to-end alongside the string flag.
-- CI/deploy were drafted this session (founder asked to prep them while the VPS
-  is pending). They are authored but NOT yet exercised end-to-end: the deploy
-  pipeline needs the VPS + secrets, and even the PR pipeline only truly runs once
-  pushed to GitHub. Treat the first real CI run as the verification step.
+- CI/deploy drafted (founder asked to prep them while the VPS is pending). The
+  PR pipeline is now VERIFIED GREEN on GitHub runners (all 3 jobs: build+test
+  incl. Testcontainers integration, contrast, Playwright e2e w/ screenshot
+  artifacts). First run caught a real bug — Npgsql 8+ needs EnableDynamicJson()
+  for the events jsonb column (POST /api/events 500'd with properties set);
+  fixed in NpgsqlConfig.UseBarBrainNpgsql(), shared by app/factory/tests.
+  The deploy pipeline remains unexercised until the VPS + secrets exist.
 - Image names: GHCR uses lowercase `ghcr.io/<owner>/barbrain-{api,web}`; the prod
   overlay defaults and deploy scripts derive/lowercase this automatically.
 
@@ -85,10 +88,10 @@ here: `dotnet build` (solution, 0 warnings) and `dotnet test` (2 passed, 6 skipp
 for absent Docker). All three run in CI / on a dev machine with Docker + Node.
 
 ## Next session should
-Once HUMAN-CHECKLIST 1,2,3,5 are done: push and watch the first CI run (fix any
-runner-only issues), set the CI checks as required in branch protection, run
+CI is verified green on sprint-0 (PR #1). Once HUMAN-CHECKLIST 2,3,5 are done:
+set the three CI jobs as required checks in branch protection, run
 `infra/provision.sh` on the VPS, configure Cloudflare Access, do the first
 `infra/deploy.sh prod`, and confirm `dev.barbrain.app/health` returns version+sha.
-That closes the remaining Sprint 0 acceptance criteria. Then add fonts/logo
-assets (item 14) and start Sprint 1 (catalog schema — the expensive-to-reverse
-gate).
+That closes the remaining Sprint 0 acceptance criteria and unblocks merging
+PR #1. Then add fonts/logo assets (item 14) and start Sprint 1 (catalog schema —
+the expensive-to-reverse gate).
