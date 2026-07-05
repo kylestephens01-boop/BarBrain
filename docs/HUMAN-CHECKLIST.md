@@ -4,7 +4,7 @@ Est. ~45–60 min total. Items 1–5 block Sprint 0; the rest block later sprint
 1. GitHub: create private repo `barbrain` (personal acct). Add this docs pack.
    Enable branch protection on main (PRs required, CI required). [Sprint 0]
 2. Hetzner: account + CX22 VPS (Ubuntu 24.04). Note IP. Add SSH key. [Sprint 0]
-3. Cloudflare: add domain, point `dev.barbrain.app` → VPS IP (proxied). Enable
+3. Cloudflare: add domain, point `dev.barbrain.co` → VPS IP (proxied). Enable
    Cloudflare Access (or basic auth) on dev until the trademark knockout clears.
    [Sprint 0]
 4. Domains (if not already done): barbrain.app/.io/.ai + getbarbrain.com

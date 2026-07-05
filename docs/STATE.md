@@ -91,7 +91,7 @@ for absent Docker). All three run in CI / on a dev machine with Docker + Node.
 CI is verified green on sprint-0 (PR #1). Once HUMAN-CHECKLIST 2,3,5 are done:
 set the three CI jobs as required checks in branch protection, run
 `infra/provision.sh` on the VPS, configure Cloudflare Access, do the first
-`infra/deploy.sh prod`, and confirm `dev.barbrain.app/health` returns version+sha.
+`infra/deploy.sh prod`, and confirm `dev.barbrain.co/health` returns version+sha.
 That closes the remaining Sprint 0 acceptance criteria and unblocks merging
 PR #1. Then add fonts/logo assets (item 14) and start Sprint 1 (catalog schema —
 the expensive-to-reverse gate).

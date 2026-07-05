@@ -18,7 +18,7 @@ npm run e2e:headed     # watch it
 npm run report         # open the HTML report
 ```
 
-Target a different host with `BASE_URL`, e.g. `BASE_URL=https://dev.barbrain.app npm run e2e`.
+Target a different host with `BASE_URL`, e.g. `BASE_URL=https://dev.barbrain.co npm run e2e`.
 
 ## What it checks (Sprint 0)
 - The web shell loads (Blazor WASM boots, wordmark renders).
