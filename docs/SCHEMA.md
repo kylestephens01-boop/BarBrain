@@ -1,7 +1,7 @@
 # SCHEMA — Sprint 1 catalog (Gate A review artifact)
 
 The expensive-to-reverse decisions live here. Everything below ships in
-migration `20260706213453_Sprint1Catalog` on top of Sprint 0's
+migration `20260706220913_Sprint1Catalog` on top of Sprint 0's
 `InitialCreate` (settings, events). Column names are PascalCase (EF
 convention, matching Sprint 0); table names snake_case.
 

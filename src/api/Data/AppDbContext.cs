@@ -152,7 +152,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
             e.HasIndex(s => new { s.Category, s.Code }).IsUnique()
                 .HasFilter("\"Code\" IS NOT NULL");
-            e.HasIndex(s => new { s.Category, s.NormalizedName }).IsUnique();
+            // NOT unique: BJCP legitimately reuses a name across tree levels
+            // (category 29 "Fruit Beer" contains substyle 29A "Fruit Beer").
+            // Code is the unique handle; this index only serves name lookups.
+            e.HasIndex(s => new { s.Category, s.NormalizedName });
         });
 
         modelBuilder.Entity<AttributeDefinition>(e =>

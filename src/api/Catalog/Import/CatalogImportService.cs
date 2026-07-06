@@ -189,8 +189,12 @@ public sealed class CatalogImportService(
         var styles = await db.Styles.AsNoTracking().ToListAsync(ct);
         var stylesByCategoryCode = styles.Where(s => s.Code != null)
             .ToDictionary(s => (s.Category, s.Code!), s => s.Id);
+        // Names are NOT unique across tree levels (BJCP 29/29A "Fruit Beer");
+        // prefer the leaf (has a parent) when a name is ambiguous.
         var stylesByCategoryName = styles
-            .ToDictionary(s => (s.Category, s.NormalizedName), s => s.Id);
+            .GroupBy(s => (s.Category, s.NormalizedName))
+            .ToDictionary(g => g.Key,
+                g => g.OrderByDescending(s => s.ParentStyleId != null).First().Id);
 
         int created = 0, updated = 0, unchanged = 0, skipped = 0;
         var touchedDrinks = new List<Guid>();

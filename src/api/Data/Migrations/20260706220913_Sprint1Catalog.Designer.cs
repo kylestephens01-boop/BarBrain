@@ -14,7 +14,7 @@ using Pgvector;
 namespace BarBrain.Api.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260706213453_Sprint1Catalog")]
+    [Migration("20260706220913_Sprint1Catalog")]
     partial class Sprint1Catalog
     {
         /// <inheritdoc />
@@ -548,8 +548,7 @@ namespace BarBrain.Api.Data.Migrations
                         .IsUnique()
                         .HasFilter("\"Code\" IS NOT NULL");
 
-                    b.HasIndex("Category", "NormalizedName")
-                        .IsUnique();
+                    b.HasIndex("Category", "NormalizedName");
 
                     b.ToTable("styles", null, t =>
                         {

@@ -448,8 +448,7 @@ namespace BarBrain.Api.Data.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_styles_Category_NormalizedName",
                 table: "styles",
-                columns: new[] { "Category", "NormalizedName" },
-                unique: true);
+                columns: new[] { "Category", "NormalizedName" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_styles_ParentStyleId",

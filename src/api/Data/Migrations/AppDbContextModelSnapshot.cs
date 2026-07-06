@@ -545,8 +545,7 @@ namespace BarBrain.Api.Data.Migrations
                         .IsUnique()
                         .HasFilter("\"Code\" IS NOT NULL");
 
-                    b.HasIndex("Category", "NormalizedName")
-                        .IsUnique();
+                    b.HasIndex("Category", "NormalizedName");
 
                     b.ToTable("styles", null, t =>
                         {
