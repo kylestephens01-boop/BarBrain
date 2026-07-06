@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Idempotent VPS provisioning for BarBrain (Ubuntu 24.04, run as root).
+# Idempotent VPS provisioning for BarBrain (targets Ubuntu 24.04/noble, run as
+# root; the Docker apt repo is pinned to noble for forward compat with 26.04,
+# which Docker has no repo for yet).
 # Hardens the host and installs Docker so the compose stack can be deployed.
 # Safe to re-run. Does NOT deploy the app — that's deploy.sh / the CI pipeline.
 #
@@ -27,7 +29,7 @@ if ! command -v docker >/dev/null 2>&1; then
   install -m 0755 -d /etc/apt/keyrings
   curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
   chmod a+r /etc/apt/keyrings/docker.gpg
-  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu noble stable" \
     > /etc/apt/sources.list.d/docker.list
   apt-get update -y
   apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
