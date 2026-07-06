@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Pgvector.EntityFrameworkCore;
 
 namespace BarBrain.Api.Data;
 
@@ -19,6 +20,9 @@ public static class NpgsqlConfig
             // Without this, any event write with properties throws (CI caught
             // it: POST /api/events returned 500 whenever properties was set).
             npgsql.ConfigureDataSource(ds => ds.EnableDynamicJson());
+
+            // pgvector mapping for the attribute-similarity columns (ADR-025).
+            npgsql.UseVector();
 
             if (enableRetry)
                 npgsql.EnableRetryOnFailure();

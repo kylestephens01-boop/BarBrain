@@ -13,6 +13,7 @@
     <!-- Npgsql 10.0.2 pins EF Relational 10.0.4; bump it so the whole EF graph
          (Design, tests) unifies on 10.0.9 and the build stays warning-free. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.9" />
+    <PackageReference Include="Pgvector.EntityFrameworkCore" Version="0.3.0" />
   </ItemGroup>
 
   <PropertyGroup>
