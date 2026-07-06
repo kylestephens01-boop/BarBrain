@@ -69,6 +69,11 @@ jobs:
           docker compose -f infra/docker-compose.yml logs
           exit 1
 
+      - name: Seed catalog (bundled seeds + merge-queue demo fixtures)
+        run: |
+          docker compose -f infra/docker-compose.yml exec -T api dotnet BarBrain.Api.dll import bundled
+          docker compose -f infra/docker-compose.yml exec -T api dotnet BarBrain.Api.dll import demo-dupes
+
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
@@ -81,6 +86,20 @@ jobs:
           npm install
           npx playwright install --with-deps chromium
           npm run e2e
+
+      - name: Seed verification report (Sprint 1 acceptance artifact)
+        if: always()
+        run: |
+          docker compose -f infra/docker-compose.yml exec -T api \
+            dotnet BarBrain.Api.dll report --out /tmp/seed-report.md
+          docker compose -f infra/docker-compose.yml cp api:/tmp/seed-report.md seed-report.md
+
+      - name: Upload seed report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seed-report
+          path: seed-report.md
 
       - name: Upload screenshots + report
         uses: actions/upload-artifact@v4
