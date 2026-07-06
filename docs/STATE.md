@@ -2,10 +2,11 @@
 > Agents: update this at the END of every session. Keep it short and factual.
 
 ## Current sprint
-Sprint 0 — Foundation. Local development stack built; CI/CD + VPS deploy now
-DRAFTED (workflows + scripts in repo). The PR pipeline runs on GitHub-hosted
-runners with no VPS, so it gates PRs immediately; the deploy pipeline goes live
-once the VPS + secrets land (HUMAN-CHECKLIST 2,3,5).
+Sprint 0 — SHIPPED and live (PR #1 merged; deployed to the Hetzner VPS behind
+Cloudflare at dev.barbrain.co). Sprint 0.5 = small cleanup branch fixing gaps
+hit during the first real deploy: /version reported "local" instead of the
+commit SHA (broke the deploy health check), provision.sh didn't seed infra/.env,
+and two doc corrections (domains, Cloudflare TLS mode).
 
 ## Done
 - Solution skeleton (`.slnx`): `src/shared` (contracts), `src/api` (minimal API),
@@ -44,6 +45,15 @@ once the VPS + secrets land (HUMAN-CHECKLIST 2,3,5).
   22/80/443 only, fail2ban, unattended-upgrades) and `infra/deploy.sh` (manual
   deploy + health check). Dev-site privacy: Cloudflare Access primary, Caddy
   basic-auth fallback (commented in `infra/Caddyfile`).
+- Sprint 0.5 cleanup: deploy pipeline now exports GIT_SHA so compose doesn't
+  clobber the baked image SHA with infra/.env's old `GIT_SHA=local` (root cause
+  of the false-failing deploy health check); prod overlay defaults GIT_SHA to
+  empty → BuildInfo falls back to the SHA baked at image build; `GIT_SHA=local`
+  removed from .env.example; deploy.sh exports HEAD for manual deploys;
+  provision.sh seeds infra/.env from .env.example when missing (never
+  overwrites); docs: domain reality (barbrain.co dev host, .app unavailable) +
+  Cloudflare "Flexible" TLS note in ARCHITECTURE.md (must be "Full" + origin
+  cert before public launch).
 
 ## In progress
 (none — clean stopping point)
@@ -88,10 +98,10 @@ here: `dotnet build` (solution, 0 warnings) and `dotnet test` (2 passed, 6 skipp
 for absent Docker). All three run in CI / on a dev machine with Docker + Node.
 
 ## Next session should
-CI is verified green on sprint-0 (PR #1). Once HUMAN-CHECKLIST 2,3,5 are done:
-set the three CI jobs as required checks in branch protection, run
-`infra/provision.sh` on the VPS, configure Cloudflare Access, do the first
-`infra/deploy.sh prod`, and confirm `dev.barbrain.co/health` returns version+sha.
-That closes the remaining Sprint 0 acceptance criteria and unblocks merging
-PR #1. Then add fonts/logo assets (item 14) and start Sprint 1 (catalog schema —
-the expensive-to-reverse gate).
+After the sprint-0.5 PR merges, watch the Deploy run — its health check should
+now match the real SHA at /version. One-time VPS tidy-up: delete the stale
+`GIT_SHA=local` line from `/opt/barbrain/infra/.env` (harmless now that deploys
+export GIT_SHA, but it's a landmine for anyone running compose by hand). Then
+add fonts/logo assets (HUMAN-CHECKLIST 14) and start Sprint 1 (catalog schema —
+the expensive-to-reverse gate). Pre-public-launch (post-knockout): Cloudflare
+SSL to "Full" + origin cert (see ARCHITECTURE.md).
