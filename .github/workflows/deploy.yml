@@ -78,6 +78,9 @@ jobs:
 
             export API_IMAGE=ghcr.io/${{ needs.build-push.outputs.repo }}-api:${{ github.sha }}
             export WEB_IMAGE=ghcr.io/${{ needs.build-push.outputs.repo }}-web:${{ github.sha }}
+            # Compose interpolates GIT_SHA into the api container env; the shell
+            # env outranks infra/.env, so this beats any stale GIT_SHA=local there.
+            export GIT_SHA=${{ github.sha }}
 
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 

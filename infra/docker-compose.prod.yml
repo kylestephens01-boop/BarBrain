@@ -25,6 +25,11 @@ services:
     ports: []
     environment:
       ASPNETCORE_ENVIRONMENT: Production
+      # In prod the SHA comes from the deploying shell (deploy.yml / deploy.sh
+      # export it). Default to EMPTY, not "local": an empty env var makes
+      # BuildInfo fall back to the SHA baked into the image at build time, so
+      # /version never reports "local" in prod even if the export is missed.
+      GIT_SHA: ${GIT_SHA:-}
 
   web:
     image: ${WEB_IMAGE:-ghcr.io/kylestephens01-boop/barbrain-web:latest}

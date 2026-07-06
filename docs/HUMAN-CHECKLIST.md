@@ -7,8 +7,10 @@ Est. ~45–60 min total. Items 1–5 block Sprint 0; the rest block later sprint
 3. Cloudflare: add domain, point `dev.barbrain.co` → VPS IP (proxied). Enable
    Cloudflare Access (or basic auth) on dev until the trademark knockout clears.
    [Sprint 0]
-4. Domains (if not already done): barbrain.app/.io/.ai + getbarbrain.com
-   (+ mybarbrain.com if free). [NOW — predates everything]
+4. Domains: barbrain.co OWNED and in use as the dev host (dev.barbrain.co).
+   barbrain.app was unavailable. Choosing the public-launch TLD (stay on .co
+   vs acquire .io/.ai/getbarbrain.com) is a post-knockout decision. [DONE for
+   dev; launch TLD decided post-knockout]
 5. GH Actions secrets: VPS_HOST, VPS_SSH_KEY, GHCR token. [Sprint 0]
 6. Transactional email provider (free tier: Resend/Brevo/SES). API key → secrets.
    PLUS a non-home physical mailing address for email footers (CAN-SPAM

@@ -7,6 +7,12 @@ Single VPS (Hetzner CX22) running Docker Compose: `api` (ASP.NET Core, Kestrel),
 Cloudflare in front (DNS, proxy, TLS). Local dev = identical compose on
 Win11 + WSL2 + Docker Desktop.
 
+TLS state (July 2026): Cloudflare SSL/TLS mode is "Flexible" — browsers get
+HTTPS at Cloudflare's edge, but the origin (Caddy on the VPS) serves plain HTTP
+behind Cloudflare's proxy. Acceptable for the Access-gated dev site only.
+Before any public launch this MUST move to "Full" with a Cloudflare origin
+certificate installed in Caddy, so the edge→origin hop is encrypted too.
+
 ## Projects
 - `src/shared`: DTOs, API contracts, enums — single source of truth for both ends.
 - `src/api`: minimal-API or controller endpoints; EF Core; FluentValidation;

@@ -25,6 +25,14 @@ if [[ -z "${API_IMAGE:-}" || -z "${WEB_IMAGE:-}" ]]; then
 fi
 export API_IMAGE WEB_IMAGE
 
+# Same trap as the images: compose interpolates GIT_SHA into the api container
+# env, and a stale GIT_SHA=local in infra/.env would override the SHA baked into
+# the image. Export the checkout's HEAD so manual deploys report the real SHA.
+if [[ -z "${GIT_SHA:-}" ]]; then
+  GIT_SHA="$(git rev-parse HEAD 2>/dev/null || true)"
+fi
+export GIT_SHA
+
 echo "==> Deploying ($ENVIRONMENT)"
 echo "    api: $API_IMAGE"
 echo "    web: $WEB_IMAGE"

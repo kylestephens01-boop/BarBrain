@@ -64,11 +64,26 @@ if [[ ! -d "${APP_DIR}/.git" ]]; then
   fi
 fi
 
+echo "==> Compose env file (infra/.env)"
+# deploy.sh / docker compose need infra/.env to exist. Seed it from the example
+# on first provision; NEVER overwrite an existing .env (it holds real secrets).
+if [[ -f "${APP_DIR}/infra/.env" ]]; then
+  echo "    infra/.env already exists — left untouched."
+elif [[ -f "${APP_DIR}/infra/.env.example" ]]; then
+  cp "${APP_DIR}/infra/.env.example" "${APP_DIR}/infra/.env"
+  echo "    Created infra/.env from infra/.env.example."
+  echo "    *** NOTICE: it contains PLACEHOLDER values only. Edit ${APP_DIR}/infra/.env"
+  echo "    *** and set real secrets (POSTGRES_PASSWORD, ADMIN_TOKEN) before deploying."
+else
+  echo "    Repo checkout not found — skipped. Clone the repo, then re-run this script."
+fi
+
 cat <<EOF
 
 ==> Provisioning complete.
 Next:
-  1) cd ${APP_DIR} && cp infra/.env.example infra/.env   # then fill secrets
+  1) Edit ${APP_DIR}/infra/.env and set real secrets (placeholders were seeded
+     from infra/.env.example).
   2) Configure Cloudflare Access on the dev hostname (dev-site privacy gate),
      or enable Caddy basic-auth (see infra/Caddyfile).
   3) First deploy:  ./infra/deploy.sh prod
