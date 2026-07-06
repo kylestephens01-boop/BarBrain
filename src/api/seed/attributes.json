@@ -1,0 +1,28 @@
+[
+  { "key": "beer.sweetness",  "category": "beer", "dimIndex": 0, "bridgeIndex": 0, "displayName": "Sweetness",  "description": "Residual sweetness in the finished beer, from bone-dry to dessert-like." },
+  { "key": "beer.bitterness", "category": "beer", "dimIndex": 1, "bridgeIndex": 1, "displayName": "Bitterness", "description": "Perceived hop bitterness in the finish, independent of hop aroma." },
+  { "key": "beer.body",       "category": "beer", "dimIndex": 2, "bridgeIndex": 2, "displayName": "Body",       "description": "Weight and fullness on the palate, from light and crisp to thick and chewy." },
+  { "key": "beer.smoke",      "category": "beer", "dimIndex": 3, "bridgeIndex": 3, "displayName": "Smoke & Roast", "description": "Smoked-malt and dark-roast character: coffee, char, campfire." },
+  { "key": "beer.fruit",      "category": "beer", "dimIndex": 4, "bridgeIndex": 4, "displayName": "Fruitiness", "description": "Fruit character from yeast esters, hops, or added fruit." },
+  { "key": "beer.acidity",    "category": "beer", "dimIndex": 5, "bridgeIndex": 5, "displayName": "Tartness",   "description": "Acidity and sourness, from none to puckering." },
+  { "key": "beer.hops",       "category": "beer", "dimIndex": 6, "bridgeIndex": null, "displayName": "Hop Character", "description": "Intensity of hop flavor and aroma — pine, citrus, tropical, floral — distinct from bitterness." },
+  { "key": "beer.malt",       "category": "beer", "dimIndex": 7, "bridgeIndex": null, "displayName": "Malt Richness", "description": "Bread, caramel, toffee, and toast depth from the grain bill." },
+
+  { "key": "whiskey.sweetness", "category": "whiskey", "dimIndex": 0, "bridgeIndex": 0, "displayName": "Sweetness", "description": "Perceived sweetness: caramel, honey, vanilla, brown sugar." },
+  { "key": "whiskey.tannin",    "category": "whiskey", "dimIndex": 1, "bridgeIndex": 1, "displayName": "Oak Grip",  "description": "Drying, astringent barrel tannin and bitter grip in the finish." },
+  { "key": "whiskey.body",      "category": "whiskey", "dimIndex": 2, "bridgeIndex": 2, "displayName": "Body",      "description": "Mouthfeel weight, from light and delicate to thick and oily." },
+  { "key": "whiskey.smoke",     "category": "whiskey", "dimIndex": 3, "bridgeIndex": 3, "displayName": "Smoke & Peat", "description": "Peat smoke, barrel char, and ash character." },
+  { "key": "whiskey.fruit",     "category": "whiskey", "dimIndex": 4, "bridgeIndex": 4, "displayName": "Fruitiness", "description": "Orchard, citrus, and dried-fruit notes: apple, cherry, raisin, fig." },
+  { "key": "whiskey.acidity",   "category": "whiskey", "dimIndex": 5, "bridgeIndex": 5, "displayName": "Brightness", "description": "Lift and zing on the palate — citrusy, vibrant vs. flat and heavy." },
+  { "key": "whiskey.spice",     "category": "whiskey", "dimIndex": 6, "bridgeIndex": null, "displayName": "Spice", "description": "Rye pepper and baking spice: cinnamon, clove, nutmeg, black pepper." },
+  { "key": "whiskey.oak",       "category": "whiskey", "dimIndex": 7, "bridgeIndex": null, "displayName": "Oak & Vanilla", "description": "Barrel-derived flavor: vanilla, toast, coconut, toasted wood." },
+
+  { "key": "wine.sweetness",  "category": "wine", "dimIndex": 0, "bridgeIndex": 0, "displayName": "Sweetness",  "description": "Residual sugar, from bone-dry to lusciously sweet." },
+  { "key": "wine.tannin",     "category": "wine", "dimIndex": 1, "bridgeIndex": 1, "displayName": "Tannin",     "description": "Drying grip from grape skins and oak, mostly in reds." },
+  { "key": "wine.body",       "category": "wine", "dimIndex": 2, "bridgeIndex": 2, "displayName": "Body",       "description": "Weight on the palate, from light and airy to full and dense." },
+  { "key": "wine.smoke",      "category": "wine", "dimIndex": 3, "bridgeIndex": 3, "displayName": "Smoke & Toast", "description": "Smoky, toasty character from oak or a smoky minerality." },
+  { "key": "wine.fruit",      "category": "wine", "dimIndex": 4, "bridgeIndex": 4, "displayName": "Fruitiness", "description": "Fruit intensity and ripeness, from subtle to jammy." },
+  { "key": "wine.acidity",    "category": "wine", "dimIndex": 5, "bridgeIndex": 5, "displayName": "Acidity",    "description": "Freshness and zip; makes the mouth water." },
+  { "key": "wine.minerality", "category": "wine", "dimIndex": 6, "bridgeIndex": null, "displayName": "Minerality", "description": "Stony, chalky, saline notes beyond fruit and oak." },
+  { "key": "wine.oak",        "category": "wine", "dimIndex": 7, "bridgeIndex": null, "displayName": "Oak", "description": "Barrel influence: vanilla, baking spice, butter, toast." }
+]
