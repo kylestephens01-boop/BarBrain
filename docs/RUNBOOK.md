@@ -24,6 +24,42 @@ Health: http://localhost:5000/health · stop: `docker compose -f infra/docker-co
 - `GET /version` → `{ version, sha }`. Confirms which build is live.
 - The deploy gate polls `/health` and asserts the expected `sha`.
 
+## Catalog seeding (Sprint 1)
+The api binary doubles as the importer CLI (license gate: every source MUST
+have an entry in `docs/DATA-SOURCES.md` first — ADR-024). All commands are
+idempotent; re-runs create no duplicates.
+
+Local (`dotnet run --project src/api -- <cmd>`) or in the container
+(`docker compose -f infra/docker-compose.yml exec -T api dotnet BarBrain.Api.dll <cmd>`;
+add the prod overlay `-f` on the VPS):
+
+```bash
+# Bundled, offline, license-safe seeds: attribute vocabulary → styles → corridor list
+… import bundled
+
+# Open Brewery DB (MIT; PRODUCERS ONLY — ADR-020). Download the CSV first:
+curl -L -o /tmp/obdb.csv https://raw.githubusercontent.com/openbrewerydb/openbrewerydb/master/breweries.csv
+… import openbrewerydb --file /tmp/obdb.csv
+
+# beer.db (github.com/openbeer — public domain; NOT openbeerdb.com/ODbL).
+# License-cleared but 2012–2013 vintage; founder judgment call (DATA-SOURCES.md).
+git clone --depth 1 https://github.com/openbeer/us-united-states /tmp/openbeer-us
+… import beerdb --dir /tmp/openbeer-us
+
+# TTB COLA sample batch (public domain). Full extraction is deferred background work.
+… import ttb-sample --file <sample.csv>
+
+# Near-duplicate fixtures for the merge-queue demo (CI/e2e use this)
+… import demo-dupes
+
+# Seed verification report (counts, coverage %, duplicate-rate estimate)
+… report --out seed-report.md
+```
+
+Merge review: `/admin/merge-queue` in the web app (admin token). Thresholds
+and inherited-value confidence are settings flags (`catalog.*`), editable via
+the admin settings API without a deploy.
+
 ## VPS provisioning (one-time)
 Run on a fresh Ubuntu 24.04 box as root (idempotent — safe to re-run):
 ```bash

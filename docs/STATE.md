@@ -2,11 +2,16 @@
 > Agents: update this at the END of every session. Keep it short and factual.
 
 ## Current sprint
-Sprint 0 — SHIPPED and live (PR #1 merged; deployed to the Hetzner VPS behind
-Cloudflare at dev.barbrain.co). Sprint 0.5 = small cleanup branch fixing gaps
-hit during the first real deploy: /version reported "local" instead of the
-commit SHA (broke the deploy health check), provision.sh didn't seed infra/.env,
-and two doc corrections (domains, Cloudflare TLS mode).
+Sprint 1 — Catalog & Data Foundation (branch `sprint-1`, PR pending founder's
+Gate A review). Schema + migration + importers + search + merge queue + seed
+data are BUILT and CI-tested; the BULK seed run (Open Brewery DB ≥1k
+producers, beer.db products) happens on the VPS post-merge per RUNBOOK — the
+≥1,000-producers / ≥2,000-beer-products acceptance numbers are gated on that
+run, not on this PR. Founder decisions A–E applied throughout: no BJCP text
+(ADR-023), DATA-SOURCES.md license gate (ADR-024; openbeerdb.com = ODbL =
+prohibited, openbeer/geraldb = PD = cleared w/ staleness caveat), pgvector
+recs first / CF deferred (ADR-025), ownership+visibility constraints day one
+(ADR-026), charter proposals drafted (docs/project-charter.md).
 
 ## Done
 - Solution skeleton (`.slnx`): `src/shared` (contracts), `src/api` (minimal API),
@@ -55,14 +60,35 @@ and two doc corrections (domains, Cloudflare TLS mode).
   Cloudflare "Flexible" TLS note in ARCHITECTURE.md (must be "Full" + origin
   cert before public launch).
 
-## In progress
-(none — clean stopping point)
+- Sprint 1 catalog: schema (users stub, producers, styles, attribute_definitions,
+  style_attributes, drinks, drink_attributes, merge_queue) in migration
+  `Sprint1Catalog` — CHECK constraints + composite category-coherence FKs +
+  partial uniques + HNSW/trgm indexes (docs/SCHEMA.md = annotated ERD, the
+  Gate A artifact). AttributeVectorService (relational truth → derived
+  vectors; inheritance materialized w/ provenance), NameNormalizer,
+  MergeService (trgm candidates, approve=redirect, reject=remembered),
+  CatalogQueryService (trgm search, browse, style trees, redirect-following
+  detail). CLI importers (api binary: `import bundled|openbrewerydb|beerdb|
+  ttb-sample|demo-dupes`, `report`) — license-gated per DATA-SOURCES.md.
+  Seed data: 24-term attribute vocabulary; 140 beer styles (full BJCP 2021
+  list, names/codes/ranges only + our baselines), 20 whiskey + 35 wine
+  styles; corridor list (~35 producers, ~70 drinks, all 3 categories, 100%
+  vector coverage via inheritance). Catalog + admin-merge APIs; /admin/
+  merge-queue web stub (dark tokens, keyboard-operable); e2e admin-merge
+  spec + CI seeds the stack and uploads the seed report artifact. Tests:
+  migrate-from-empty (updated), migrate-FROM-SPRINT-0 (new), importer
+  idempotency, corridor coverage, constraint rejections, cosine sanity,
+  4 search acceptance queries, merge approve/reject/redirect.
 
-## Blockers / needs founder
-- HUMAN-CHECKLIST 2,3,5 (VPS, Cloudflare/dev-auth, GH secrets) gate CI + deploy.
-- HUMAN-CHECKLIST 14: font WOFF2 files + logo SVG/raster icons. `@font-face` is
-  wired with graceful system-ui fallback; `src/web/wwwroot` still has the
-  template placeholder icons. Drop assets per `src/web/wwwroot/fonts/README.md`.
+## In progress
+(none — clean stopping point; Gate A review is the blocker by design)
+
+## Blockers / needs founder (Sprint 0 era — mostly cleared)
+- ~~HUMAN-CHECKLIST 2,3,5~~ DONE: VPS live, Cloudflare Access on, deploys green.
+- HUMAN-CHECKLIST 14 (still open): font WOFF2 files + logo SVG/raster icons.
+  `@font-face` is wired with graceful system-ui fallback; `src/web/wwwroot`
+  still has template placeholder icons. Drop assets per
+  `src/web/wwwroot/fonts/README.md`.
 
 ## Decisions made within spec bounds (log)
 - Solution uses the new `.slnx` format (SDK 10 default).
@@ -97,11 +123,24 @@ integration tests, and Playwright were authored but not executed locally. Verifi
 here: `dotnet build` (solution, 0 warnings) and `dotnet test` (2 passed, 6 skipped
 for absent Docker). All three run in CI / on a dev machine with Docker + Node.
 
+## Blockers / needs founder (Sprint 1)
+- **Gate A review** (the long sitting): docs/SCHEMA.md + migration + the
+  attribute baseline numbers in `src/api/seed/styles.*.json` (10 drinks you
+  know: do the numbers smell right?) + search queries + merge-queue demo
+  (e2e screenshot artifact in CI).
+- **beer.db judgment call**: license cleared (PD) but data is 2012–2013;
+  ingest for bulk or skip for quality? (DATA-SOURCES.md.)
+- **Charter proposals** P1–P3 in docs/project-charter.md (domain reality,
+  moat reframe, rec sequencing); P2 would also amend ADR-022 on approval.
+- Settled charter text was never committed — paste it into
+  docs/project-charter.md above the marker when convenient.
+
 ## Next session should
-After the sprint-0.5 PR merges, watch the Deploy run — its health check should
-now match the real SHA at /version. One-time VPS tidy-up: delete the stale
-`GIT_SHA=local` line from `/opt/barbrain/infra/.env` (harmless now that deploys
-export GIT_SHA, but it's a landmine for anyone running compose by hand). Then
-add fonts/logo assets (HUMAN-CHECKLIST 14) and start Sprint 1 (catalog schema —
-the expensive-to-reverse gate). Pre-public-launch (post-knockout): Cloudflare
-SSL to "Full" + origin cert (see ARCHITECTURE.md).
+After Gate A approval + merge: run the bulk seed on the VPS per RUNBOOK
+("Catalog seeding") — `import bundled`, Open Brewery DB CSV (→ ≥1k producers),
+founder-decided beer.db, then `report` to verify the acceptance numbers; check
+the Deploy health gate matches the SHA. Remaining from 0.5: delete stale
+`GIT_SHA=local` from `/opt/barbrain/infra/.env`; fonts/logo assets
+(HUMAN-CHECKLIST 14). Then Sprint 2 (identity/auth — enforce authz against
+the ADR-026 ownership/visibility columns). Pre-public-launch (post-knockout):
+Cloudflare SSL to "Full" + origin cert (see ARCHITECTURE.md).
