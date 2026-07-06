@@ -28,6 +28,8 @@ code. Origin: founder's "eager now, conservative at scale" requirement.
 **ADR-007 — Hand-rolled CF v1 (Pearson, mean-centered, nightly batch).**
 Transparent, sufficient at MVP scale. Upgrade path: ML.NET Matrix Factorization.
 Deep learning deferred indefinitely.
+*Amended by ADR-025 (July 2026): CF is DEFERRED in sequencing — pgvector
+attribute similarity ships first; this ADR's design stands for when CF lands.*
 
 **ADR-008 — Canonical drink = (producer, product, category).**
 Package format = rating metadata. Wine vintage = rating metadata, single entity.
@@ -89,3 +91,43 @@ proof. Sequence: M1–4 maximize data machinery; M4–8 founder hours to venues.
 Data-asset metrics dashboarded beside retention. Untappd cross-category launch
 triggers RE-EVALUATION, not auto-fold, if venue renewals or dataset depth hold
 value. Home Bar library deliberately remains distant backlog (founder, 2026-06-11).
+*Note: a moat REFRAME (operational corridor moat primary, dataset supporting)
+is PROPOSED in docs/project-charter.md and awaits founder review; this ADR is
+unchanged until that is adjudicated.*
+
+**ADR-023 — Licensing-safe style modeling (founder decision, July 2026).**
+No BJCP (or other) guideline prose is ingested or stored — copyright-
+incompatible with a revenue app. Styles carry ONLY: name, style/category code,
+and structural numeric parameters (ABV/IBU/SRM/OG/FG ranges), plus BarBrain's
+own original flavor-attribute vocabulary and editorial baseline values. The
+`styles` table deliberately has no description column; rich descriptive text
+may be added later ONLY under explicit permission (additive migration).
+
+**ADR-024 — Data-source license gate (founder decision, July 2026).**
+docs/DATA-SOURCES.md is a binding registry: every external dataset gets an
+entry (exact upstream URL, license, quoted wording, capture date) BEFORE any
+ingestion. Share-alike (ODbL etc.) or ambiguous licensing → STOP and flag the
+founder. Known trap: openbeerdb.com (ODbL, prohibited) is a DIFFERENT project
+from github.com/openbeer aka geraldb beer.db (public domain, permitted).
+Open Brewery DB (MIT, producers only) and TTB COLA (US-gov PD) pre-approved
+with attribution. Competitor databases never (Hard Rule 1).
+
+**ADR-025 — pgvector attribute similarity is the PRIMARY rec mechanism; CF
+deferred (founder decision, July 2026).** Per-drink attribute vectors (8-dim
+per category + 6-dim cross-category bridge, ADR-009) power recommendations
+from day one: relational `drink_attributes` is the auditable source of truth;
+derived `vector` columns (HNSW, cosine) serve similarity. Collaborative
+filtering (ADR-007) is deferred — no CF tables/jobs now. The upgrade path CF
+needs is preserved by design: append-only rating history (ADR-012) and the
+first-party events table (ADR-017) supply the co-rating matrix later without
+schema rework.
+
+**ADR-026 — Ownership + visibility columns from day one (founder decision,
+July 2026).** Every user-ownable entity ships in its INITIAL schema with
+`created_by_user_id` (FK to `users`) and `visibility`
+('public'|'private'), enforced by DB constraints — not app checks alone —
+including `CHECK (created_by_user_id IS NOT NULL OR visibility = 'public')`
+(ownerless/imported rows cannot be private). A minimal pseudonymous `users`
+stub table (id, nullable unique handle, created_at — zero PII, zero auth
+columns) exists so these FKs are real; Sprint 2 extends it additively and
+enforces authz against these exact columns.
