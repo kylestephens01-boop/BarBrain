@@ -42,7 +42,7 @@ against compose stack→upload screenshots+coverage. Merge to main: build images
 PRs only, CI required.
 
 ## Environments
-local (compose) · preview/prod (same VPS, dev.barbrain.app → prod domain at
+local (compose) · preview/prod (same VPS, dev.barbrain.co → prod domain at
 launch; promote by tag). Secrets: GH Actions secrets + .env on VPS (never in repo).
 
 ## Observability

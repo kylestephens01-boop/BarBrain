@@ -1,0 +1,53 @@
+/* =============================================================================
+   BarBrain design tokens — the SINGLE source of truth for color, type & shape.
+   Mirrors docs/BRAND.md. No component may hardcode a color, font, or radius;
+   everything references a --bb-* token. MVP is DARK-ONLY (ADR-021): there are
+   no light-mode variants here by design.
+
+   Two-temperature grammar (binding):
+     --bb-pour    (amber) accents BEVERAGE objects only.
+     --bb-synapse (teal)  accents RECOMMENDATION / INTELLIGENCE objects only.
+   Never swapped, never decorative.
+   ========================================================================== */
+
+:root {
+  /* --- Core palette (docs/BRAND.md) ------------------------------------- */
+  --bb-ink: #141A24;          /* last call — default app background */
+  --bb-surface: #1F2937;      /* back bar — cards, inputs */
+  --bb-pour: #E8A23B;         /* amber — BEVERAGE objects only */
+  --bb-synapse: #46C0B0;      /* teal — INTELLIGENCE objects only */
+  --bb-coaster: #F2EDE3;      /* primary text on dark */
+  --bb-bitters: #C2554A;      /* destructive/warning, large text only on ink */
+  --bb-text-muted: #8A94A6;   /* secondary text */
+
+  /* Design-reference alias: DESIGN-REFERENCE.md refers to --bb-muted.
+     Canonical name is --bb-text-muted (BRAND.md); keep this alias in sync. */
+  --bb-muted: var(--bb-text-muted);
+
+  /* --- Derived accents (referenced by component specs in DESIGN-REFERENCE) -- */
+  --bb-pour-tint: rgba(232, 162, 59, 0.12);     /* beverage icon boxes / pills */
+  --bb-synapse-tint: rgba(70, 192, 176, 0.12);  /* intelligence pills / verified */
+  --bb-bitters-tint: rgba(194, 85, 74, 0.12);   /* wine category tint */
+  --bb-stroke: #4A5568;        /* empty-star stroke, locked-badge icon */
+  --bb-bar-track: rgba(255, 255, 255, 0.06);    /* attribute-bar background */
+  --bb-hairline: rgba(255, 255, 255, 0.08);     /* card dividers / borders */
+
+  /* --- Typography (docs/BRAND.md type scale) --------------------------- */
+  --bb-font-display: 'Space Grotesk', system-ui, sans-serif;
+  --bb-font-ui: 'Inter', system-ui, sans-serif;
+  --bb-fw-regular: 400;
+  --bb-fw-medium: 500;
+
+  --bb-fs-display: 40px;  --bb-lh-display: 44px;  /* Space Grotesk 500 */
+  --bb-fs-h1: 28px;       --bb-lh-h1: 34px;
+  --bb-fs-stat: 24px;     --bb-lh-stat: 28px;
+  --bb-fs-h2: 20px;       --bb-lh-h2: 26px;
+  --bb-fs-body: 15px;     --bb-lh-body: 24px;     /* Inter */
+  --bb-fs-label: 13px;    --bb-lh-label: 18px;    /* Inter 500 */
+  --bb-fs-caption: 12px;  --bb-lh-caption: 16px;
+
+  /* --- Shape & interaction -------------------------------------------- */
+  --bb-radius: 12px;       /* cards */
+  --bb-radius-sm: 10px;    /* icon boxes */
+  --bb-tap: 44px;          /* minimum tap target (one-handed, low-light) */
+}

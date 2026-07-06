@@ -1,0 +1,79 @@
+@page "/"
+@inject HttpClient Http
+
+<PageTitle>BarBrain</PageTitle>
+
+@* Wordmark: "Bar" in coaster, "Brain" in pour amber — the documented,
+   deliberate exception to the two-temperature color grammar (docs/BRAND.md).
+   Do not "fix" the amber Brain. *@
+<h1 class="bb-display">Bar<span class="bb-pour">Brain</span></h1>
+
+<p class="bb-banner" data-testid="home-banner">@_banner</p>
+
+@if (_showStatus)
+{
+    <div class="bb-card" data-testid="health-card">
+        <span class="bb-label">API status</span>
+        <div class="bb-status" data-testid="health-status">
+            <span class="bb-dot @StatusDotClass" aria-hidden="true"></span>
+            @if (_health is not null)
+            {
+                <span>@_health.Status · v@_health.Version · @_health.Sha</span>
+            }
+            else
+            {
+                <span>@(_healthChecked ? "unreachable" : "checking…")</span>
+            }
+        </div>
+    </div>
+}
+
+<p class="bb-muted bb-foundation-note">
+    Sprint 0 foundation. Flip <code>home.banner_text</code> via the admin API to
+    change the line above without a redeploy.
+</p>
+
+@code {
+    private string _banner = "";
+    private bool _showStatus = true;
+    private HealthResponse? _health;
+    private bool _healthChecked;
+
+    private string StatusDotClass =>
+        _health is not null ? "bb-dot--ok" : (_healthChecked ? "bb-dot--down" : "");
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Flag-driven config (proof of the feature-flag pipeline).
+        try
+        {
+            var config = await Http.GetFromJsonAsync<HomeConfig>("api/config/home");
+            if (config is not null)
+            {
+                _banner = config.BannerText;
+                _showStatus = config.ShowStatus;
+            }
+        }
+        catch
+        {
+            _banner = "Know what you'll love.";
+        }
+
+        // Live API health (also the e2e smoke target).
+        if (_showStatus)
+        {
+            try
+            {
+                _health = await Http.GetFromJsonAsync<HealthResponse>("health");
+            }
+            catch
+            {
+                _health = null;
+            }
+            finally
+            {
+                _healthChecked = true;
+            }
+        }
+    }
+}

@@ -1,0 +1,99 @@
+# Main pipeline: build + push images to GHCR, then deploy to the VPS over SSH
+# and verify the new build is live. DRAFTED — requires the VPS and these repo
+# secrets to actually run (HUMAN-CHECKLIST 5):
+#   VPS_HOST, VPS_USER, VPS_SSH_KEY  — SSH to the Hetzner box
+#   GHCR_TOKEN                       — read:packages PAT for the VPS docker login
+# It also assumes /opt/barbrain on the VPS is a git checkout of this repo with a
+# populated .env (provision.sh + first manual deploy set that up).
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  build-push:
+    name: Build & push images (GHCR)
+    runs-on: ubuntu-latest
+    outputs:
+      repo: ${{ steps.meta.outputs.repo }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: meta
+        name: Lowercase image base (GHCR requires lowercase)
+        run: echo "repo=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push api
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/api/Dockerfile
+          push: true
+          build-args: GIT_SHA=${{ github.sha }}
+          tags: |
+            ghcr.io/${{ steps.meta.outputs.repo }}-api:latest
+            ghcr.io/${{ steps.meta.outputs.repo }}-api:${{ github.sha }}
+
+      - name: Build & push web
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/web/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ steps.meta.outputs.repo }}-web:latest
+            ghcr.io/${{ steps.meta.outputs.repo }}-web:${{ github.sha }}
+
+  deploy:
+    name: Deploy to VPS + health check
+    needs: build-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd /opt/barbrain
+            git fetch --depth 1 origin ${{ github.sha }}
+            git checkout -q ${{ github.sha }}
+
+            export API_IMAGE=ghcr.io/${{ needs.build-push.outputs.repo }}-api:${{ github.sha }}
+            export WEB_IMAGE=ghcr.io/${{ needs.build-push.outputs.repo }}-web:${{ github.sha }}
+
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            COMPOSE="docker compose -f infra/docker-compose.yml -f infra/docker-compose.prod.yml"
+            $COMPOSE pull
+            $COMPOSE up -d
+
+            # Verify the deployed SHA is live. Curl localhost on the VPS so the
+            # check bypasses Cloudflare Access on the public dev hostname.
+            for i in $(seq 1 30); do
+              got=$(curl -fsS http://localhost/version | sed -n 's/.*"sha":"\([^"]*\)".*/\1/p' || true)
+              if [ "$got" = "${{ github.sha }}" ]; then
+                echo "Deployed SHA is live: $got"; exit 0
+              fi
+              sleep 5
+            done
+            echo "Health check failed — deployed SHA never went live"
+            $COMPOSE logs --tail=100
+            exit 1

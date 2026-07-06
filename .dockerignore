@@ -1,0 +1,19 @@
+# Keep the build context small and reproducible — never ship host build output.
+**/bin/
+**/obj/
+**/.vs/
+**/node_modules/
+**/.git/
+**/.github/
+
+# Local secrets / env
+**/.env
+infra/.env
+
+# Test + tooling artifacts
+tests/e2e/test-results/
+tests/e2e/playwright-report/
+**/*.user
+
+# Docs aren't needed inside images
+docs/

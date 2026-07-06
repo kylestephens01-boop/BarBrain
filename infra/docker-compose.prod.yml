@@ -1,0 +1,34 @@
+# Prod overlay — applied ON TOP of docker-compose.yml on the Hetzner VPS:
+#   docker compose -f infra/docker-compose.yml -f infra/docker-compose.prod.yml up -d
+#
+# DEFERRED until the VPS is provisioned (HUMAN-CHECKLIST items 2-3). This is the
+# skeleton: hardening that's safe to declare now. The deploy pipeline and Caddy
+# TLS/auth specifics land with CI in a follow-up.
+#
+# Invariants enforced here:
+#   - Postgres is NOT published to any host port (Hard Rule 8).
+#   - The API is NOT published; only Caddy (web) faces the network.
+#   - Everything restarts unless explicitly stopped.
+name: barbrain
+
+services:
+  postgres:
+    restart: unless-stopped
+    # Override the local loopback mapping with none — DB stays internal.
+    ports: []
+
+  api:
+    # Default matches the lowercased GHCR names the deploy pipeline pushes;
+    # CI/deploy.sh override via $API_IMAGE / $WEB_IMAGE with the commit SHA tag.
+    image: ${API_IMAGE:-ghcr.io/kylestephens01-boop/barbrain-api:latest}
+    restart: unless-stopped
+    ports: []
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+
+  web:
+    image: ${WEB_IMAGE:-ghcr.io/kylestephens01-boop/barbrain-web:latest}
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"

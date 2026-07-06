@@ -1,6 +1,6 @@
 # Sprint 0 — Foundation
 **Objective:** a deployed hello-world with the full skeleton: anyone merging a PR
-sees it live at dev.barbrain.app minutes later.
+sees it live at dev.barbrain.co minutes later.
 **Prereqs:** HUMAN-CHECKLIST items 1–5.
 
 ## In scope
@@ -23,13 +23,13 @@ sees it live at dev.barbrain.app minutes later.
   DARK-ONLY — no light-mode variants.
 - CI contrast job: automated WCAG checks against the token file, INCLUDING
   text-on-surface pairs (e.g., muted on back-bar), not just background pairs.
-- Dev-site privacy: Cloudflare Access or basic auth on dev.barbrain.app until
+- Dev-site privacy: Cloudflare Access or basic auth on dev.barbrain.co until
   the trademark knockout clears (brand gate).
 
 ## Acceptance criteria
 - `docker compose up` locally → web at :5000 talking to api → green smoke e2e.
 - PR triggers CI; screenshots visible as artifacts; failing test blocks merge.
-- Merge to main auto-deploys; https://dev.barbrain.app/health returns version+sha.
+- Merge to main auto-deploys; https://dev.barbrain.co/health returns version+sha.
 - Settings flag flip via API changes a visible string on the home page (proof of
   the flag pipeline) without redeploy.
 - Restore-from-empty migration test green in CI.
@@ -39,6 +39,6 @@ sees it live at dev.barbrain.app minutes later.
 Any product feature. Auth. Real schema. Styling beyond a placeholder page.
 
 ## Gate (founder, ~10 min, phone)
-Open dev.barbrain.app — page loads w/ version. Check a PR: screenshots present,
+Open dev.barbrain.co — page loads w/ version. Check a PR: screenshots present,
 CI required. Flip the demo flag via admin endpoint (curl/Postman from desktop or
 ask agent to demo in PR video/gif) — page text changes. Approve → Sprint 1.
