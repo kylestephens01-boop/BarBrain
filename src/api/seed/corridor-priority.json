@@ -1,0 +1,138 @@
+{
+  "source": "seed:corridor",
+  "_note": "Corridor-priority seed (ADR-020 local-depth): what is actually poured in the Cedar Rapids–Iowa City corridor — IA locals/regionals first, then national staples. FOUNDER-EDITABLE: names, ABVs, and style mappings are facts from general/producer-published knowledge; never sourced from competitor databases (Hard Rule 1). Refs are stable — do not rename them (they are idempotency keys).",
+  "producers": [
+    { "ref": "toppling-goliath", "name": "Toppling Goliath Brewing Co", "type": "brewery", "city": "Decorah", "region": "IA", "country": "US", "drinks": [
+      { "ref": "tg-pseudo-sue", "name": "Pseudo Sue", "category": "beer", "style": "18B", "abv": 5.8 },
+      { "ref": "tg-king-sue", "name": "King Sue", "category": "beer", "style": "22A", "abv": 7.8 },
+      { "ref": "tg-dorothys", "name": "Dorothy's New World Lager", "category": "beer", "style": "19B", "abv": 5.5 },
+      { "ref": "tg-golden-nugget", "name": "Golden Nugget", "category": "beer", "style": "21A", "abv": 5.7 },
+      { "ref": "tg-pompeii", "name": "Pompeii", "category": "beer", "style": "21A", "abv": 5.9 }
+    ] },
+    { "ref": "big-grove", "name": "Big Grove Brewery", "type": "brewery", "city": "Iowa City", "region": "IA", "country": "US", "drinks": [
+      { "ref": "bg-easy-eddy", "name": "Easy Eddy", "category": "beer", "style": "21C", "abv": 5.2 },
+      { "ref": "bg-citrus-surfer", "name": "Citrus Surfer", "category": "beer", "style": "1D", "abv": 4.7 },
+      { "ref": "bg-boomtown", "name": "Boomtown", "category": "beer", "style": "18B", "abv": 5.5 }
+    ] },
+    { "ref": "exile", "name": "Exile Brewing Co", "type": "brewery", "city": "Des Moines", "region": "IA", "country": "US", "drinks": [
+      { "ref": "ex-ruthie", "name": "Ruthie", "category": "beer", "style": "4A", "abv": 5.1 },
+      { "ref": "ex-hannah", "name": "Hannah", "category": "beer", "style": "10A", "abv": 5.3 }
+    ] },
+    { "ref": "millstream", "name": "Millstream Brewing Co", "type": "brewery", "city": "Amana", "region": "IA", "country": "US", "drinks": [
+      { "ref": "ms-schild-brau", "name": "Schild Brau Amber", "category": "beer", "style": "7A", "abv": 5.1 },
+      { "ref": "ms-iowa-pale-ale", "name": "Iowa Pale Ale", "category": "beer", "style": "18B", "abv": 5.2 }
+    ] },
+    { "ref": "backpocket", "name": "Backpocket Brewing", "type": "brewery", "city": "Coralville", "region": "IA", "country": "US", "drinks": [
+      { "ref": "bp-slingshot", "name": "Slingshot", "category": "beer", "style": "8A", "abv": 5.3 },
+      { "ref": "bp-gold-coin", "name": "Gold Coin", "category": "beer", "style": "4A", "abv": 5.0 }
+    ] },
+    { "ref": "lion-bridge", "name": "Lion Bridge Brewing Co", "type": "brewery", "city": "Cedar Rapids", "region": "IA", "country": "US", "drinks": [
+      { "ref": "lb-compensation", "name": "Compensation", "category": "beer", "style": "14C", "abv": 5.4 },
+      { "ref": "lb-workmans-comp", "name": "Workman's Compensation", "category": "beer", "style": "14C", "abv": 5.4 }
+    ] },
+    { "ref": "singlespeed", "name": "SingleSpeed Brewing Co", "type": "brewery", "city": "Waterloo", "region": "IA", "country": "US", "drinks": [
+      { "ref": "ss-tip-the-cow", "name": "Tip the Cow", "category": "beer", "style": "16A", "abv": 5.5 }
+    ] },
+    { "ref": "cedar-ridge", "name": "Cedar Ridge Distillery", "type": "multi", "city": "Swisher", "region": "IA", "country": "US", "drinks": [
+      { "ref": "cr-iowa-bourbon", "name": "Iowa Bourbon", "category": "whiskey", "style": "WH-AM-BRB", "abv": 40.0 },
+      { "ref": "cr-single-malt", "name": "The QuintEssential American Single Malt", "category": "whiskey", "style": "WH-AM-SM", "abv": 46.0 },
+      { "ref": "cr-reserve-bourbon", "name": "Reserve Bourbon", "category": "whiskey", "style": "WH-AM-BRB", "abv": 43.0 }
+    ] },
+    { "ref": "templeton", "name": "Templeton Distillery", "type": "distillery", "city": "Templeton", "region": "IA", "country": "US", "drinks": [
+      { "ref": "tp-rye-4yr", "name": "Templeton Rye 4 Year", "category": "whiskey", "style": "WH-AM-RYE", "abv": 40.0 },
+      { "ref": "tp-rye-6yr", "name": "Templeton Rye 6 Year", "category": "whiskey", "style": "WH-AM-RYE", "abv": 45.8 }
+    ] },
+    { "ref": "anheuser-busch", "name": "Anheuser-Busch", "type": "brewery", "city": "St. Louis", "region": "MO", "country": "US", "drinks": [
+      { "ref": "ab-bud-light", "name": "Bud Light", "category": "beer", "style": "1A", "abv": 4.2 },
+      { "ref": "ab-budweiser", "name": "Budweiser", "category": "beer", "style": "1B", "abv": 5.0 },
+      { "ref": "ab-michelob-ultra", "name": "Michelob Ultra", "category": "beer", "style": "1A", "abv": 4.2 },
+      { "ref": "ab-busch-light", "name": "Busch Light", "category": "beer", "style": "1A", "abv": 4.1 }
+    ] },
+    { "ref": "molson-coors", "name": "Molson Coors", "type": "brewery", "city": "Golden", "region": "CO", "country": "US", "drinks": [
+      { "ref": "mc-coors-light", "name": "Coors Light", "category": "beer", "style": "1A", "abv": 4.2 },
+      { "ref": "mc-miller-lite", "name": "Miller Lite", "category": "beer", "style": "1A", "abv": 4.2 },
+      { "ref": "mc-blue-moon", "name": "Blue Moon Belgian White", "category": "beer", "style": "24A", "abv": 5.4 }
+    ] },
+    { "ref": "guinness", "name": "Guinness", "type": "brewery", "city": "Dublin", "region": null, "country": "IE", "drinks": [
+      { "ref": "gn-draught", "name": "Guinness Draught", "category": "beer", "style": "15B", "abv": 4.2 },
+      { "ref": "gn-extra-stout", "name": "Guinness Extra Stout", "category": "beer", "style": "15C", "abv": 5.6 }
+    ] },
+    { "ref": "new-belgium", "name": "New Belgium Brewing", "type": "brewery", "city": "Fort Collins", "region": "CO", "country": "US", "drinks": [
+      { "ref": "nb-fat-tire", "name": "Fat Tire", "category": "beer", "style": "19A", "abv": 5.2 },
+      { "ref": "nb-voodoo-ranger", "name": "Voodoo Ranger IPA", "category": "beer", "style": "21A", "abv": 7.0 }
+    ] },
+    { "ref": "sierra-nevada", "name": "Sierra Nevada Brewing Co", "type": "brewery", "city": "Chico", "region": "CA", "country": "US", "drinks": [
+      { "ref": "sn-pale-ale", "name": "Sierra Nevada Pale Ale", "category": "beer", "style": "18B", "abv": 5.6 },
+      { "ref": "sn-hazy-little-thing", "name": "Hazy Little Thing", "category": "beer", "style": "21C", "abv": 6.7 }
+    ] },
+    { "ref": "bells", "name": "Bell's Brewery", "type": "brewery", "city": "Kalamazoo", "region": "MI", "country": "US", "drinks": [
+      { "ref": "bl-two-hearted", "name": "Two Hearted Ale", "category": "beer", "style": "21A", "abv": 7.0 },
+      { "ref": "bl-oberon", "name": "Oberon Ale", "category": "beer", "style": "1D", "abv": 5.8 }
+    ] },
+    { "ref": "founders", "name": "Founders Brewing Co", "type": "brewery", "city": "Grand Rapids", "region": "MI", "country": "US", "drinks": [
+      { "ref": "fd-all-day-ipa", "name": "All Day IPA", "category": "beer", "style": "21A", "abv": 4.7 },
+      { "ref": "fd-porter", "name": "Founders Porter", "category": "beer", "style": "20A", "abv": 6.5 }
+    ] },
+    { "ref": "boston-beer", "name": "Boston Beer Co", "type": "brewery", "city": "Boston", "region": "MA", "country": "US", "drinks": [
+      { "ref": "bb-boston-lager", "name": "Samuel Adams Boston Lager", "category": "beer", "style": "7A", "abv": 5.0 }
+    ] },
+    { "ref": "lagunitas", "name": "Lagunitas Brewing Co", "type": "brewery", "city": "Petaluma", "region": "CA", "country": "US", "drinks": [
+      { "ref": "lg-ipa", "name": "Lagunitas IPA", "category": "beer", "style": "21A", "abv": 6.2 }
+    ] },
+    { "ref": "goose-island", "name": "Goose Island Beer Co", "type": "brewery", "city": "Chicago", "region": "IL", "country": "US", "drinks": [
+      { "ref": "gi-goose-ipa", "name": "Goose IPA", "category": "beer", "style": "12C", "abv": 5.9 },
+      { "ref": "gi-312", "name": "312 Urban Wheat Ale", "category": "beer", "style": "1D", "abv": 4.2 }
+    ] },
+    { "ref": "buffalo-trace", "name": "Buffalo Trace Distillery", "type": "distillery", "city": "Frankfort", "region": "KY", "country": "US", "drinks": [
+      { "ref": "bt-buffalo-trace", "name": "Buffalo Trace Kentucky Straight Bourbon", "category": "whiskey", "style": "WH-AM-BRB", "abv": 45.0 },
+      { "ref": "bt-eagle-rare", "name": "Eagle Rare 10 Year", "category": "whiskey", "style": "WH-AM-BRB", "abv": 45.0 }
+    ] },
+    { "ref": "makers-mark", "name": "Maker's Mark Distillery", "type": "distillery", "city": "Loretto", "region": "KY", "country": "US", "drinks": [
+      { "ref": "mm-makers-mark", "name": "Maker's Mark", "category": "whiskey", "style": "WH-AM-WHT", "abv": 45.0 }
+    ] },
+    { "ref": "woodford", "name": "Woodford Reserve Distillery", "type": "distillery", "city": "Versailles", "region": "KY", "country": "US", "drinks": [
+      { "ref": "wf-woodford-reserve", "name": "Woodford Reserve", "category": "whiskey", "style": "WH-AM-BRB", "abv": 45.2 }
+    ] },
+    { "ref": "four-roses", "name": "Four Roses Distillery", "type": "distillery", "city": "Lawrenceburg", "region": "KY", "country": "US", "drinks": [
+      { "ref": "fr-small-batch", "name": "Four Roses Small Batch", "category": "whiskey", "style": "WH-AM-BRB", "abv": 45.0 }
+    ] },
+    { "ref": "jack-daniels", "name": "Jack Daniel's Distillery", "type": "distillery", "city": "Lynchburg", "region": "TN", "country": "US", "drinks": [
+      { "ref": "jd-old-no-7", "name": "Jack Daniel's Old No. 7", "category": "whiskey", "style": "WH-AM-TN", "abv": 40.0 }
+    ] },
+    { "ref": "bulleit", "name": "Bulleit Distilling Co", "type": "distillery", "city": "Shelbyville", "region": "KY", "country": "US", "drinks": [
+      { "ref": "bu-bourbon", "name": "Bulleit Bourbon", "category": "whiskey", "style": "WH-AM-BRB", "abv": 45.0 },
+      { "ref": "bu-rye", "name": "Bulleit Rye", "category": "whiskey", "style": "WH-AM-RYE", "abv": 45.0 }
+    ] },
+    { "ref": "jameson", "name": "Jameson Distillery", "type": "distillery", "city": "Cork", "region": null, "country": "IE", "drinks": [
+      { "ref": "jm-jameson", "name": "Jameson Irish Whiskey", "category": "whiskey", "style": "WH-IR-BL", "abv": 40.0 }
+    ] },
+    { "ref": "glenfiddich", "name": "Glenfiddich Distillery", "type": "distillery", "city": "Dufftown", "region": null, "country": "GB", "drinks": [
+      { "ref": "gf-12", "name": "Glenfiddich 12 Year", "category": "whiskey", "style": "WH-SC-SP", "abv": 40.0 }
+    ] },
+    { "ref": "laphroaig", "name": "Laphroaig Distillery", "type": "distillery", "city": "Islay", "region": null, "country": "GB", "drinks": [
+      { "ref": "lp-10", "name": "Laphroaig 10 Year", "category": "whiskey", "style": "WH-SC-IS", "abv": 43.0 }
+    ] },
+    { "ref": "ackerman", "name": "Ackerman Winery", "type": "winery", "city": "Amana", "region": "IA", "country": "US", "drinks": [
+      { "ref": "ak-white-cranberry", "name": "White Cranberry", "category": "wine", "style": "WN-W-MO", "abv": 10.5 }
+    ] },
+    { "ref": "fireside", "name": "Fireside Winery", "type": "winery", "city": "Marengo", "region": "IA", "country": "US", "drinks": [
+      { "ref": "fs-vixen", "name": "Vixen", "category": "wine", "style": "WN-R-BL", "abv": 12.5 }
+    ] },
+    { "ref": "kendall-jackson", "name": "Kendall-Jackson", "type": "winery", "city": "Santa Rosa", "region": "CA", "country": "US", "drinks": [
+      { "ref": "kj-vr-chardonnay", "name": "Vintner's Reserve Chardonnay", "category": "wine", "style": "WN-W-CH", "abv": 13.5 }
+    ] },
+    { "ref": "josh-cellars", "name": "Josh Cellars", "type": "winery", "city": "Healdsburg", "region": "CA", "country": "US", "drinks": [
+      { "ref": "jc-cabernet", "name": "Josh Cellars Cabernet Sauvignon", "category": "wine", "style": "WN-R-CS", "abv": 13.5 }
+    ] },
+    { "ref": "barefoot", "name": "Barefoot Cellars", "type": "winery", "city": "Modesto", "region": "CA", "country": "US", "drinks": [
+      { "ref": "bf-pinot-grigio", "name": "Barefoot Pinot Grigio", "category": "wine", "style": "WN-W-PG", "abv": 12.5 },
+      { "ref": "bf-moscato", "name": "Barefoot Moscato", "category": "wine", "style": "WN-W-MO", "abv": 9.0 }
+    ] },
+    { "ref": "la-marca", "name": "La Marca", "type": "winery", "city": "Treviso", "region": null, "country": "IT", "drinks": [
+      { "ref": "lm-prosecco", "name": "La Marca Prosecco", "category": "wine", "style": "WN-SP-PR", "abv": 11.0 }
+    ] },
+    { "ref": "bogle", "name": "Bogle Family Vineyards", "type": "winery", "city": "Clarksburg", "region": "CA", "country": "US", "drinks": [
+      { "ref": "bg-old-vine-zin", "name": "Old Vine Zinfandel", "category": "wine", "style": "WN-R-ZN", "abv": 14.5 }
+    ] }
+  ]
+}

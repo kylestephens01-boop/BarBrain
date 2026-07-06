@@ -11,7 +11,7 @@ public static class AdminSettingsEndpoints
         // group is gated by a shared admin token so the flag-flip demo can run
         // safely; replace this filter with proper authz when auth lands.
         var admin = app.MapGroup("/api/admin")
-            .AddEndpointFilter(AdminTokenFilter)
+            .AddEndpointFilter(AdminAuth.AdminTokenFilter)
             .WithTags("Admin");
 
         admin.MapGet("/settings", async (ISettingsService settings, CancellationToken ct) =>
@@ -45,34 +45,5 @@ public static class AdminSettingsEndpoints
         .WithName("UpdateSetting");
 
         return app;
-    }
-
-    /// <summary>
-    /// STUB auth. Requires header <c>X-Admin-Token</c> to match the configured
-    /// <c>Admin:Token</c>. If no token is configured (local dev), requests pass
-    /// with a logged warning. Not a substitute for real authentication.
-    /// </summary>
-    private static async ValueTask<object?> AdminTokenFilter(
-        EndpointFilterInvocationContext context,
-        EndpointFilterDelegate next)
-    {
-        var http = context.HttpContext;
-        var config = http.RequestServices.GetRequiredService<IConfiguration>();
-        var logger = http.RequestServices
-            .GetRequiredService<ILoggerFactory>()
-            .CreateLogger("AdminAuth");
-
-        var expected = config["Admin:Token"];
-        if (string.IsNullOrWhiteSpace(expected))
-        {
-            logger.LogWarning("Admin endpoint hit with no Admin:Token configured — STUB allowing request. Set Admin:Token before any non-local use.");
-            return await next(context);
-        }
-
-        var provided = http.Request.Headers["X-Admin-Token"].ToString();
-        if (!string.Equals(provided, expected, StringComparison.Ordinal))
-            return Results.Unauthorized();
-
-        return await next(context);
     }
 }

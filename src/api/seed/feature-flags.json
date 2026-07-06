@@ -8,5 +8,20 @@
     "key": "home.show_status",
     "value": "true",
     "description": "Whether the home page shows the live API health/version line. Demonstrates a typed (bool) feature flag."
+  },
+  {
+    "key": "catalog.inherited_confidence_pct",
+    "value": "30",
+    "description": "Confidence (percent, 0-100) assigned to drink attribute values inherited from style baselines (ADR-009). Vector sync reads this."
+  },
+  {
+    "key": "catalog.merge_threshold_producer_pct",
+    "value": "55",
+    "description": "Minimum pg_trgm name similarity (percent) for a producer pair to enter the merge queue."
+  },
+  {
+    "key": "catalog.merge_threshold_drink_pct",
+    "value": "50",
+    "description": "Minimum pg_trgm name similarity (percent) for a same-category drink pair to enter the merge queue."
   }
 ]

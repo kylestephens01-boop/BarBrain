@@ -1,8 +1,14 @@
 using BarBrain.Api;
+using BarBrain.Api.Catalog;
 using BarBrain.Api.Data;
 using BarBrain.Api.Endpoints;
 using BarBrain.Api.Settings;
 using Microsoft.EntityFrameworkCore;
+
+// CLI mode: `dotnet BarBrain.Api.dll import …` / `… report` runs the catalog
+// importers against the same config/DbContext and exits — no web server.
+if (CatalogCli.IsCliInvocation(args))
+    return await CatalogCli.RunAsync(args);
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +22,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // --- Feature flags / settings (ADR-006) -------------------------------------
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<ISettingsService, SettingsService>();
+
+// --- Catalog: vectors, search, entity resolution, importers (Sprint 1) ------
+builder.Services.AddCatalogServices();
 
 // --- CORS: web shell is a separate origin under `dotnet run` (compose proxies
 // same-origin via Caddy, so this only matters for non-proxied local dev) ------
@@ -54,9 +63,12 @@ if (app.Configuration.GetValue("Database:MigrateOnStartup", true))
 app.MapHealthEndpoints();
 app.MapConfigEndpoints();
 app.MapAdminSettingsEndpoints();
+app.MapAdminMergeEndpoints();
 app.MapEventEndpoints();
+app.MapCatalogEndpoints();
 
 app.Run();
+return 0;
 
 // Exposed for WebApplicationFactory-based integration tests.
 public partial class Program;

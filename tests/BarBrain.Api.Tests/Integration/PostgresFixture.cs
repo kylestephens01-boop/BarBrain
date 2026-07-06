@@ -59,8 +59,14 @@ public sealed class PostgresFixture : IAsyncLifetime
     {
         // Same provider config as the app (incl. EnableDynamicJson for the
         // events jsonb column) so tests exercise the real mapping behavior.
+        // IncludeErrorDetail: CI logs otherwise redact which constraint a
+        // PostgresException violated — tests-only, never the app.
+        var withDetail = new NpgsqlConnectionStringBuilder(connectionString)
+        {
+            IncludeErrorDetail = true,
+        }.ConnectionString;
         var builder = new DbContextOptionsBuilder<AppDbContext>();
-        builder.UseBarBrainNpgsql(connectionString, enableRetry: false);
+        builder.UseBarBrainNpgsql(withDetail, enableRetry: false);
         return new AppDbContext(builder.Options);
     }
 

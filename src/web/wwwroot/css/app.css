@@ -201,3 +201,86 @@ code {
 .blazor-error-boundary::after {
   content: "An error has occurred.";
 }
+
+/* --- Admin merge queue (Sprint 1 stub) --------------------------------------
+   Amber names = beverage objects (two-temperature grammar); controls neutral. */
+.merge-admin {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem;
+}
+.merge-admin h1 {
+  font-family: var(--bb-font-display);
+  font-weight: var(--bb-fw-medium);
+  font-size: 28px;
+  line-height: 34px;
+}
+.merge-admin__hint {
+  color: var(--bb-text-muted);
+  max-width: 46rem;
+}
+.merge-admin__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.25rem 0;
+}
+.merge-admin__controls input {
+  background: var(--bb-surface);
+  color: var(--bb-coaster);
+  border: 1px solid var(--bb-text-muted);
+  border-radius: var(--bb-radius);
+  padding: 0.5rem 0.75rem;
+  min-width: 18rem;
+}
+.merge-admin button {
+  background: var(--bb-surface);
+  color: var(--bb-coaster);
+  border: 1px solid var(--bb-text-muted);
+  border-radius: var(--bb-radius);
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+.merge-admin button:hover:not(:disabled) { border-color: var(--bb-coaster); }
+.merge-admin button:disabled { opacity: 0.6; cursor: default; }
+.merge-admin__reject { color: var(--bb-bitters); }
+.merge-admin__error { color: var(--bb-bitters); }
+.merge-admin__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.merge-admin__table caption {
+  text-align: left;
+  color: var(--bb-text-muted);
+  font-size: 13px;
+  padding-bottom: 0.5rem;
+}
+.merge-admin__table th,
+.merge-admin__table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--bb-surface);
+}
+.merge-admin__name {
+  display: block;
+  color: var(--bb-pour);
+  font-weight: var(--bb-fw-medium);
+}
+.merge-admin__detail {
+  display: block;
+  color: var(--bb-text-muted);
+  font-size: 13px;
+}
+.merge-admin__actions { white-space: nowrap; }
+.merge-admin__actions button + button { margin-left: 0.5rem; }
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

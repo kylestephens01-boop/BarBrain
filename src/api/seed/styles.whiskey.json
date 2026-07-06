@@ -1,0 +1,28 @@
+{
+  "category": "whiskey",
+  "source": "seed:barbrain-styles",
+  "_license_note": "BarBrain-original whiskey taxonomy (WH-* codes are ours). ABV ranges are typical bottling strengths (facts). Attribute baselines are BarBrain editorial data.",
+  "styles": [
+    { "code": "WH-AM", "name": "American Whiskey", "parent": null },
+    { "code": "WH-AM-BRB", "name": "Bourbon", "parent": "WH-AM", "abv": [40.0, 65.0], "attributes": { "sweetness": 0.65, "tannin": 0.45, "body": 0.6, "smoke": 0.1, "fruit": 0.4, "acidity": 0.25, "spice": 0.45, "oak": 0.7 } },
+    { "code": "WH-AM-WHT", "name": "Wheated Bourbon", "parent": "WH-AM", "abv": [40.0, 65.0], "attributes": { "sweetness": 0.7, "tannin": 0.35, "body": 0.55, "smoke": 0.05, "fruit": 0.45, "acidity": 0.2, "spice": 0.3, "oak": 0.65 } },
+    { "code": "WH-AM-RYE", "name": "Rye Whiskey", "parent": "WH-AM", "abv": [40.0, 65.0], "attributes": { "sweetness": 0.45, "tannin": 0.5, "body": 0.55, "smoke": 0.1, "fruit": 0.35, "acidity": 0.35, "spice": 0.8, "oak": 0.6 } },
+    { "code": "WH-AM-TN", "name": "Tennessee Whiskey", "parent": "WH-AM", "abv": [40.0, 50.0], "attributes": { "sweetness": 0.6, "tannin": 0.4, "body": 0.55, "smoke": 0.15, "fruit": 0.4, "acidity": 0.25, "spice": 0.4, "oak": 0.65 } },
+    { "code": "WH-AM-SM", "name": "American Single Malt", "parent": "WH-AM", "abv": [40.0, 60.0], "attributes": { "sweetness": 0.5, "tannin": 0.4, "body": 0.55, "smoke": 0.15, "fruit": 0.5, "acidity": 0.3, "spice": 0.35, "oak": 0.55 } },
+    { "code": "WH-AM-CORN", "name": "Corn Whiskey", "parent": "WH-AM", "abv": [40.0, 62.5], "attributes": { "sweetness": 0.6, "tannin": 0.2, "body": 0.45, "smoke": 0.05, "fruit": 0.3, "acidity": 0.2, "spice": 0.3, "oak": 0.2 } },
+    { "code": "WH-SC", "name": "Scotch Whisky", "parent": null },
+    { "code": "WH-SC-SP", "name": "Speyside Single Malt", "parent": "WH-SC", "abv": [40.0, 60.0], "attributes": { "sweetness": 0.55, "tannin": 0.3, "body": 0.5, "smoke": 0.1, "fruit": 0.65, "acidity": 0.35, "spice": 0.3, "oak": 0.5 } },
+    { "code": "WH-SC-HL", "name": "Highland Single Malt", "parent": "WH-SC", "abv": [40.0, 60.0], "attributes": { "sweetness": 0.5, "tannin": 0.35, "body": 0.55, "smoke": 0.25, "fruit": 0.55, "acidity": 0.35, "spice": 0.35, "oak": 0.5 } },
+    { "code": "WH-SC-IS", "name": "Islay Single Malt", "parent": "WH-SC", "abv": [40.0, 60.0], "attributes": { "sweetness": 0.35, "tannin": 0.4, "body": 0.6, "smoke": 0.95, "fruit": 0.35, "acidity": 0.3, "spice": 0.35, "oak": 0.45 } },
+    { "code": "WH-SC-LL", "name": "Lowland Single Malt", "parent": "WH-SC", "abv": [40.0, 55.0], "attributes": { "sweetness": 0.5, "tannin": 0.25, "body": 0.4, "smoke": 0.05, "fruit": 0.55, "acidity": 0.4, "spice": 0.25, "oak": 0.4 } },
+    { "code": "WH-SC-CB", "name": "Campbeltown Single Malt", "parent": "WH-SC", "abv": [40.0, 60.0], "attributes": { "sweetness": 0.45, "tannin": 0.4, "body": 0.55, "smoke": 0.5, "fruit": 0.5, "acidity": 0.35, "spice": 0.35, "oak": 0.45 } },
+    { "code": "WH-SC-BL", "name": "Blended Scotch", "parent": "WH-SC", "abv": [40.0, 46.0], "attributes": { "sweetness": 0.5, "tannin": 0.3, "body": 0.45, "smoke": 0.3, "fruit": 0.5, "acidity": 0.3, "spice": 0.3, "oak": 0.45 } },
+    { "code": "WH-IR", "name": "Irish Whiskey", "parent": null },
+    { "code": "WH-IR-BL", "name": "Blended Irish Whiskey", "parent": "WH-IR", "abv": [40.0, 46.0], "attributes": { "sweetness": 0.55, "tannin": 0.25, "body": 0.4, "smoke": 0.05, "fruit": 0.55, "acidity": 0.35, "spice": 0.25, "oak": 0.4 } },
+    { "code": "WH-IR-PS", "name": "Single Pot Still Irish Whiskey", "parent": "WH-IR", "abv": [40.0, 60.0], "attributes": { "sweetness": 0.5, "tannin": 0.35, "body": 0.6, "smoke": 0.05, "fruit": 0.55, "acidity": 0.35, "spice": 0.5, "oak": 0.5 } },
+    { "code": "WH-IR-SM", "name": "Irish Single Malt", "parent": "WH-IR", "abv": [40.0, 60.0], "attributes": { "sweetness": 0.5, "tannin": 0.3, "body": 0.5, "smoke": 0.1, "fruit": 0.6, "acidity": 0.35, "spice": 0.3, "oak": 0.45 } },
+    { "code": "WH-WD", "name": "World Whisky", "parent": null },
+    { "code": "WH-WD-JP", "name": "Japanese Whisky", "parent": "WH-WD", "abv": [40.0, 55.0], "attributes": { "sweetness": 0.5, "tannin": 0.3, "body": 0.5, "smoke": 0.2, "fruit": 0.55, "acidity": 0.4, "spice": 0.3, "oak": 0.5 } },
+    { "code": "WH-WD-CA", "name": "Canadian Whisky", "parent": "WH-WD", "abv": [40.0, 46.0], "attributes": { "sweetness": 0.55, "tannin": 0.25, "body": 0.4, "smoke": 0.05, "fruit": 0.45, "acidity": 0.25, "spice": 0.4, "oak": 0.45 } }
+  ]
+}

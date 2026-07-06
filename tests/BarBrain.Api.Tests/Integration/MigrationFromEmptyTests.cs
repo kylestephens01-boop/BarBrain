@@ -19,22 +19,32 @@ public sealed class MigrationFromEmptyTests(PostgresFixture fixture)
         var connectionString = await fixture.CreateEmptyDatabaseAsync("migrate_from_empty");
         await using var db = PostgresFixture.CreateContext(connectionString);
 
-        // A truly empty DB: the only pending migration is our initial one.
+        // A truly empty DB: the full ordered chain is pending.
         var pending = (await db.Database.GetPendingMigrationsAsync()).ToList();
-        Assert.Single(pending);
+        Assert.Equal(2, pending.Count);
         Assert.EndsWith("InitialCreate", pending[0]);
+        Assert.EndsWith("Sprint1Catalog", pending[1]);
 
         await db.Database.MigrateAsync();
 
         var applied = (await db.Database.GetAppliedMigrationsAsync()).ToList();
-        Assert.Single(applied);
-        Assert.EndsWith("InitialCreate", applied[0]);
+        Assert.Equal(2, applied.Count);
         Assert.Empty(await db.Database.GetPendingMigrationsAsync());
 
         Assert.True(await ScalarBoolAsync(db,
             "SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'vector') AS \"Value\""));
+        Assert.True(await ScalarBoolAsync(db,
+            "SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'pg_trgm') AS \"Value\""));
         Assert.True(await TableExistsAsync(db, "settings"));
         Assert.True(await TableExistsAsync(db, "events"));
+        foreach (var table in new[]
+                 {
+                     "users", "producers", "styles", "attribute_definitions",
+                     "style_attributes", "drinks", "drink_attributes", "merge_queue",
+                 })
+        {
+            Assert.True(await TableExistsAsync(db, table), $"missing table {table}");
+        }
 
         // Round-trip a row through each table.
         db.Settings.Add(new Setting { Key = "roundtrip.key", Value = "v", UpdatedAt = DateTimeOffset.UtcNow });
