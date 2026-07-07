@@ -212,8 +212,13 @@ public sealed class RapidRateBrowseTests(PostgresFixture fixture) : IAsyncLifeti
                 .ExecuteUpdateAsync(s => s
                     .SetProperty(d => d.Status, EntityStatus.Merged)
                     .SetProperty(d => d.MergedIntoDrinkId, _beerB));
+            // ck_drinks_owner_visibility: a private drink must have an owner.
+            var aliceId = await db.Users.Where(u => u.UserName == "rr_alice")
+                .Select(u => u.Id).SingleAsync();
             await db.Drinks.Where(d => d.Id == _beerC)
-                .ExecuteUpdateAsync(s => s.SetProperty(d => d.Visibility, Visibility.Private));
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(d => d.Visibility, Visibility.Private)
+                    .SetProperty(d => d.CreatedByUserId, aliceId));
         }
 
         var ids = (await BrowseAsync(_alice)).Select(i => i.Id).ToHashSet();
