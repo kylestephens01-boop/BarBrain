@@ -37,5 +37,26 @@ public class User : IdentityUser<Guid>
     /// <summary>Last handle change — enforces the 30-day cooldown (flag-driven).</summary>
     public DateTimeOffset? HandleChangedAt { get; set; }
 
+    // --- Palate matching (Sprint 4, ADR-014) ---------------------------------
+    /// <summary>
+    /// Hide-me: when true the user is removed from ALL match surfaces in BOTH
+    /// directions — they appear to no one and see no one. Enforced on read so
+    /// flipping it takes effect immediately, not on the next nightly batch.
+    /// </summary>
+    public bool HideFromMatches { get; set; }
+
+    // --- Weekly digest (Sprint 4, ADR-019) -----------------------------------
+    /// <summary>
+    /// Set when the user unsubscribed from the weekly digest (CAN-SPAM). Once
+    /// set, the sender skips them; cleared only by an explicit re-opt-in.
+    /// </summary>
+    public DateTimeOffset? DigestUnsubscribedAt { get; set; }
+
+    /// <summary>
+    /// Stable unguessable token for the one-click unsubscribe link, so the link
+    /// carries no auth and needs no session (full-page nav under /api/*).
+    /// </summary>
+    public Guid DigestUnsubscribeToken { get; set; } = Guid.CreateVersion7();
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }
