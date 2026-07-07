@@ -1,0 +1,111 @@
+@page "/matches"
+@using BarBrain.Web.Components
+@using BarBrain.Web.Services
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject UserState User
+
+<PageTitle>Your matches — BarBrain</PageTitle>
+
+<h1>Your matches</h1>
+
+@if (!_checked)
+{
+    <p class="bb-muted">Loading…</p>
+}
+else if (!User.IsSignedIn)
+{
+    <div class="bb-card">
+        <p>Matches are people whose palate lines up with yours — surfaced from ratings alone.</p>
+        <a class="bb-btn bb-btn--primary" href="/signup">Get started</a>
+    </div>
+}
+else if (_matches is null)
+{
+    <p class="bb-muted">Loading…</p>
+}
+else if (_matches.Hidden)
+{
+    <div class="bb-card" data-testid="matches-hidden">
+        <p>You've hidden yourself from matching — no one is matched to you, and matches stay hidden from you.</p>
+        <p class="bb-muted">Turn it back on under Privacy &amp; email in your <a href="/profile">profile</a>.</p>
+    </div>
+}
+else if (_matches.Matches.Count == 0)
+{
+    <p class="bb-muted" data-testid="match-empty">
+        No palate matches yet — rate a few more drinks and check back.
+    </p>
+}
+else
+{
+    @* Matches are INTELLIGENCE (surfaced from palate) → teal accents throughout.
+       The DRINKS they love are beverage objects → amber. One-way by design
+       (ADR-014): read only, no interaction. *@
+    <ul class="bb-rec-list" data-testid="matches-list">
+        @foreach (var match in _matches.Matches)
+        {
+            <li>
+                <div class="bb-rec-card" data-testid="match-row">
+                    <span class="bb-rec-card__top">
+                        <span class="bb-rec-card__name" data-testid="match-handle">@@@match.Handle</span>
+                        @if (match.MatchPct is { } pct)
+                        {
+                            <span class="bb-rec-card__match" data-testid="match-pct">@pct%</span>
+                        }
+                    </span>
+                    <span class="bb-match-meta">
+                        <span class="bb-rec-card__pill bb-rec-card__pill--synapse" data-testid="match-confidence">
+                            @ConfidenceLabel(match.Confidence)
+                        </span>
+                        @if (match.EarlyEstimate)
+                        {
+                            <span class="bb-match-early" data-testid="match-early-estimate">early estimate</span>
+                        }
+                    </span>
+                    @if (match.RecentLoves.Count > 0)
+                    {
+                        <span class="bb-match-loves">
+                            @foreach (var love in match.RecentLoves)
+                            {
+                                <a class="bb-match-love" href="/drinks/@love.DrinkId">@love.Name</a>
+                            }
+                        </span>
+                    }
+                </div>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private MatchesResponse? _matches;
+    private bool _checked;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await User.EnsureLoadedAsync();
+        _checked = true;
+        if (User.IsSignedIn)
+            await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _matches = await Http.GetFromJsonAsync<MatchesResponse>("api/matches");
+        }
+        catch
+        {
+            _matches = new MatchesResponse([], false, "conservative");
+        }
+    }
+
+    private static string ConfidenceLabel(string confidence) => confidence switch
+    {
+        "high" => "High confidence",
+        "med" => "Medium confidence",
+        _ => "Low confidence",
+    };
+}

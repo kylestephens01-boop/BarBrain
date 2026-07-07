@@ -1,6 +1,6 @@
-@* Bottom nav (DESIGN-REFERENCE global rules): Home, Feed, Search, Venues,
-   Profile. Active = --bb-synapse. 44px tap targets. Feed/Venues route to
-   placeholder pages until Sprints 3/5. *@
+@* Bottom nav (DESIGN-REFERENCE global rules): Home, Feed, Matches, Search,
+   Venues, Profile. Active = --bb-synapse. 44px tap targets. Venues routes to
+   a placeholder page until Sprint 5. *@
 @inject NavigationManager Nav
 @implements IDisposable
 
@@ -8,7 +8,8 @@
     @foreach (var item in Items)
     {
         <NavLink class="bb-nav__item" href="@item.Href"
-                 Match="@(item.Href == "" ? NavLinkMatch.All : NavLinkMatch.Prefix)">
+                 Match="@(item.Href == "" ? NavLinkMatch.All : NavLinkMatch.Prefix)"
+                 data-testid="@item.TestId">
             <Icon Name="@item.Icon" Size="22" />
             <span class="bb-nav__label">@item.Label</span>
         </NavLink>
@@ -16,12 +17,13 @@
 </nav>
 
 @code {
-    private sealed record NavItem(string Href, string Icon, string Label);
+    private sealed record NavItem(string Href, string Icon, string Label, string? TestId = null);
 
     private static readonly NavItem[] Items =
     [
         new("", "home", "Home"),
         new("feed", "sparkles", "Feed"),
+        new("matches", "users", "Matches", "nav-matches"),
         new("search", "search", "Search"),
         new("venues", "map-pin", "Venues"),
         new("profile", "user", "Profile"),

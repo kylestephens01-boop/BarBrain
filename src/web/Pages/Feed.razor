@@ -104,6 +104,17 @@ else
                         {
                             <span class="bb-rec-card__pill bb-rec-card__pill--pour">New territory</span>
                         }
+                        else if (rec.Tag == "loved_by_matches")
+                        {
+                            @* Surfaced because palate matches love it → intelligence, teal. *@
+                            <span class="bb-rec-card__pill bb-rec-card__pill--synapse" data-testid="rec-loved-by-matches">Loved by matches</span>
+                        }
+                        @if (rec.LovedByMatchCount is { } lovedCount && lovedCount > 0)
+                        {
+                            <span class="bb-rec-card__social" data-testid="rec-social-proof">
+                                Loved by @@@rec.LovedByMatchHandle@(lovedCount > 1 ? $" +{lovedCount - 1} more" : "")
+                            </span>
+                        }
                         <span class="bb-rec-card__reason @(active.Key == "wildcard" ? "bb-rec-card__reason--pour" : "")"
                               data-testid="rec-reason">@((MarkupString)EmphasizeReason(rec))</span>
                     </a>
