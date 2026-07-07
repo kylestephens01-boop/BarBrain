@@ -1,10 +1,166 @@
 @page "/feed"
+@using BarBrain.Web.Components
+@using BarBrain.Web.Services
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject UserState User
 
-<PageTitle>Feed — BarBrain</PageTitle>
+<PageTitle>Your feed — BarBrain</PageTitle>
 
 <h1>Your feed</h1>
-<div class="bb-card">
-    <p>Recommendations land in Sprint 3 — first the quick palate quiz, then a
-       feed built around what you already love.</p>
-    <p class="bb-muted">Every rating you log now makes it sharper on day one.</p>
-</div>
+
+@if (!_checked)
+{
+    <p class="bb-muted">Loading…</p>
+}
+else if (!User.IsSignedIn)
+{
+    <div class="bb-card">
+        <p>Your feed is built from your ratings — recommendations with the reasoning shown.</p>
+        <a class="bb-btn bb-btn--primary" href="/signup">Get started</a>
+    </div>
+}
+else if (_feed is null)
+{
+    <p class="bb-muted">Loading…</p>
+}
+else
+{
+    @if (_feed.NeedsOnboarding)
+    {
+        <div class="bb-card" data-testid="feed-needs-onboarding">
+            <p>Nothing to go on yet — a 45-second palate check gets you real picks.</p>
+            <a class="bb-btn bb-btn--primary" href="/onboarding">Take the palate check</a>
+        </div>
+    }
+    else
+    {
+        <p class="bb-muted" data-testid="feed-subtitle">
+            Based on @_feed.RatingsCount rating@(_feed.RatingsCount == 1 ? "" : "s")
+            across @string.Join(", ", _feed.Categories)@(_feed.Confidence == "cold" ? " — early days, it sharpens fast" : "").
+        </p>
+    }
+
+    <div class="bb-tab-row bb-tab-row--scroll" role="tablist" aria-label="Feed sections">
+        @foreach (var section in _feed.Sections)
+        {
+            <button type="button" role="tab" aria-selected="@(_activeSection == section.Key)"
+                    class="bb-tab @(_activeSection == section.Key ? "is-active" : "") @(section.Key == "wildcard" ? "bb-tab--pour" : "")"
+                    disabled="@section.ComingSoon"
+                    title="@(section.ComingSoon ? "Arrives with Sprint 4" : null)"
+                    data-testid="feed-tab-@section.Key"
+                    @onclick="() => _activeSection = section.Key">
+                @section.Title
+                @if (!section.ComingSoon)
+                {
+                    <span class="bb-tab__count">@section.Items.Count</span>
+                }
+            </button>
+        }
+    </div>
+
+    <div class="bb-pill-row" role="group" aria-label="Filter by category">
+        @foreach (var (value, label) in CategoryFilters)
+        {
+            <button type="button" class="bb-pill @(_category == value ? "is-active" : "")"
+                    aria-pressed="@(_category == value)"
+                    @onclick="() => SetCategoryAsync(value)">@label</button>
+        }
+    </div>
+
+    var active = _feed.Sections.FirstOrDefault(s => s.Key == _activeSection);
+    @if (active is null || active.Items.Count == 0)
+    {
+        <p class="bb-muted" data-testid="feed-empty">
+            Nothing here yet — rate a few more drinks and this section fills in.
+        </p>
+    }
+    else
+    {
+        <ul class="bb-rec-list" data-testid="feed-items">
+            @foreach (var rec in active.Items)
+            {
+                @* Two-temperature grammar, where it matters most: the DRINK is
+                   amber; the THINKING (match %, reason, tags) is teal. Wildcard
+                   cards flip the border amber per the design reference. *@
+                <li>
+                    <a class="bb-rec-card @(active.Key == "wildcard" ? "bb-rec-card--pour" : "")"
+                       href="/drinks/@rec.DrinkId" data-testid="feed-rec">
+                        <span class="bb-rec-card__top">
+                            <span class="bb-rec-card__name">@rec.Name</span>
+                            @if (rec.MatchPct is { } pct)
+                            {
+                                <span class="bb-rec-card__match" data-testid="rec-match">@pct%</span>
+                            }
+                        </span>
+                        <span class="bb-rec-card__detail">
+                            @rec.ProducerName · @(rec.StyleName ?? Cap(rec.Category))@(rec.Abv is { } abv ? $" · {abv:0.#}%" : "")
+                        </span>
+                        @if (rec.Tag == "cross_category")
+                        {
+                            <span class="bb-rec-card__pill bb-rec-card__pill--synapse" data-testid="rec-cross-category">Cross-category</span>
+                        }
+                        else if (rec.Tag == "new_territory")
+                        {
+                            <span class="bb-rec-card__pill bb-rec-card__pill--pour">New territory</span>
+                        }
+                        <span class="bb-rec-card__reason @(active.Key == "wildcard" ? "bb-rec-card__reason--pour" : "")"
+                              data-testid="rec-reason">@((MarkupString)EmphasizeReason(rec))</span>
+                    </a>
+                </li>
+            }
+        </ul>
+    }
+}
+
+@code {
+    private static readonly (string? Value, string Label)[] CategoryFilters =
+        [(null, "All"), ("beer", "Beer"), ("whiskey", "Whiskey"), ("wine", "Wine")];
+
+    private FeedResponse? _feed;
+    private string _activeSection = "up_your_alley";
+    private string? _category;
+    private bool _checked;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await User.EnsureLoadedAsync();
+        _checked = true;
+        if (User.IsSignedIn)
+            await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _feed = await Http.GetFromJsonAsync<FeedResponse>(
+                "api/feed" + (_category is null ? "" : $"?category={_category}"));
+        }
+        catch
+        {
+            _feed = new FeedResponse([], "cold", 0, [], true);
+        }
+    }
+
+    private async Task SetCategoryAsync(string? category)
+    {
+        _category = category;
+        _feed = null;
+        await LoadAsync();
+    }
+
+    /// <summary>Bold the reason's attribute names in the card's accent color.</summary>
+    private static string EmphasizeReason(RecDto rec)
+    {
+        var text = System.Net.WebUtility.HtmlEncode(rec.Reason);
+        foreach (var attribute in rec.ReasonAttributes)
+        {
+            var encoded = System.Net.WebUtility.HtmlEncode(attribute.ToLowerInvariant());
+            text = text.Replace(encoded, $"<strong>{encoded}</strong>", StringComparison.OrdinalIgnoreCase);
+        }
+        return text;
+    }
+
+    private static string Cap(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s[1..];
+}

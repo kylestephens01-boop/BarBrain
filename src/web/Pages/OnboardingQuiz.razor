@@ -1,0 +1,172 @@
+@page "/onboarding/quiz"
+@using BarBrain.Web.Components
+@using BarBrain.Web.Services
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject UserState User
+
+<PageTitle>Quick palate check — BarBrain</PageTitle>
+
+@if (_quiz is null)
+{
+    <p class="bb-muted">Loading the staples…</p>
+}
+else if (_quiz.Categories.Count == 0)
+{
+    <h1>Nothing to quiz yet</h1>
+    <p class="bb-muted">The catalog is still filling in for your categories.
+        <a href="/search">Find and rate anything</a> — every rating teaches the engine.</p>
+    <a class="bb-btn bb-btn--primary" href="/feed">Go to your feed</a>
+}
+else
+{
+    var current = _quiz.Categories[_categoryIndex];
+
+    <div class="bb-quiz-progress" aria-label="Quiz progress">
+        @for (var i = 0; i < _quiz.Categories.Count; i++)
+        {
+            <span class="bb-quiz-dot @(i < _categoryIndex ? "is-done" : i == _categoryIndex ? "is-active" : "")"
+                  aria-hidden="true"></span>
+        }
+    </div>
+
+    <h1>Quick @current.Category check</h1>
+    <p class="bb-muted">Rate the ones you know. "Haven't tried" is a fine answer — skips teach us nothing false.</p>
+
+    <ul class="bb-quiz-list" data-testid="quiz-list">
+        @foreach (var item in current.Items)
+        {
+            var state = StateOf(item.DrinkId);
+            <li class="bb-quiz-card" data-testid="quiz-item">
+                <div class="bb-quiz-card__info">
+                    <span class="bb-quiz-card__name">@item.Label</span>
+                    <span class="bb-quiz-card__style">@item.SubLabel</span>
+                </div>
+                <div class="bb-quiz-card__rate">
+                    @if (state.Skipped)
+                    {
+                        <span class="bb-quiz-card__skipped">Skipped</span>
+                    }
+                    else
+                    {
+                        <StarRating Value="@state.Value" Interactive="true" Size="22"
+                                    ValueChanged="v => RateAsync(item, v)" />
+                        <button type="button" class="bb-quiz-card__skip" data-testid="quiz-skip"
+                                @onclick="() => Skip(item.DrinkId)">Haven't tried</button>
+                    }
+                </div>
+            </li>
+        }
+    </ul>
+
+    @if (_error is not null)
+    {
+        <p class="bb-form__error" role="alert">@_error</p>
+    }
+
+    <div class="bb-quiz-footer">
+        <span class="bb-muted" data-testid="quiz-counter">@RatedCount(current) rated</span>
+        <button type="button" class="bb-btn bb-btn--primary" data-testid="quiz-next" @onclick="NextAsync">
+            @(_categoryIndex < _quiz.Categories.Count - 1 ? "Next category" : "See your palate")
+        </button>
+    </div>
+}
+
+@code {
+    private sealed class ItemState
+    {
+        public decimal Value;
+        public bool Skipped;
+        public bool Saved;
+    }
+
+    private QuizResponse? _quiz;
+    private int _categoryIndex;
+    private string? _error;
+    private readonly Dictionary<Guid, ItemState> _state = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await User.EnsureLoadedAsync();
+        if (!User.IsSignedIn)
+        {
+            Nav.NavigateTo("/signup");
+            return;
+        }
+        try
+        {
+            _quiz = await Http.GetFromJsonAsync<QuizResponse>("api/quiz");
+        }
+        catch
+        {
+            _quiz = new QuizResponse([]);
+        }
+        if (_quiz is { Categories.Count: 0 })
+        {
+            // No claimed categories yet → the gate comes first.
+            var interests = await SafeInterestsAsync();
+            if (interests.Count == 0)
+                Nav.NavigateTo("/onboarding");
+        }
+    }
+
+    private async Task<IReadOnlyList<string>> SafeInterestsAsync()
+    {
+        try
+        {
+            var r = await Http.GetFromJsonAsync<InterestsResponse>("api/quiz/interests");
+            return r?.Categories ?? [];
+        }
+        catch { return []; }
+    }
+
+    private ItemState StateOf(Guid drinkId)
+        => _state.TryGetValue(drinkId, out var s) ? s : _state[drinkId] = new ItemState();
+
+    private int RatedCount(QuizCategory category)
+        => category.Items.Count(i => StateOf(i.DrinkId).Saved);
+
+    private async Task RateAsync(QuizItem item, decimal value)
+    {
+        var state = StateOf(item.DrinkId);
+        state.Value = value;
+        state.Skipped = false;
+        _error = null;
+        try
+        {
+            // Quiz ratings are REAL ratings with provenance (Sprint 3 spec).
+            using var response = await Http.PostAsJsonAsync("api/ratings",
+                new RateRequest(item.DrinkId, value, null, "public", "untagged", null, "quiz"));
+            state.Saved = response.IsSuccessStatusCode;
+            if (!state.Saved)
+            {
+                var error = await ApiErrors.ReadAsync(response);
+                _error = error?.Message ?? "That rating didn't save — try it again.";
+            }
+        }
+        catch
+        {
+            state.Saved = false;
+            _error = "Couldn't reach the server. Check your connection and try again.";
+        }
+    }
+
+    private void Skip(Guid drinkId)
+    {
+        // A skip is a NON-answer on purpose: no rating row, no profile signal.
+        var state = StateOf(drinkId);
+        state.Skipped = true;
+        state.Value = 0;
+    }
+
+    private async Task NextAsync()
+    {
+        if (_categoryIndex < _quiz!.Categories.Count - 1)
+        {
+            _categoryIndex++;
+            return;
+        }
+        try { await Http.PostAsync("api/quiz/complete", null); } catch { /* funnel event only */ }
+        Nav.NavigateTo("/onboarding/done");
+    }
+}

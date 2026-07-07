@@ -662,3 +662,165 @@ code {
 /* --- Home actions ----------------------------------------------------------------------- */
 .bb-home-actions { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 24px; }
 .bb-home-actions p { margin: 0 0 4px; }
+
+/* =============================================================================
+   Sprint 3 — onboarding quiz, radar, sectioned feed. Amber = the drink,
+   teal = the thinking (this feed is where the grammar matters most).
+   ========================================================================== */
+
+.bb-btn--block { width: 100%; margin-top: 12px; }
+.bb-onboarding-skip { margin-top: 12px; text-align: center; }
+
+/* --- Interest gate (design-ref Screen 1) ----------------------------------- */
+.bb-interest-cards { display: flex; flex-direction: column; gap: 10px; margin: 18px 0; }
+.bb-interest-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  background: var(--bb-surface);
+  border: 1px solid var(--bb-hairline);
+  border-radius: var(--bb-radius);
+  padding: 12px 14px;
+  min-height: var(--bb-tap);
+  color: var(--bb-coaster);
+  cursor: pointer;
+}
+.bb-interest-card.is-selected { border-color: var(--bb-synapse); }
+.bb-interest-card__text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.bb-interest-card__name {
+  font-family: var(--bb-font-display);
+  font-weight: var(--bb-fw-medium);
+  font-size: 15px;
+}
+.bb-interest-card__desc { color: var(--bb-text-muted); font-size: 11px; line-height: 15px; }
+.bb-interest-card__check {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  border: 1.5px solid var(--bb-text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bb-ink);
+}
+.bb-interest-card.is-selected .bb-interest-card__check {
+  background: var(--bb-synapse);
+  border-color: var(--bb-synapse);
+}
+.bb-interest-card .bb-cat-icon { width: 40px; height: 40px; }
+
+/* --- Quiz (design-ref Screen 2) -------------------------------------------- */
+.bb-quiz-progress { display: flex; gap: 8px; margin: 4px 0 14px; }
+.bb-quiz-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bb-surface);
+}
+.bb-quiz-dot.is-done { background: var(--bb-pour); }     /* rated categories = beverage done */
+.bb-quiz-dot.is-active { background: var(--bb-synapse); } /* current step = attention */
+
+.bb-quiz-list { list-style: none; margin: 16px 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.bb-quiz-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--bb-surface);
+  border-radius: var(--bb-radius);
+  padding: 12px 14px;
+}
+.bb-quiz-card__info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.bb-quiz-card__name { font-weight: var(--bb-fw-medium); font-size: 14px; }
+.bb-quiz-card__style { color: var(--bb-text-muted); font-size: 11px; line-height: 15px; }
+.bb-quiz-card__rate { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.bb-quiz-card__skip {
+  background: none;
+  border: none;
+  padding: 4px 0;
+  color: var(--bb-text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  text-align: right;
+}
+.bb-quiz-card__skip:hover { color: var(--bb-coaster); }
+.bb-quiz-card__skipped { color: var(--bb-pour); font-size: 11px; font-style: italic; padding: 8px 0; }
+
+.bb-quiz-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* --- Radar --------------------------------------------------------------------- */
+.bb-radar-wrap { display: flex; justify-content: center; padding: 12px 0; }
+.bb-palate-stats p { margin: 0 0 4px; }
+.bb-palate-card { margin-top: 12px; }
+
+/* Palate bars are intelligence → teal variant of the attribute bars. */
+.bb-attr-bars--synapse .bb-attr-bar__fill { background: var(--bb-synapse); }
+
+/* --- Feed (design-ref Screen 4) --------------------------------------------------- */
+.bb-tab-row--scroll { overflow-x: auto; scrollbar-width: none; }
+.bb-tab-row--scroll::-webkit-scrollbar { display: none; }
+.bb-tab { white-space: nowrap; }
+.bb-tab--pour.is-active { color: var(--bb-pour); border-bottom-color: var(--bb-pour); }
+.bb-tab__count {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--bb-bar-track);
+  color: var(--bb-text-muted);
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.bb-rec-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.bb-rec-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--bb-surface);
+  border-radius: var(--bb-radius);
+  border-left: 3px solid var(--bb-synapse); /* surfaced by the recommender → teal */
+  padding: 12px 14px;
+  color: var(--bb-coaster);
+  text-decoration: none;
+}
+.bb-rec-card:hover { text-decoration: none; filter: brightness(1.08); }
+.bb-rec-card--pour { border-left-color: var(--bb-pour); } /* Wildcard flips amber (design ref) */
+.bb-rec-card__top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.bb-rec-card__name { font-weight: var(--bb-fw-medium); font-size: 14px; }
+.bb-rec-card__match {
+  font-family: var(--bb-font-display);
+  font-weight: var(--bb-fw-medium);
+  font-size: 12px;
+  color: var(--bb-synapse); /* match % is intelligence, always teal */
+  flex: 0 0 auto;
+}
+.bb-rec-card__detail { color: var(--bb-text-muted); font-size: 11px; line-height: 15px; }
+.bb-rec-card__pill {
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: var(--bb-fw-medium);
+}
+.bb-rec-card__pill--synapse { background: var(--bb-synapse-tint); color: var(--bb-synapse); }
+.bb-rec-card__pill--pour { background: var(--bb-pour-tint); color: var(--bb-pour); }
+.bb-rec-card__reason {
+  color: var(--bb-text-muted);
+  font-size: 11px;
+  line-height: 16px;
+  border-top: 1px solid var(--bb-hairline);
+  padding-top: 6px;
+  margin-top: 4px;
+}
+.bb-rec-card__reason strong { color: var(--bb-synapse); font-weight: var(--bb-fw-medium); }
+.bb-rec-card__reason--pour strong { color: var(--bb-pour); }
