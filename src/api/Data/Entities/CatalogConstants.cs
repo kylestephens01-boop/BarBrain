@@ -40,6 +40,24 @@ public static class AttributeValueSource
     public const string Moderator = "moderator";
 }
 
+/// <summary>Where a rating happened (ADR-015). Sprint 2 spec: enum + nullable venue ref.</summary>
+public static class LocationContext
+{
+    public const string HomeBar = "home_bar";
+    public const string Venue = "venue";
+    public const string Untagged = "untagged";
+
+    public static readonly string[] All = [HomeBar, Venue, Untagged];
+    public static bool IsValid(string value) => All.Contains(value);
+}
+
+/// <summary>Kind of venue (stub vocabulary; the full model is Sprint 5).</summary>
+public static class VenueType
+{
+    public const string HomeBar = "home_bar";
+    public const string Venue = "venue";
+}
+
 public static class MergeStatus
 {
     public const string Pending = "pending";
