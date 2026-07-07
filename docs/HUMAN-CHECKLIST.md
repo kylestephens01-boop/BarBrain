@@ -15,11 +15,18 @@ Est. ~45–60 min total. Items 1–5 block Sprint 0; the rest block later sprint
 6. Transactional email provider (free tier: Resend/Brevo/SES). API key → secrets.
    PLUS a non-home physical mailing address for email footers (CAN-SPAM
    requires one): virtual mailbox or registered-agent service address. [Sprint 2]
-7. Google Cloud console: OAuth client (web). Redirect URIs for dev + prod.
-   [Sprint 2]
+   → Until wired, the API logs verification links (IVerificationEmailSender);
+   swap in an SMTP sender + creds when this lands.
+7. Google Cloud console: OAuth client (web). Redirect URIs for dev + prod:
+   `https://<host>/api/auth/callback/google`. Creds → env `GOOGLE_CLIENT_ID`,
+   `GOOGLE_CLIENT_SECRET` (see infra/.env.example). Empty = button hidden. [Sprint 2]
 8. Apple Developer ($99/yr): enroll, configure Sign in with Apple service ID +
-   key. [Sprint 2]
-9. Cloudflare Turnstile: site + secret keys. [Sprint 2]
+   key. Return URL: `https://<host>/api/auth/callback/apple`. Creds → env
+   `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`
+   (.p8 contents). Empty = button hidden. [Sprint 2]
+9. Cloudflare Turnstile: site + secret keys → env `TURNSTILE_SITE_KEY`,
+   `TURNSTILE_SECRET_KEY`. Empty = bot check skipped with a logged warning;
+   set BEFORE public launch. [Sprint 2]
 10. Object storage for backups (Hetzner Storage Box or Backblaze B2): bucket +
     credentials. [Sprint 7]
 11. Attorney: trademark knockout search (Classes 9/35/42/43 + the Class 45
