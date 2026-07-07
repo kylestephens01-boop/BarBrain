@@ -24,9 +24,13 @@ test('a rating flipped private vanishes from the logged-out drink page', async (
   await page.fill('#password', 'correct-horse-battery');
   await page.fill('#dob', '1990-04-17');
   await page.getByTestId('signup-submit').click();
-  await expect(page.getByTestId('first-run-hint')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId('interest-beer')).toBeVisible({ timeout: 20_000 });
+  await page.getByTestId('onboarding-skip').click();
+  await expect(page.getByTestId('search-input')).toBeVisible({ timeout: 20_000 });
 
-  await page.getByTestId('search-input').fill('king sue');
+  // Golden Nugget: rated by NO other spec — this test asserts GLOBAL drink-page
+  // state, so its drink must not collide with the quiz staples (parallel specs).
+  await page.getByTestId('search-input').fill('golden nugget');
   await page.getByTestId('search-result').first().click();
   await expect(page.getByTestId('drink-name')).toBeVisible({ timeout: 15_000 });
   const drinkUrl = page.url();

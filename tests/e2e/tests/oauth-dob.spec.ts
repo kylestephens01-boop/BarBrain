@@ -47,8 +47,8 @@ for (const provider of ['google', 'apple'] as const) {
     await page.fill('#dob', ADULT_DOB);
     await page.getByTestId('complete-submit').click();
 
-    // Lands signed in on the first-run search screen.
-    await expect(page.getByTestId('first-run-hint')).toBeVisible({ timeout: 20_000 });
+    // Lands signed in on the onboarding interest gate (Sprint 3).
+    await expect(page.getByTestId('interest-beer')).toBeVisible({ timeout: 20_000 });
     await shot(page, testInfo, `${provider}-signed-in`);
 
     const me = await page.request.get('/api/auth/me');

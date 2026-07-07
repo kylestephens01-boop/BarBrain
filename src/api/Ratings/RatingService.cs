@@ -12,7 +12,10 @@ namespace BarBrain.Api.Ratings;
 /// visibility columns — this class IS the sprint's authz surface for ratings,
 /// and the integration tests attack it as user A vs user B.
 /// </summary>
-public sealed class RatingService(AppDbContext db, TimeProvider clock)
+public sealed class RatingService(
+    AppDbContext db,
+    TimeProvider clock,
+    Palate.PalateProfileService palateProfiles)
 {
     public sealed record Failure(int Status, ApiError Error);
     private const int MergeHopLimit = 10;
@@ -35,6 +38,10 @@ public sealed class RatingService(AppDbContext db, TimeProvider clock)
 
         if (request.Note is { Length: > 500 })
             return Fail(400, "note_too_long", "Notes max out at 500 characters.");
+
+        var origin = request.Origin ?? RatingOrigin.User;
+        if (origin is not (RatingOrigin.User or RatingOrigin.Quiz))
+            return Fail(400, "invalid_origin", "Origin is 'user' or 'quiz'.");
 
         // Resolve the drink, following merge redirects to the canonical row.
         var drink = await db.Drinks.AsNoTracking()
@@ -61,6 +68,7 @@ public sealed class RatingService(AppDbContext db, TimeProvider clock)
             Visibility = visibility,
             LocationContext = request.LocationContext,
             VenueId = venueId.VenueId,
+            Origin = origin,
             IsLatest = true,
             CreatedAt = now,
             UpdatedAt = now,
@@ -90,6 +98,11 @@ public sealed class RatingService(AppDbContext db, TimeProvider clock)
             await db.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
         });
+
+        // Profiles are derived data — refresh this (user, category) so the
+        // feed reflects the rating immediately (Sprint 3 spec: on-demand
+        // recompute after rating; cheap at this scale).
+        await palateProfiles.RecomputeAsync(userId, drink.Category, ct);
 
         var dto = await OwnRatingDtoAsync(userId, rating.Id, ct);
         return (dto, null);
@@ -186,6 +199,14 @@ public sealed class RatingService(AppDbContext db, TimeProvider clock)
 
             await tx.CommitAsync(ct);
         });
+
+        if (failure is null)
+        {
+            // A deletion can change the latest row — refresh every category
+            // the user has (the drink's category isn't in scope here; a full
+            // per-user refresh is three cheap queries).
+            await palateProfiles.RecomputeAllForUserAsync(userId, ct);
+        }
         return failure;
     }
 
@@ -264,7 +285,7 @@ public sealed class RatingService(AppDbContext db, TimeProvider clock)
             r.Drink.Style != null ? r.Drink.Style.Name : null,
             r.Value, r.Note, r.Visibility, r.LocationContext,
             r.Venue != null ? r.Venue.Name : null,
-            r.IsLatest, r.CreatedAt));
+            r.IsLatest, r.CreatedAt, r.Origin));
 
     private static (RatingDto?, Failure?) Fail(int status, string code, string message)
         => (null, new Failure(status, new ApiError(code, message)));

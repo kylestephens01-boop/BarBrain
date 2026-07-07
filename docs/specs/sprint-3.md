@@ -3,8 +3,12 @@
 the quiz bootstraps cold users. Gate C1 = eval harness green.
 
 ## In scope
-- Profile job: per-category preference-weighted vectors (rating − user mean),
-  min 5 ratings; nightly batch + on-demand recompute after rating (cheap at scale).
+- Profile job: per-category preference-weighted vectors (rating − user mean);
+  nightly batch + on-demand recompute after rating (cheap at scale).
+  Profiles compute from the FIRST rating; the min-5 floor became a
+  confidence TIER (flag) that shapes how much the feed trusts a profile —
+  confidence-adaptive sections need low-confidence profiles to exist
+  (founder decision, July 2026; supersedes the old hard floor).
 - Onboarding quiz (ADR PRD): conversational interest gate per category →
   staples quiz (config-driven drink lists; beer/whiskey by product, wine by
   varietal/style) → "haven't tried" skip; quiz ratings are real ratings
@@ -14,8 +18,12 @@ the quiz bootstraps cold users. Gate C1 = eval harness green.
   pass (MMR-lite). Confidence-adaptive wildcard count (flags).
 - Explainability: per-rec "because" from top contributing attributes.
 - Radar chart: live per-category profile on journal/profile page.
-- STRETCH: cross-category recs via 6-dim bridge — "Because you love peaty Scotch
-  → try this rauchbier" row, behind a flag.
+- Cross-category recs via the 6-dim bridge — "Because you love peaty Scotch
+  → try this rauchbier". REQUIRED, not stretch (founder decision, July 2026 —
+  this is the moat mechanic; see ADR-027): a user's palate in one category
+  must inform recs in another, proven by an explicit eval-harness test
+  (peaty-whiskey-only persona surfaces smoky beer). Flag-gated for rollout
+  control, but built and tested in this sprint.
 - Eval harness (CI suite): synthetic personas (hophead, malt-sweet, peat-lover,
   dry-red, sweet-white, sour-fan + 6 more) generate noisy ratings; metrics:
   attribute-alignment precision@10 ≥0.7; leave-one-out hit-rate@10 ≥0.25 on

@@ -1,0 +1,68 @@
+@page "/onboarding/done"
+@using BarBrain.Web.Components
+@using BarBrain.Web.Services
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject UserState User
+
+<PageTitle>Your palate is taking shape — BarBrain</PageTitle>
+
+<h1>Your palate is taking shape</h1>
+<p class="bb-muted">First read from your ratings — it sharpens with every one you log.</p>
+
+@if (_palate is null)
+{
+    <p class="bb-muted">Reading the tea leaves…</p>
+}
+else if (_first is null)
+{
+    <div class="bb-card">
+        <p>Not enough ratings landed to sketch a palate yet.</p>
+        <p class="bb-muted">Rate a few drinks you know and the picture appears.</p>
+    </div>
+}
+else
+{
+    <div class="bb-radar-wrap" data-testid="onboarding-radar">
+        <RadarChart Labels="@_first.Attributes.Select(a => a.DisplayName).ToList()"
+                    Values="@_first.Attributes.Select(a => a.Display).ToList()" />
+    </div>
+
+    @if (Strongest is { } strongest)
+    {
+        <div class="bb-card bb-palate-stats">
+            <p>Strongest lean: <span class="bb-pour">@strongest.DisplayName</span>
+               <span class="bb-stat">@strongest.Display.ToString("0.0")</span></p>
+            <p class="bb-muted">@_first.RatingsCount rating@(_first.RatingsCount == 1 ? "" : "s") in @_first.Category so far.</p>
+        </div>
+    }
+}
+
+<a class="bb-btn bb-btn--primary bb-btn--block" href="/feed" data-testid="explore-feed">Explore your feed →</a>
+
+@code {
+    private PalateResponse? _palate;
+    private CategoryPalate? _first;
+
+    private PalateAttribute? Strongest
+        => _first?.Attributes.OrderByDescending(a => a.Display).FirstOrDefault();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await User.EnsureLoadedAsync();
+        if (!User.IsSignedIn)
+        {
+            Nav.NavigateTo("/signup");
+            return;
+        }
+        try
+        {
+            _palate = await Http.GetFromJsonAsync<PalateResponse>("api/palate/mine");
+            _first = _palate?.Categories.OrderByDescending(c => c.RatingsCount).FirstOrDefault();
+        }
+        catch
+        {
+            _palate = new PalateResponse([]);
+        }
+    }
+}

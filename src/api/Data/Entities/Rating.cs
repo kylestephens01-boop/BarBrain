@@ -33,6 +33,13 @@ public class Rating
     /// <summary>home_bar | venue | untagged (CHECK-constrained; ADR-015).</summary>
     public required string LocationContext { get; set; }
 
+    /// <summary>
+    /// user | quiz (CHECK-constrained). Quiz ratings are REAL ratings with
+    /// provenance (Sprint 3 spec) — they feed profiles like any other, but the
+    /// journal and future analytics can tell them apart.
+    /// </summary>
+    public string Origin { get; set; } = RatingOrigin.User;
+
     /// <summary>Set iff the context is a venue/Home Bar (CHECK-paired).</summary>
     public Guid? VenueId { get; set; }
     public Venue? Venue { get; set; }

@@ -37,8 +37,13 @@ test('email signup → 21+ gate → first rating, under 2 minutes, ≤6 screens'
   await shot(page, testInfo, '02-signup-filled');
   await page.getByTestId('signup-submit').click();
 
-  // Screen 2: search (first-run hint confirms we're signed in and activated).
-  await expect(page.getByTestId('first-run-hint')).toBeVisible({ timeout: 20_000 });
+  // Sprint 3 routes fresh accounts to the onboarding gate; the timed Gate B
+  // path skips it (the quiz has its own spec) and rates via search.
+  await expect(page.getByTestId('interest-beer')).toBeVisible({ timeout: 20_000 });
+  await page.getByTestId('onboarding-skip').click();
+
+  // Screen 2: search.
+  await expect(page.getByTestId('search-input')).toBeVisible({ timeout: 20_000 });
   await shot(page, testInfo, '03-search');
   await page.getByTestId('search-input').fill('pseudo sue');
   const results = page.getByTestId('search-result');

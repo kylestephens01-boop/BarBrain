@@ -20,6 +20,96 @@
     "description": "Minimum days between handle changes (Sprint 2 spec)."
   },
   {
+    "key": "palate.warm_confidence_ratings",
+    "value": "3",
+    "description": "Ratings in a category before its profile counts as 'warming'. Below this the feed leans on popularity and shows no match percentages."
+  },
+  {
+    "key": "palate.full_confidence_ratings",
+    "value": "5",
+    "description": "Ratings before full profile confidence (Sprint 3 spec's min-5, as a tier). Drives the 'needs N more ratings' prompt and feed shape."
+  },
+  {
+    "key": "palate.nightly_recompute",
+    "value": "true",
+    "description": "Nightly full palate-profile recompute (heals drift after catalog vector changes; per-rating recompute covers the rest)."
+  },
+  {
+    "key": "palate.nightly_hour_utc",
+    "value": "9",
+    "description": "UTC hour for the nightly palate recompute (9 = ~3am US Central)."
+  },
+  {
+    "key": "feed.pool_size",
+    "value": "300",
+    "description": "Nearest-neighbor candidate pool per category for the sectioned feed."
+  },
+  {
+    "key": "feed.alley_band",
+    "value": "30",
+    "description": "Pool rank where Up Your Alley ends and Stretch a Little begins."
+  },
+  {
+    "key": "feed.stretch_band",
+    "value": "90",
+    "description": "Pool rank where Stretch a Little ends and the Wildcard sample space begins."
+  },
+  {
+    "key": "feed.section_size",
+    "value": "8",
+    "description": "Items per feed section at warm/full confidence."
+  },
+  {
+    "key": "feed.cold_section_size",
+    "value": "4",
+    "description": "Items per Alley/Stretch section for cold users (confidence-adaptive shape)."
+  },
+  {
+    "key": "feed.wildcard_count_full",
+    "value": "3",
+    "description": "Wildcard picks for full-confidence users."
+  },
+  {
+    "key": "feed.wildcard_count_cold",
+    "value": "6",
+    "description": "Wildcard picks for cold/warm users — exploration teaches the engine fastest early."
+  },
+  {
+    "key": "feed.popularity_weight_pct",
+    "value": "10",
+    "description": "Weight (percent) of the smoothed popularity prior blended into candidate scores."
+  },
+  {
+    "key": "feed.mmr_lambda_pct",
+    "value": "75",
+    "description": "MMR-lite relevance/diversity balance (percent toward relevance)."
+  },
+  {
+    "key": "feed.bridge_enabled",
+    "value": "true",
+    "description": "Cross-category bridge recs (ADR-027, the moat mechanic). Flag exists for rollout control only — the capability is a required deliverable."
+  },
+  {
+    "key": "feed.bridge_count",
+    "value": "2",
+    "description": "Bridge picks injected per (source, target) category pair."
+  },
+  {
+    "key": "quiz.staples.beer",
+    "value": "[{\"producer\":\"Toppling Goliath Brewing Co\",\"name\":\"Pseudo Sue\"},{\"producer\":\"Toppling Goliath Brewing Co\",\"name\":\"King Sue\"},{\"producer\":\"Toppling Goliath Brewing Co\",\"name\":\"Dorothy's New World Lager\"},{\"producer\":\"Big Grove Brewery\",\"name\":\"Easy Eddy\"},{\"producer\":\"Exile Brewing Co\",\"name\":\"Ruthie\"},{\"producer\":\"Millstream Brewing Co\",\"name\":\"Schild Brau Amber\"},{\"producer\":\"Millstream Brewing Co\",\"name\":\"Iowa Pale Ale\"},{\"producer\":\"Big Grove Brewery\",\"name\":\"Citrus Surfer\"}]",
+    "description": "Onboarding staples quiz, beer (JSON; editable without deploy). Entries resolve by producer+name; unresolved entries drop out."
+  },
+  {
+    "key": "quiz.staples.whiskey",
+    "value": "[{\"producer\":\"Buffalo Trace Distillery\",\"name\":\"Buffalo Trace Kentucky Straight Bourbon\"},{\"producer\":\"Maker's Mark Distillery\",\"name\":\"Maker's Mark\"},{\"producer\":\"Jack Daniel's Distillery\",\"name\":\"Jack Daniel's Old No. 7\"},{\"producer\":\"Jameson Distillery\",\"name\":\"Jameson Irish Whiskey\"},{\"producer\":\"Glenfiddich Distillery\",\"name\":\"Glenfiddich 12 Year\"},{\"producer\":\"Laphroaig Distillery\",\"name\":\"Laphroaig 10 Year\"},{\"producer\":\"Templeton Distillery\",\"name\":\"Templeton Rye 4 Year\"},{\"producer\":\"Woodford Reserve Distillery\",\"name\":\"Woodford Reserve\"}]",
+    "description": "Onboarding staples quiz, whiskey (JSON; editable without deploy)."
+  },
+  {
+    "key": "quiz.staples.wine",
+    "value": "[{\"style\":\"WN-R-CS\"},{\"style\":\"WN-W-CH\"},{\"style\":\"WN-W-PG\"},{\"style\":\"WN-R-ZN\"},{\"style\":\"WN-W-MO\"},{\"style\":\"WN-SP-PR\"},{\"style\":\"WN-R-BL\"}]",
+    "description": "Onboarding staples quiz, wine BY VARIETAL (style codes; each resolves to a representative catalog drink so quiz ratings stay real ratings)."
+  },
+  {
     "key": "catalog.inherited_confidence_pct",
     "value": "30",
     "description": "Confidence (percent, 0-100) assigned to drink attribute values inherited from style baselines (ADR-009). Vector sync reads this."

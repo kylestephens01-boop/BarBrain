@@ -58,6 +58,13 @@ public static class VenueType
     public const string Venue = "venue";
 }
 
+/// <summary>Provenance of a rating (Sprint 3: quiz ratings are real ratings).</summary>
+public static class RatingOrigin
+{
+    public const string User = "user";
+    public const string Quiz = "quiz";
+}
+
 public static class MergeStatus
 {
     public const string Pending = "pending";

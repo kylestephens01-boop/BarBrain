@@ -26,12 +26,71 @@ else
     </header>
 
     <div class="bb-tab-row" role="tablist" aria-label="Profile sections">
-        <button type="button" role="tab" aria-selected="true" class="bb-tab is-active">Journal</button>
-        <button type="button" role="tab" aria-selected="false" class="bb-tab" disabled title="Arrives with Sprint 3">Palate</button>
+        <button type="button" role="tab" aria-selected="@(_tab == "journal")"
+                class="bb-tab @(_tab == "journal" ? "is-active" : "")"
+                @onclick="ShowJournal">Journal</button>
+        <button type="button" role="tab" aria-selected="@(_tab == "palate")"
+                class="bb-tab @(_tab == "palate" ? "is-active" : "")"
+                data-testid="palate-tab"
+                @onclick="OpenPalateAsync">Palate</button>
         <button type="button" role="tab" aria-selected="false" class="bb-tab" disabled title="Arrives with Sprint 4">Matches</button>
         <button type="button" role="tab" aria-selected="false" class="bb-tab" disabled title="Arrives with Sprint 6">Badges</button>
     </div>
 
+    @if (_tab == "palate")
+    {
+        @if (_palate is null)
+        {
+            <p class="bb-muted">Reading your palate…</p>
+        }
+        else if (_palate.Categories.Count == 0)
+        {
+            <div class="bb-card" data-testid="palate-empty">
+                <p>No palate yet — it appears with your first ratings.</p>
+                <a class="bb-btn bb-btn--primary" href="/onboarding">Take the palate check</a>
+            </div>
+        }
+        else
+        {
+            @foreach (var palate in _palate.Categories)
+            {
+                <section class="bb-card bb-palate-card" data-testid="palate-@palate.Category">
+                    <span class="bb-label">@Cap(palate.Category)</span>
+                    <div class="bb-radar-wrap">
+                        <RadarChart Labels="@palate.Attributes.Select(a => a.DisplayName).ToList()"
+                                    Values="@palate.Attributes.Select(a => a.Display).ToList()"
+                                    Size="220" />
+                    </div>
+                    @* Palate bars describe INTELLIGENCE about the user → teal. *@
+                    <div class="bb-attr-bars bb-attr-bars--synapse">
+                        @foreach (var palateAttr in palate.Attributes)
+                        {
+                            <div class="bb-attr-bar">
+                                <span class="bb-attr-bar__name">@palateAttr.DisplayName</span>
+                                <span class="bb-attr-bar__track">
+                                    <span class="bb-attr-bar__fill" style="width:@(Math.Round(palateAttr.Display * 10))%"></span>
+                                </span>
+                                <span class="bb-attr-bar__value">@palateAttr.Display.ToString("0.0")</span>
+                            </div>
+                        }
+                    </div>
+                    @if (palate.RatingsToFull > 0)
+                    {
+                        <p class="bb-muted">@palate.RatingsToFull more rating@(palate.RatingsToFull == 1 ? "" : "s") to a fully confident read.</p>
+                    }
+                </section>
+            }
+            @foreach (var missing in new[] { "beer", "whiskey", "wine" }.Where(c => _palate.Categories.All(p => p.Category != c)))
+            {
+                <section class="bb-card bb-palate-card">
+                    <span class="bb-label">@Cap(missing)</span>
+                    <p class="bb-muted">Rate a few @missing drinks and this palate appears.</p>
+                </section>
+            }
+        }
+    }
+    else
+    {
     <div class="bb-pill-row" role="group" aria-label="Filter by category">
         @foreach (var (value, label) in CategoryFilters)
         {
@@ -105,6 +164,7 @@ else
             }
         </ul>
     }
+    }
 }
 
 @code {
@@ -115,6 +175,17 @@ else
     private string? _category;
     private int _categoryCount;
     private Guid? _confirmDelete;
+    private string _tab = "journal";
+    private PalateResponse? _palate;
+
+    private void ShowJournal() => _tab = "journal";
+
+    private async Task OpenPalateAsync()
+    {
+        _tab = "palate";
+        try { _palate = await Http.GetFromJsonAsync<PalateResponse>("api/palate/mine"); }
+        catch { _palate = new PalateResponse([]); }
+    }
 
     protected override async Task OnInitializedAsync()
     {

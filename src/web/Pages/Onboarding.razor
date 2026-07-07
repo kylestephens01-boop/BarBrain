@@ -1,0 +1,114 @@
+@page "/onboarding"
+@using BarBrain.Web.Components
+@using BarBrain.Web.Services
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject UserState User
+
+<PageTitle>What are you into? — BarBrain</PageTitle>
+
+<h1>What are you into?</h1>
+<p class="bb-muted">Pick what you drink — we'll only ask about those. You can rate anything anytime.</p>
+
+<div class="bb-interest-cards">
+    @foreach (var option in Options)
+    {
+        <button type="button" class="bb-interest-card @(IsSelected(option.Category) ? "is-selected" : "")"
+                aria-pressed="@IsSelected(option.Category)"
+                data-testid="interest-@option.Category"
+                @onclick="() => Toggle(option.Category)">
+            <span class="bb-cat-icon bb-cat-icon--@option.Category" aria-hidden="true">
+                <Icon Name="@option.Icon" Size="20" />
+            </span>
+            <span class="bb-interest-card__text">
+                <span class="bb-interest-card__name">@option.Name</span>
+                <span class="bb-interest-card__desc">@option.Description</span>
+            </span>
+            <span class="bb-interest-card__check" aria-hidden="true">
+                @if (IsSelected(option.Category))
+                {
+                    <Icon Name="check" Size="14" />
+                }
+            </span>
+        </button>
+    }
+</div>
+
+@if (_error is not null)
+{
+    <p class="bb-form__error" role="alert">@_error</p>
+}
+
+<button type="button" class="bb-btn bb-btn--primary bb-btn--block" disabled="@(_selected.Count == 0 || _busy)"
+        @onclick="ContinueAsync" data-testid="interest-continue">
+    Let's go
+</button>
+<p class="bb-muted bb-onboarding-skip">
+    <a href="/search" data-testid="onboarding-skip">Skip for now</a> — you can take the quiz later from your feed.
+</p>
+
+@code {
+    private sealed record Option(string Category, string Name, string Description, string Icon);
+
+    private static readonly Option[] Options =
+    [
+        new("beer", "Beer", "Lagers to imperial stouts", "beer"),
+        new("whiskey", "Whiskey", "Bourbon, rye, Scotch, and beyond", "glass"),
+        new("wine", "Wine", "Reds, whites, sparkling", "glass"),
+    ];
+
+    private readonly HashSet<string> _selected = [];
+    private string? _error;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await User.EnsureLoadedAsync();
+        if (!User.IsSignedIn)
+        {
+            Nav.NavigateTo("/signup");
+            return;
+        }
+        try
+        {
+            var existing = await Http.GetFromJsonAsync<InterestsResponse>("api/quiz/interests");
+            foreach (var category in existing?.Categories ?? [])
+                _selected.Add(category);
+        }
+        catch { /* fresh gate */ }
+    }
+
+    private bool IsSelected(string category) => _selected.Contains(category);
+
+    private void Toggle(string category)
+    {
+        if (!_selected.Add(category))
+            _selected.Remove(category);
+    }
+
+    private async Task ContinueAsync()
+    {
+        _error = null;
+        _busy = true;
+        try
+        {
+            using var response = await Http.PutAsJsonAsync("api/quiz/interests",
+                new InterestsRequest(_selected.ToList()));
+            if (response.IsSuccessStatusCode)
+            {
+                Nav.NavigateTo("/onboarding/quiz");
+                return;
+            }
+            var error = await ApiErrors.ReadAsync(response);
+            _error = error?.Message ?? "That didn't save. Give it another try.";
+        }
+        catch
+        {
+            _error = "Couldn't reach the server. Check your connection and try again.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

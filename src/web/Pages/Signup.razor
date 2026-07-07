@@ -124,7 +124,7 @@ else
             {
                 var me = await response.Content.ReadFromJsonAsync<MeResponse>();
                 User.SetSignedIn(me!);
-                Nav.NavigateTo("/search?first=1");
+                Nav.NavigateTo("/onboarding"); // interest gate -> quiz -> feed (Sprint 3)
                 return;
             }
 

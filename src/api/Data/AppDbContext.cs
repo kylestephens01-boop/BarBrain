@@ -26,6 +26,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<Venue> Venues => Set<Venue>();
     public DbSet<Rating> Ratings => Set<Rating>();
+    public DbSet<UserCategoryInterest> UserCategoryInterests => Set<UserCategoryInterest>();
+    public DbSet<UserPalateProfile> UserPalateProfiles => Set<UserPalateProfile>();
     public DbSet<Producer> Producers => Set<Producer>();
     public DbSet<Style> Styles => Set<Style>();
     public DbSet<AttributeDefinition> AttributeDefinitions => Set<AttributeDefinition>();
@@ -147,12 +149,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 // Venue ref present exactly when the context says so.
                 t.HasCheckConstraint("ck_ratings_venue_pairing",
                     "(\"LocationContext\" = 'untagged') = (\"VenueId\" IS NULL)");
+                // Quiz ratings are real ratings with provenance (Sprint 3).
+                t.HasCheckConstraint("ck_ratings_origin",
+                    "\"Origin\" IN ('user','quiz')");
             });
             e.HasKey(r => r.Id);
             e.Property(r => r.Value).HasPrecision(2, 1);
             e.Property(r => r.Note).HasMaxLength(500);
             e.Property(r => r.Visibility).HasMaxLength(16);
             e.Property(r => r.LocationContext).HasMaxLength(16).IsRequired();
+            e.Property(r => r.Origin).HasMaxLength(16);
             e.HasOne(r => r.CreatedBy).WithMany()
                 .HasForeignKey(r => r.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(r => r.Drink).WithMany()
@@ -168,6 +174,35 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             // Journal reads: my ratings, newest first.
             e.HasIndex(r => new { r.CreatedByUserId, r.CreatedAt })
                 .HasDatabaseName("ix_ratings_journal");
+        });
+
+        modelBuilder.Entity<UserCategoryInterest>(e =>
+        {
+            e.ToTable("user_category_interests", t =>
+            {
+                t.HasCheckConstraint("ck_user_category_interests_category", categoryCheck);
+            });
+            e.HasKey(i => new { i.UserId, i.Category });
+            e.Property(i => i.Category).HasMaxLength(16);
+            e.HasOne(i => i.User).WithMany()
+                .HasForeignKey(i => i.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserPalateProfile>(e =>
+        {
+            e.ToTable("user_palate_profiles", t =>
+            {
+                t.HasCheckConstraint("ck_user_palate_profiles_category", categoryCheck);
+                t.HasCheckConstraint("ck_user_palate_profiles_ratings_count",
+                    "\"RatingsCount\" >= 0");
+            });
+            e.HasKey(p => new { p.UserId, p.Category });
+            e.Property(p => p.Category).HasMaxLength(16);
+            e.Property(p => p.PreferenceVector).HasColumnType("vector(8)");
+            e.Property(p => p.CentroidVector).HasColumnType("vector(8)");
+            e.Property(p => p.BridgeVector).HasColumnType("vector(6)");
+            e.HasOne(p => p.User).WithMany()
+                .HasForeignKey(p => p.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Producer>(e =>

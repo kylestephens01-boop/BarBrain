@@ -131,3 +131,15 @@ including `CHECK (created_by_user_id IS NOT NULL OR visibility = 'public')`
 stub table (id, nullable unique handle, created_at — zero PII, zero auth
 columns) exists so these FKs are real; Sprint 2 extends it additively and
 enforces authz against these exact columns.
+
+**ADR-027 — Cross-category bridge recs are REQUIRED in the first rec release;
+rec quality is gated by a golden-set eval harness (founder decision, July 2026).**
+The 6-dim bridge (ADR-009) informing recs ACROSS categories is the moat
+mechanic, promoted from stretch to a Sprint 3 deliverable with an explicit
+eval test (single-category smoky palate must surface smoky drinks in another
+category). CF stays deferred per ADR-025 — no CF tables or user-user matrices;
+the append-only ratings history remains the upgrade path. Because rec quality
+is invisible to screenshot review, a golden-set eval suite (fixed synthetic
+personas with known preference vectors → asserted rec ordering + threshold
+metrics) runs in CI and BLOCKS merge on regression. Every recommendation
+carries a human-readable "because" (hard product requirement, ADR-013).
