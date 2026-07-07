@@ -13,6 +13,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     public string? ConnectionStringOverride { get; init; }
     public bool MigrateOnStartup { get; init; }
 
+    /// <summary>Extra configuration keys (e.g. Auth:EnableMockExternal).</summary>
+    public Dictionary<string, string?> Settings { get; init; } = [];
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("Database:MigrateOnStartup", MigrateOnStartup ? "true" : "false");
@@ -20,5 +23,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
 
         if (ConnectionStringOverride is not null)
             builder.UseSetting("ConnectionStrings:Default", ConnectionStringOverride);
+
+        foreach (var (key, value) in Settings)
+            builder.UseSetting(key, value);
     }
 }
