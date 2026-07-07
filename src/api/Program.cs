@@ -39,6 +39,9 @@ builder.Services.AddScoped<BarBrain.Api.Palate.RecommendationService>();
 builder.Services.AddScoped<BarBrain.Api.Palate.QuizService>();
 builder.Services.AddHostedService<BarBrain.Api.Palate.PalateNightlyService>();
 
+// --- Rapid-rate browse read (Sprint 4.5) -------------------------------------
+builder.Services.AddScoped<BarBrain.Api.Catalog.RapidRateQueryService>();
+
 // --- Matching + weekly digest (Sprint 4, ADR-014/007/019) -------------------
 builder.Services.AddScoped<BarBrain.Api.Palate.MatchService>();
 builder.Services.AddHostedService<BarBrain.Api.Palate.MatchNightlyService>();
@@ -104,6 +107,7 @@ app.MapAuthEndpoints();
 app.MapRatingEndpoints();
 app.MapPalateEndpoints();
 app.MapMatchEndpoints();
+app.MapRapidRateEndpoints();
 
 app.Run();
 return 0;
