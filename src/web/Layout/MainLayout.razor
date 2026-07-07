@@ -1,7 +1,16 @@
 @inherits LayoutComponentBase
+@using BarBrain.Web.Components
+@using BarBrain.Web.Services
+@inject UserState User
 
 <div class="bb-app">
+    <VerificationBanner />
     <main class="bb-main">
         @Body
     </main>
+    <NavBar />
 </div>
+
+@code {
+    protected override Task OnInitializedAsync() => User.EnsureLoadedAsync();
+}

@@ -1,0 +1,96 @@
+@page "/search"
+@using BarBrain.Web.Components
+@using BarBrain.Web.Services
+@inject HttpClient Http
+@inject UserState User
+@implements IDisposable
+
+<PageTitle>Search — BarBrain</PageTitle>
+
+<h1>Find a drink</h1>
+@if (IsFirstRun)
+{
+    <p class="bb-muted" data-testid="first-run-hint">Search for something you're drinking (or know well) and rate it.</p>
+}
+
+<div class="bb-search-bar">
+    <Icon Name="search" Size="18" Class="bb-search-bar__icon" />
+    <label for="drink-search" class="visually-hidden">Search drinks and producers</label>
+    <input id="drink-search" type="search" placeholder="Beer, whiskey, wine, or producer…"
+           value="@_query" @oninput="OnInput" autocomplete="off" data-testid="search-input" />
+</div>
+
+@if (_searching)
+{
+    <p class="bb-muted">Searching…</p>
+}
+else if (_results is { Count: 0 } && _query.Length >= 2)
+{
+    <p class="bb-muted" data-testid="search-empty">Nothing matched "@_query". Try fewer words or a producer name.</p>
+}
+else if (_results is not null)
+{
+    <ul class="bb-drink-list" data-testid="search-results">
+        @foreach (var drink in _results)
+        {
+            @* Logged/browsed drinks are BEVERAGE objects → amber accent. *@
+            <li>
+                <a class="bb-drink-card" href="/drinks/@drink.Id" data-testid="search-result">
+                    <span class="bb-drink-card__name">@drink.Name</span>
+                    <span class="bb-drink-card__detail">
+                        @drink.ProducerName · @(drink.StyleName ?? Cap(drink.Category))@(drink.Abv is { } abv ? $" · {abv:0.#}%" : "")
+                    </span>
+                </a>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private string _query = "";
+    private IReadOnlyList<DrinkSummary>? _results;
+    private bool _searching;
+    private System.Timers.Timer? _debounce;
+
+    [SupplyParameterFromQuery(Name = "first")] public string? First { get; set; }
+    private bool IsFirstRun => First == "1";
+
+    protected override Task OnInitializedAsync() => User.EnsureLoadedAsync();
+
+    private void OnInput(ChangeEventArgs e)
+    {
+        _query = e.Value?.ToString() ?? "";
+        _debounce?.Stop();
+        _debounce?.Dispose();
+        if (_query.Trim().Length < 2)
+        {
+            _results = null;
+            return;
+        }
+        _debounce = new System.Timers.Timer(250) { AutoReset = false };
+        _debounce.Elapsed += async (_, _) => await InvokeAsync(RunSearchAsync);
+        _debounce.Start();
+    }
+
+    private async Task RunSearchAsync()
+    {
+        var q = _query.Trim();
+        _searching = true;
+        StateHasChanged();
+        try
+        {
+            _results = await Http.GetFromJsonAsync<List<DrinkSummary>>(
+                $"api/catalog/search?q={Uri.EscapeDataString(q)}&limit=20");
+        }
+        catch
+        {
+            _results = [];
+        }
+        _searching = false;
+        StateHasChanged();
+    }
+
+    private static string Cap(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s[1..];
+
+    public void Dispose() => _debounce?.Dispose();
+}

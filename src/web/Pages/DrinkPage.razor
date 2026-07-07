@@ -1,0 +1,253 @@
+@page "/drinks/{Id:guid}"
+@using System.Net
+@using BarBrain.Web.Components
+@using BarBrain.Web.Services
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject UserState User
+
+<PageTitle>@(_drink?.Name ?? "Drink") — BarBrain</PageTitle>
+
+@if (_notFound)
+{
+    <p class="bb-muted">That drink isn't in the catalog.</p>
+}
+else if (_drink is null)
+{
+    <p class="bb-muted">Loading…</p>
+}
+else
+{
+    <header class="bb-drink-header">
+        <button type="button" class="bb-back" aria-label="Back" @onclick="GoBack">
+            <Icon Name="arrow-left" Size="22" />
+        </button>
+        <div>
+            <h1 data-testid="drink-name">@_drink.Name</h1>
+            <p class="bb-muted">
+                @(_drink.Style?.Name ?? Cap(_drink.Category))@(_drink.Abv is { } abv ? $" · {abv:0.#}% ABV" : "") · @_drink.Producer.Name
+            </p>
+        </div>
+    </header>
+
+    @* ---- Rating card (Screen 6): the Gate B moment. Beverage object → amber. *@
+    <section class="bb-card bb-rating-card" aria-label="Rate this drink">
+        @if (!User.IsSignedIn)
+        {
+            <p>Had this one? <a href="/signup">Create an account</a> to rate it.</p>
+        }
+        else if (_saved is not null)
+        {
+            <p class="bb-rating-card__saved" data-testid="rating-saved">
+                <Icon Name="check" Size="18" />
+                Logged: <strong>@_saved.Value.ToString("0.0")</strong> stars@(_saved.Visibility == "private" ? " (private)" : "").
+            </p>
+            <div class="bb-rating-card__after">
+                <button type="button" class="bb-btn" @onclick="ResetForm" data-testid="rate-again">Rate it again</button>
+                <a class="bb-btn" href="/profile">Your journal</a>
+                <a class="bb-btn" href="/search">Find another</a>
+            </div>
+        }
+        else
+        {
+            @if (_myLatest is not null)
+            {
+                <p class="bb-muted" data-testid="my-previous">
+                    You rated this @_myLatest.Value.ToString("0.0") on @_myLatest.CreatedAt.ToString("MMM d, yyyy").
+                    A new rating keeps the old one in your history.
+                </p>
+            }
+
+            <div class="bb-rating-card__stars">
+                <StarRating @bind-Value="_value" Interactive="true" Size="36" />
+            </div>
+
+            <label for="note" class="bb-label">Note <span class="bb-muted">(optional)</span></label>
+            <textarea id="note" @bind="_note" maxlength="500" rows="2"
+                      placeholder="What stood out?" data-testid="rating-note"></textarea>
+
+            <fieldset class="bb-location">
+                <legend class="bb-label">Where are you having it?</legend>
+                <div class="bb-pill-row" role="radiogroup" aria-label="Location">
+                    <button type="button" role="radio" aria-checked="@(_location == "home_bar")"
+                            class="bb-pill bb-pill--pour @(_location == "home_bar" ? "is-active" : "")"
+                            @onclick="@(() => _location = "home_bar")" data-testid="location-home-bar">
+                        Home Bar
+                    </button>
+                    <button type="button" role="radio" aria-checked="@(_location == "untagged")"
+                            class="bb-pill bb-pill--pour @(_location == "untagged" ? "is-active" : "")"
+                            @onclick="@(() => _location = "untagged")" data-testid="location-untagged">
+                        Somewhere else
+                    </button>
+                </div>
+            </fieldset>
+
+            <label class="bb-toggle">
+                <input type="checkbox" @bind="_private" data-testid="rating-private" />
+                <Icon Name="@(_private ? "eye-off" : "eye")" Size="16" />
+                Keep this rating private
+            </label>
+
+            @if (_error is not null)
+            {
+                <p class="bb-form__error" role="alert" data-testid="rating-error">@_error</p>
+            }
+
+            <button type="button" class="bb-btn bb-btn--primary" disabled="@(_value == 0 || _busy)"
+                    @onclick="SaveAsync" data-testid="rating-save">
+                @(_busy ? "Saving…" : "Save rating")
+            </button>
+        }
+    </section>
+
+    @* ---- Flavor profile (static render; attributes are beverage data → amber) *@
+    @if (_drink.Attributes.Count > 0)
+    {
+        <section class="bb-card" aria-label="Flavor profile">
+            <span class="bb-label">Flavor profile</span>
+            <div class="bb-attr-bars">
+                @foreach (var attr in _drink.Attributes)
+                {
+                    <div class="bb-attr-bar">
+                        <span class="bb-attr-bar__name">@attr.DisplayName</span>
+                        <span class="bb-attr-bar__track">
+                            <span class="bb-attr-bar__fill" style="width:@(Math.Round(attr.Display * 10))%"></span>
+                        </span>
+                        <span class="bb-attr-bar__value">@attr.Display.ToString("0.0")</span>
+                    </div>
+                }
+            </div>
+        </section>
+    }
+
+    @* ---- Recent public ratings ------------------------------------------- *@
+    <section class="bb-card" aria-label="Recent ratings" data-testid="public-ratings">
+        <span class="bb-label">Recent ratings</span>
+        @if (_public is null || _public.PublicCount == 0)
+        {
+            <p class="bb-muted" data-testid="no-public-ratings">No public ratings yet.</p>
+        }
+        else
+        {
+            <p class="bb-muted">@_public.Average?.ToString("0.0") average · @_public.PublicCount rating@(_public.PublicCount == 1 ? "" : "s")</p>
+            <ul class="bb-public-ratings">
+                @foreach (var rating in _public.Recent)
+                {
+                    <li data-testid="public-rating">
+                        <span class="bb-public-ratings__handle">@rating.Handle</span>
+                        <StarRating Value="@rating.Value" Size="14" />
+                        @if (rating.Note is not null)
+                        {
+                            <p class="bb-public-ratings__note">@rating.Note</p>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private DrinkDetail? _drink;
+    private DrinkRatingsResponse? _public;
+    private RatingDto? _myLatest;
+    private bool _notFound;
+
+    private decimal _value;
+    private string _note = "";
+    private string _location = "home_bar"; // Home Bar is the default (ADR-015)
+    private bool _private;
+    private bool _busy;
+    private string? _error;
+    private RatingDto? _saved;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await User.EnsureLoadedAsync();
+        _drink = null;
+        _notFound = false;
+        _saved = null;
+
+        try
+        {
+            using var response = await Http.GetAsync($"api/catalog/drinks/{Id}");
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                _notFound = true;
+                return;
+            }
+            _drink = await response.Content.ReadFromJsonAsync<DrinkDetail>();
+        }
+        catch
+        {
+            _notFound = true;
+            return;
+        }
+
+        await RefreshRatingsAsync();
+        if (_myLatest is not null)
+            _value = _myLatest.Value; // prefill stars; note stays fresh per rating
+    }
+
+    private async Task RefreshRatingsAsync()
+    {
+        try { _public = await Http.GetFromJsonAsync<DrinkRatingsResponse>($"api/catalog/drinks/{_drink!.Id}/ratings"); }
+        catch { _public = null; }
+
+        if (User.IsSignedIn)
+        {
+            try
+            {
+                var mine = await Http.GetFromJsonAsync<List<RatingDto>>($"api/ratings/mine/drink/{_drink!.Id}");
+                _myLatest = mine?.FirstOrDefault(r => r.IsLatest);
+            }
+            catch { _myLatest = null; }
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _error = null;
+        _busy = true;
+        try
+        {
+            var request = new RateRequest(
+                _drink!.Id, _value,
+                string.IsNullOrWhiteSpace(_note) ? null : _note.Trim(),
+                _private ? "private" : "public",
+                _location);
+            using var response = await Http.PostAsJsonAsync("api/ratings", request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _saved = await response.Content.ReadFromJsonAsync<RatingDto>();
+                _myLatest = _saved;
+                await RefreshRatingsAsync();
+                return;
+            }
+            var error = await ApiErrors.ReadAsync(response);
+            _error = error?.Message ?? "That didn't save. Give it another try.";
+        }
+        catch
+        {
+            _error = "Couldn't reach the server. Check your connection and try again.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void ResetForm()
+    {
+        _saved = null;
+        _note = "";
+        _error = null;
+    }
+
+    private void GoBack() => Nav.NavigateTo("/search");
+
+    private static string Cap(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s[1..];
+}

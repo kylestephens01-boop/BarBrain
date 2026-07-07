@@ -1,0 +1,115 @@
+@page "/signup/complete"
+@using System.Net
+@using BarBrain.Web.Components
+@using BarBrain.Web.Services
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject UserState User
+
+<PageTitle>Almost there — BarBrain</PageTitle>
+
+@if (_under21)
+{
+    <AgeStop />
+}
+else if (_pending is null)
+{
+    <p class="bb-muted" data-testid="pending-loading">@(_checked ? "This sign-in session expired. Head back to signup." : "One moment…")</p>
+    @if (_checked)
+    {
+        <a class="bb-btn bb-btn--primary" href="/signup">Back to signup</a>
+    }
+}
+else
+{
+    <h1>Almost there</h1>
+    <p class="bb-muted" data-testid="pending-provider">
+        Signed in with @_pending.Provider@(_pending.Email is null ? "" : $" as {_pending.Email}").
+        Two things before your account exists: a handle, and the 21+ check.
+    </p>
+
+    <form class="bb-form" @onsubmit="SubmitAsync" @onsubmit:preventDefault>
+        <label for="handle">Handle</label>
+        <input id="handle" name="handle" @bind="_handle" required minlength="3" maxlength="32"
+               autocomplete="username" spellcheck="false"
+               placeholder="lowercase letters, numbers, _" />
+        <span class="bb-muted">Pseudonymous by design — this is what other people see.</span>
+
+        <label for="dob">Date of birth</label>
+        <input id="dob" name="dob" type="date" @bind="_dateOfBirth" @bind:format="yyyy-MM-dd" required />
+        <span class="bb-muted">Used once to confirm you're 21+. We keep only your birth year.</span>
+
+        @if (_error is not null)
+        {
+            <p class="bb-form__error" role="alert" data-testid="complete-error">@_error</p>
+        }
+
+        <button type="submit" class="bb-btn bb-btn--primary" disabled="@_busy" data-testid="complete-submit">
+            @(_busy ? "Setting up…" : "Create account")
+        </button>
+    </form>
+}
+
+@code {
+    private ExternalPendingResponse? _pending;
+    private bool _checked;
+    private string _handle = "";
+    private DateTime? _dateOfBirth;
+    private string? _error;
+    private bool _busy;
+    private bool _under21;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            using var response = await Http.GetAsync("api/auth/external/pending");
+            if (response.StatusCode == HttpStatusCode.OK)
+                _pending = await response.Content.ReadFromJsonAsync<ExternalPendingResponse>();
+        }
+        catch { /* fall through to the expired message */ }
+        _checked = true;
+    }
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        if (_dateOfBirth is null) { _error = "Enter your date of birth."; return; }
+
+        _busy = true;
+        try
+        {
+            var request = new ExternalCompleteRequest(_handle.Trim(), _dateOfBirth.Value.ToString("yyyy-MM-dd"));
+            using var response = await Http.PostAsJsonAsync("api/auth/external/complete", request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var me = await response.Content.ReadFromJsonAsync<MeResponse>();
+                User.SetSignedIn(me!);
+                Nav.NavigateTo("/search?first=1");
+                return;
+            }
+
+            var error = await ApiErrors.ReadAsync(response);
+            if (error?.Code == "under_21")
+            {
+                _under21 = true; // hard stop — nothing was created
+                return;
+            }
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                _pending = null; // external session expired
+                return;
+            }
+            _error = error?.Message ?? "That didn't go through. Give it another try.";
+        }
+        catch
+        {
+            _error = "Couldn't reach the server. Check your connection and try again.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

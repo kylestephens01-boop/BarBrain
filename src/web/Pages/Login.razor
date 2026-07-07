@@ -1,0 +1,94 @@
+@page "/login"
+@using BarBrain.Web.Components
+@using BarBrain.Web.Services
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject UserState User
+
+<PageTitle>Log in — BarBrain</PageTitle>
+
+<h1>Welcome back</h1>
+
+@if (_providers is { External.Count: > 0 })
+{
+    <div class="bb-oauth-row">
+        @foreach (var provider in _providers.External)
+        {
+            <button type="button" class="bb-btn bb-btn--oauth" data-testid="oauth-@provider.ToLowerInvariant()"
+                    @onclick="() => StartExternal(provider)">
+                <Icon Name="@($"brand-{provider.ToLowerInvariant()}")" Size="18" />
+                Continue with @provider
+            </button>
+        }
+    </div>
+    <div class="bb-divider" role="separator">or with email</div>
+}
+
+<form class="bb-form" @onsubmit="SubmitAsync" @onsubmit:preventDefault>
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email" @bind="_email" required autocomplete="email" />
+
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" @bind="_password" required autocomplete="current-password" />
+
+    @if (_error is not null)
+    {
+        <p class="bb-form__error" role="alert" data-testid="login-error">@_error</p>
+    }
+
+    <button type="submit" class="bb-btn bb-btn--primary" disabled="@_busy" data-testid="login-submit">
+        @(_busy ? "Logging in…" : "Log in")
+    </button>
+</form>
+
+<p class="bb-muted">New here? <a href="/signup">Create an account</a></p>
+
+@code {
+    private string _email = "";
+    private string _password = "";
+    private string? _error;
+    private bool _busy;
+    private AuthProvidersResponse? _providers;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await User.EnsureLoadedAsync();
+        if (User.IsSignedIn)
+        {
+            Nav.NavigateTo("/");
+            return;
+        }
+        try { _providers = await Http.GetFromJsonAsync<AuthProvidersResponse>("api/auth/providers"); }
+        catch { _providers = null; }
+    }
+
+    private void StartExternal(string provider)
+        => Nav.NavigateTo($"/api/auth/external/{provider.ToLowerInvariant()}/start?returnUrl=%2F", forceLoad: true);
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        _busy = true;
+        try
+        {
+            using var response = await Http.PostAsJsonAsync("api/auth/login", new LoginRequest(_email.Trim(), _password));
+            if (response.IsSuccessStatusCode)
+            {
+                var me = await response.Content.ReadFromJsonAsync<MeResponse>();
+                User.SetSignedIn(me!);
+                Nav.NavigateTo("/");
+                return;
+            }
+            var error = await ApiErrors.ReadAsync(response);
+            _error = error?.Message ?? "That email and password don't match.";
+        }
+        catch
+        {
+            _error = "Couldn't reach the server. Check your connection and try again.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

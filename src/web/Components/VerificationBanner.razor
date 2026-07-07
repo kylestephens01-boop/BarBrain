@@ -1,0 +1,48 @@
+@* Soft-verification banner (ADR-011): full use immediately; this nags gently
+   until verified and states the consequence once the grace window is the
+   binding constraint. Copy is calm on purpose (BRAND.md: no urgency framing
+   around anything, and verification is not a drinking prompt). *@
+@using BarBrain.Web.Services
+@inject UserState User
+@inject HttpClient Http
+@implements IDisposable
+
+@if (User.Me is { EmailVerified: false } me)
+{
+    <div class="bb-verify-banner" data-testid="verify-banner">
+        <Icon Name="mail" Size="18" />
+        <span>
+            @if (_resent)
+            {
+                <text>Verification link sent to @me.Email.</text>
+            }
+            else if (me.CanRate)
+            {
+                <text>Verify your email when you get a chance@(me.VerificationDeadline is { } d ? $" — you have until {d:MMM d}" : "").</text>
+            }
+            else
+            {
+                <text>Verify your email to keep rating — check your inbox.</text>
+            }
+        </span>
+        <button type="button" class="bb-verify-banner__resend" @onclick="ResendAsync" disabled="@_resent">Resend</button>
+    </div>
+}
+
+@code {
+    private bool _resent;
+
+    protected override void OnInitialized() => User.Changed += StateHasChanged;
+
+    private async Task ResendAsync()
+    {
+        try
+        {
+            using var response = await Http.PostAsync("api/auth/verify-email/request", null);
+            _resent = response.IsSuccessStatusCode;
+        }
+        catch { /* banner stays; user can retry */ }
+    }
+
+    public void Dispose() => User.Changed -= StateHasChanged;
+}

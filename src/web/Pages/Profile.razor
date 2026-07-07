@@ -1,0 +1,194 @@
+@page "/profile"
+@using BarBrain.Web.Components
+@using BarBrain.Web.Services
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject UserState User
+
+<PageTitle>Profile — BarBrain</PageTitle>
+
+@if (User.Me is not { } me)
+{
+    <p class="bb-muted">Loading…</p>
+}
+else
+{
+    <header class="bb-profile-header">
+        <span class="bb-avatar" aria-hidden="true">@Initials(me.Handle)</span>
+        <div class="bb-profile-header__id">
+            <h1 data-testid="profile-handle">@me.Handle</h1>
+            <p class="bb-muted" data-testid="profile-stats">
+                @(_journal?.Total ?? 0) rating@((_journal?.Total ?? 0) == 1 ? "" : "s")
+                @(_categoryCount > 0 ? $" · {_categoryCount} categor{(_categoryCount == 1 ? "y" : "ies")}" : "")
+            </p>
+        </div>
+        <button type="button" class="bb-btn bb-btn--quiet" @onclick="SignOutAsync" data-testid="sign-out">Sign out</button>
+    </header>
+
+    <div class="bb-tab-row" role="tablist" aria-label="Profile sections">
+        <button type="button" role="tab" aria-selected="true" class="bb-tab is-active">Journal</button>
+        <button type="button" role="tab" aria-selected="false" class="bb-tab" disabled title="Arrives with Sprint 3">Palate</button>
+        <button type="button" role="tab" aria-selected="false" class="bb-tab" disabled title="Arrives with Sprint 4">Matches</button>
+        <button type="button" role="tab" aria-selected="false" class="bb-tab" disabled title="Arrives with Sprint 6">Badges</button>
+    </div>
+
+    <div class="bb-pill-row" role="group" aria-label="Filter by category">
+        @foreach (var (value, label) in CategoryFilters)
+        {
+            <button type="button" class="bb-pill @(_category == value ? "is-active" : "")"
+                    aria-pressed="@(_category == value)"
+                    @onclick="() => SetCategoryAsync(value)">@label</button>
+        }
+    </div>
+
+    @if (_journal is null)
+    {
+        <p class="bb-muted">Loading your journal…</p>
+    }
+    else if (_journal.Items.Count == 0)
+    {
+        <p class="bb-muted" data-testid="journal-empty">
+            Nothing here yet. <a href="/search">Find a drink</a> and log your first rating.
+        </p>
+    }
+    else
+    {
+        <ul class="bb-journal" data-testid="journal-list">
+            @foreach (var rating in _journal.Items)
+            {
+                <li class="bb-journal__item @(rating.IsLatest ? "" : "bb-journal__item--history")" data-testid="journal-item">
+                    <span class="bb-cat-icon bb-cat-icon--@rating.Category" aria-hidden="true">
+                        <Icon Name="@(rating.Category == "beer" ? "beer" : "glass")" Size="18" />
+                    </span>
+                    <div class="bb-journal__body">
+                        <a class="bb-journal__name" href="/drinks/@rating.DrinkId">@rating.DrinkName</a>
+                        <span class="bb-journal__meta">
+                            @(rating.StyleName ?? Cap(rating.Category))
+                            · @LocationLabel(rating)
+                            · @rating.CreatedAt.ToString("MMM d, yyyy")
+                            @(rating.IsLatest ? "" : " · re-rated since")
+                            @(rating.Visibility == "private" ? " · private" : "")
+                        </span>
+                        @if (rating.Note is not null)
+                        {
+                            <span class="bb-journal__note">@rating.Note</span>
+                        }
+                    </div>
+                    <div class="bb-journal__side">
+                        <StarRating Value="@rating.Value" Size="14" />
+                        <div class="bb-journal__actions">
+                            <button type="button" class="bb-icon-btn"
+                                    aria-label="@(rating.Visibility == "private" ? "Make public" : "Make private")"
+                                    data-testid="journal-visibility"
+                                    @onclick="() => ToggleVisibilityAsync(rating)">
+                                <Icon Name="@(rating.Visibility == "private" ? "eye-off" : "eye")" Size="16" />
+                            </button>
+                            @if (_confirmDelete == rating.Id)
+                            {
+                                <button type="button" class="bb-icon-btn bb-icon-btn--danger"
+                                        aria-label="Confirm delete" data-testid="journal-delete-confirm"
+                                        @onclick="() => DeleteAsync(rating)">
+                                    <Icon Name="check" Size="16" />
+                                </button>
+                            }
+                            else
+                            {
+                                <button type="button" class="bb-icon-btn" aria-label="Delete rating"
+                                        data-testid="journal-delete"
+                                        @onclick="() => _confirmDelete = rating.Id">
+                                    <Icon Name="trash" Size="16" />
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </li>
+            }
+        </ul>
+    }
+}
+
+@code {
+    private static readonly (string? Value, string Label)[] CategoryFilters =
+        [(null, "All"), ("beer", "Beer"), ("whiskey", "Whiskey"), ("wine", "Wine")];
+
+    private PagedResult<RatingDto>? _journal;
+    private string? _category;
+    private int _categoryCount;
+    private Guid? _confirmDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await User.EnsureLoadedAsync();
+        if (!User.IsSignedIn)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var url = "api/ratings/mine?pageSize=100" + (_category is null ? "" : $"&category={_category}");
+        try
+        {
+            _journal = await Http.GetFromJsonAsync<PagedResult<RatingDto>>(url);
+            if (_category is null && _journal is not null)
+                _categoryCount = _journal.Items.Select(r => r.Category).Distinct().Count();
+        }
+        catch
+        {
+            _journal = new PagedResult<RatingDto>(1, 100, 0, []);
+        }
+    }
+
+    private async Task SetCategoryAsync(string? category)
+    {
+        _category = category;
+        _journal = null;
+        await LoadAsync();
+    }
+
+    private async Task ToggleVisibilityAsync(RatingDto rating)
+    {
+        var target = rating.Visibility == "private" ? "public" : "private";
+        try
+        {
+            using var response = await Http.PatchAsJsonAsync(
+                $"api/ratings/{rating.Id}", new RatingUpdateRequest(null, target));
+            if (response.IsSuccessStatusCode)
+                await LoadAsync();
+        }
+        catch { /* row keeps its state; user can retry */ }
+    }
+
+    private async Task DeleteAsync(RatingDto rating)
+    {
+        _confirmDelete = null;
+        try
+        {
+            using var response = await Http.DeleteAsync($"api/ratings/{rating.Id}");
+            if (response.IsSuccessStatusCode)
+                await LoadAsync();
+        }
+        catch { /* row stays; user can retry */ }
+    }
+
+    private static string LocationLabel(RatingDto rating) => rating.LocationContext switch
+    {
+        "home_bar" => "Home Bar",
+        "venue" => rating.VenueName ?? "Venue",
+        _ => "Untagged",
+    };
+
+    private async Task SignOutAsync()
+    {
+        await User.SignOutAsync();
+        Nav.NavigateTo("/");
+    }
+
+    private static string Initials(string handle)
+        => handle.Length >= 2 ? handle[..2].ToUpperInvariant() : handle.ToUpperInvariant();
+
+    private static string Cap(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s[1..];
+}

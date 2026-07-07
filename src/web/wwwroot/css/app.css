@@ -284,3 +284,381 @@ code {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* =============================================================================
+   Sprint 2 — identity + core rating loop. Tokens only; dark-only; 44px taps.
+   Two-temperature grammar: amber touches beverage objects (stars, location of
+   a drink, category icons); teal marks navigation/intelligence affordances.
+   ========================================================================== */
+
+/* --- Buttons -------------------------------------------------------------- */
+.bb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--bb-tap);
+  padding: 10px 18px;
+  border-radius: var(--bb-radius);
+  border: 1px solid var(--bb-hairline);
+  background: var(--bb-surface);
+  color: var(--bb-coaster);
+  font-family: var(--bb-font-ui);
+  font-weight: var(--bb-fw-medium);
+  font-size: var(--bb-fs-label);
+  cursor: pointer;
+  text-decoration: none;
+}
+.bb-btn:hover { border-color: var(--bb-text-muted); text-decoration: none; }
+.bb-btn:disabled { opacity: 0.55; cursor: default; }
+.bb-btn--primary {
+  background: var(--bb-synapse);
+  border-color: var(--bb-synapse);
+  color: var(--bb-ink);
+}
+.bb-btn--primary:hover:not(:disabled) { border-color: var(--bb-synapse); filter: brightness(1.05); }
+.bb-btn--oauth { width: 100%; }
+.bb-btn--quiet { border-color: transparent; background: transparent; color: var(--bb-text-muted); }
+
+.bb-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--bb-radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--bb-text-muted);
+  cursor: pointer;
+}
+.bb-icon-btn:hover { color: var(--bb-coaster); border-color: var(--bb-hairline); }
+.bb-icon-btn--danger { color: var(--bb-bitters); }
+
+/* --- Forms ----------------------------------------------------------------- */
+.bb-form { display: flex; flex-direction: column; gap: 6px; margin: 20px 0; }
+.bb-form label {
+  font-weight: var(--bb-fw-medium);
+  font-size: var(--bb-fs-label);
+  line-height: var(--bb-lh-label);
+  margin-top: 10px;
+}
+.bb-form input,
+.bb-form textarea,
+.bb-rating-card textarea {
+  background: var(--bb-surface);
+  color: var(--bb-coaster);
+  border: 1px solid var(--bb-hairline);
+  border-radius: var(--bb-radius);
+  padding: 12px;
+  min-height: var(--bb-tap);
+  font-family: var(--bb-font-ui);
+  font-size: var(--bb-fs-body);
+  color-scheme: dark; /* native date-picker chrome follows the theme */
+}
+.bb-form input:focus, .bb-form textarea:focus, .bb-rating-card textarea:focus {
+  outline: 2px solid var(--bb-synapse);
+  outline-offset: 0;
+  border-color: var(--bb-synapse);
+}
+.bb-form .bb-btn { margin-top: 16px; }
+.bb-form__error { color: var(--bb-bitters); font-size: var(--bb-fs-label); margin: 8px 0 0; }
+
+.bb-oauth-row { display: flex; flex-direction: column; gap: 10px; margin: 20px 0 0; }
+.bb-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--bb-text-muted);
+  font-size: var(--bb-fs-caption);
+  margin: 16px 0 0;
+}
+.bb-divider::before, .bb-divider::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--bb-hairline);
+}
+
+/* --- Bottom nav ------------------------------------------------------------ */
+.bb-nav {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: space-around;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 6px 0 max(6px, env(safe-area-inset-bottom));
+  background: var(--bb-ink);
+  border-top: 1px solid var(--bb-hairline);
+}
+.bb-nav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: var(--bb-tap);
+  min-height: var(--bb-tap);
+  padding: 4px 8px;
+  color: var(--bb-text-muted);
+  font-size: 10px;
+  line-height: 12px;
+  text-decoration: none;
+}
+.bb-nav__item:hover { text-decoration: none; }
+.bb-nav__item.active { color: var(--bb-synapse); } /* active = synapse (design ref) */
+
+/* --- Verification banner ---------------------------------------------------- */
+.bb-verify-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 8px 16px;
+  background: var(--bb-surface);
+  border-bottom: 1px solid var(--bb-hairline);
+  color: var(--bb-text-muted);
+  font-size: var(--bb-fs-caption);
+  line-height: var(--bb-lh-caption);
+}
+.bb-verify-banner__resend {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--bb-synapse);
+  font-size: var(--bb-fs-caption);
+  font-weight: var(--bb-fw-medium);
+  cursor: pointer;
+  min-height: 32px;
+}
+.bb-verify-banner__resend:disabled { color: var(--bb-text-muted); cursor: default; }
+
+/* --- Age stop ---------------------------------------------------------------- */
+.bb-age-stop { margin-top: 32px; text-align: center; padding: 28px 20px; }
+
+/* --- Search ------------------------------------------------------------------ */
+.bb-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bb-surface);
+  border-radius: var(--bb-radius);
+  border: 1px solid var(--bb-hairline);
+  padding: 0 12px;
+  margin: 12px 0 16px;
+}
+.bb-search-bar__icon { color: var(--bb-text-muted); flex: 0 0 auto; }
+.bb-search-bar input {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--bb-coaster);
+  font-size: var(--bb-fs-body);
+  min-height: var(--bb-tap);
+}
+.bb-search-bar input:focus { outline: none; }
+.bb-search-bar:focus-within { border-color: var(--bb-synapse); }
+
+.bb-drink-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.bb-drink-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--bb-surface);
+  border-radius: var(--bb-radius);
+  border-left: 3px solid var(--bb-pour); /* beverage object → amber */
+  padding: 12px 14px;
+  color: var(--bb-coaster);
+  text-decoration: none;
+  min-height: var(--bb-tap);
+}
+.bb-drink-card:hover { text-decoration: none; filter: brightness(1.08); }
+.bb-drink-card__name { font-weight: var(--bb-fw-medium); font-size: 14px; }
+.bb-drink-card__detail { color: var(--bb-text-muted); font-size: 11px; line-height: 16px; }
+
+/* --- Drink page ---------------------------------------------------------------- */
+.bb-drink-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 16px; }
+.bb-drink-header h1 { font-size: var(--bb-fs-h2); line-height: var(--bb-lh-h2); margin: 0; }
+.bb-drink-header p { margin: 2px 0 0; }
+.bb-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--bb-tap);
+  height: var(--bb-tap);
+  flex: 0 0 auto;
+  background: none;
+  border: none;
+  border-radius: var(--bb-radius-sm);
+  color: var(--bb-coaster);
+  cursor: pointer;
+}
+
+.bb-rating-card { display: flex; flex-direction: column; gap: 12px; }
+.bb-rating-card__stars { display: flex; justify-content: center; padding: 4px 0; }
+.bb-rating-card__saved { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--bb-coaster); }
+.bb-rating-card__saved .bb-icon { color: var(--bb-synapse); }
+.bb-rating-card__after { display: flex; flex-wrap: wrap; gap: 8px; }
+.bb-location { border: none; margin: 0; padding: 0; }
+.bb-location legend { padding: 0 0 6px; }
+
+.bb-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--bb-tap);
+  font-size: var(--bb-fs-label);
+  color: var(--bb-text-muted);
+  cursor: pointer;
+}
+.bb-toggle input { width: 18px; height: 18px; accent-color: var(--bb-synapse); }
+
+/* --- Stars ---------------------------------------------------------------------- */
+.bb-stars { display: inline-flex; align-items: center; gap: 2px; }
+.bb-star { position: relative; display: inline-block; flex: 0 0 auto; }
+.bb-star__hit {
+  position: absolute;
+  top: 0;
+  width: 50%;
+  height: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.bb-star__hit--left { left: 0; }
+.bb-star__hit--right { right: 0; }
+.bb-star__hit:focus-visible { outline: 2px solid var(--bb-synapse); outline-offset: 1px; }
+.bb-stars--input { gap: 4px; }
+.bb-stars__value {
+  font-family: var(--bb-font-display);
+  font-weight: var(--bb-fw-medium);
+  color: var(--bb-pour); /* the number describes the beverage rating */
+  min-width: 2.2em;
+  text-align: center;
+}
+
+/* --- Pills (location, filters) ---------------------------------------------------- */
+.bb-pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.bb-pill {
+  min-height: 36px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--bb-hairline);
+  background: var(--bb-surface);
+  color: var(--bb-text-muted);
+  font-size: var(--bb-fs-label);
+  font-weight: var(--bb-fw-medium);
+  cursor: pointer;
+}
+.bb-pill.is-active {
+  background: var(--bb-synapse-tint);
+  border-color: var(--bb-synapse);
+  color: var(--bb-synapse);
+}
+/* Location pills describe where a BEVERAGE was had → amber active state. */
+.bb-pill--pour.is-active {
+  background: var(--bb-pour-tint);
+  border-color: var(--bb-pour);
+  color: var(--bb-pour);
+}
+
+/* --- Attribute bars (drink page: amber per design ref) ------------------------------ */
+.bb-attr-bars { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.bb-attr-bar { display: flex; align-items: center; gap: 10px; }
+.bb-attr-bar__name {
+  width: 70px;
+  flex: 0 0 auto;
+  text-align: right;
+  color: var(--bb-text-muted);
+  font-size: 11px;
+}
+.bb-attr-bar__track {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bb-bar-track);
+  overflow: hidden;
+}
+.bb-attr-bar__fill { display: block; height: 100%; background: var(--bb-pour); border-radius: 3px; }
+.bb-attr-bar__value {
+  font-family: var(--bb-font-display);
+  font-size: 11px;
+  color: var(--bb-coaster);
+  min-width: 2em;
+  text-align: right;
+}
+
+/* --- Public ratings list -------------------------------------------------------------- */
+.bb-public-ratings { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.bb-public-ratings li { border-top: 1px solid var(--bb-hairline); padding-top: 10px; }
+.bb-public-ratings__handle { font-weight: var(--bb-fw-medium); font-size: var(--bb-fs-label); margin-right: 8px; }
+.bb-public-ratings__note { margin: 4px 0 0; color: var(--bb-text-muted); font-size: var(--bb-fs-label); }
+
+/* --- Profile / journal ------------------------------------------------------------------ */
+.bb-profile-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.bb-profile-header__id { flex: 1; min-width: 0; }
+.bb-profile-header h1 { font-size: 18px; line-height: 24px; margin: 0; }
+.bb-profile-header p { margin: 2px 0 0; }
+.bb-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: rgba(70, 192, 176, 0.15); /* identity chip: synapse tint (design ref) */
+  color: var(--bb-synapse);
+  font-family: var(--bb-font-display);
+  font-weight: var(--bb-fw-medium);
+}
+
+.bb-tab-row { display: flex; gap: 4px; border-bottom: 1px solid var(--bb-hairline); margin-bottom: 12px; }
+.bb-tab {
+  padding: 10px 12px;
+  min-height: var(--bb-tap);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--bb-text-muted);
+  font-size: var(--bb-fs-label);
+  font-weight: var(--bb-fw-medium);
+  cursor: pointer;
+}
+.bb-tab.is-active { color: var(--bb-synapse); border-bottom-color: var(--bb-synapse); }
+.bb-tab:disabled { opacity: 0.5; cursor: default; }
+
+.bb-journal { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.bb-journal__item {
+  display: flex;
+  gap: 10px;
+  background: var(--bb-surface);
+  border-radius: var(--bb-radius);
+  padding: 12px;
+}
+.bb-journal__item--history { opacity: 0.7; }
+.bb-journal__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.bb-journal__name { color: var(--bb-coaster); font-weight: var(--bb-fw-medium); font-size: 13px; }
+.bb-journal__meta { color: var(--bb-text-muted); font-size: 11px; line-height: 15px; }
+.bb-journal__note { color: var(--bb-text-muted); font-size: var(--bb-fs-caption); font-style: italic; }
+.bb-journal__side { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.bb-journal__actions { display: flex; gap: 2px; }
+
+.bb-cat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border-radius: var(--bb-radius-sm);
+}
+.bb-cat-icon--beer, .bb-cat-icon--whiskey { background: var(--bb-pour-tint); color: var(--bb-pour); }
+.bb-cat-icon--wine { background: var(--bb-bitters-tint); color: var(--bb-bitters); }
+
+/* --- Home actions ----------------------------------------------------------------------- */
+.bb-home-actions { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 24px; }
+.bb-home-actions p { margin: 0 0 4px; }
