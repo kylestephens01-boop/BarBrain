@@ -162,11 +162,15 @@ public sealed class DigestServiceTests(PostgresFixture fixture)
                 Name = "Digest Works", NormalizedName = "digest works", Source = "digesttest",
             };
             db.Producers.Add(producer);
+            // The loved half (0–7) is HIGH on dim 0, the hated half (8–15) is LOW
+            // on dim 0; everything else is flat. This gives a real, non-canceling
+            // preference direction (toward dim 0) once the halves are rated 5 vs 2
+            // — NOT the symmetric "spike dim i%8" layout, which cancels to a null
+            // preference vector (no profile ⇒ no match ⇒ no digest hook).
             for (var i = 0; i < 16; i++)
             {
-                var v = new float[VectorDims.Category];
-                v[i % VectorDims.Category] = 0.9f;
-                for (var d = 0; d < VectorDims.Category; d++) if (v[d] == 0) v[d] = 0.2f;
+                var v = Enumerable.Repeat(0.2f, VectorDims.Category).ToArray();
+                v[0] = i < 8 ? 0.9f : 0.1f;
                 db.Drinks.Add(new Drink
                 {
                     Producer = producer, Name = $"Digest Beer {i:D2}",
