@@ -126,9 +126,18 @@ public sealed class RecommendationService(
 
         // Wildcard: deterministic per (user, UTC day) — stable feed within a
         // day, fresh exploration tomorrow. Popularity nudges the sample.
+        // Small catalogs (pre-bulk-seed) may not HAVE a far band; the section
+        // must still render, so the pool falls back band by band toward the
+        // near candidates rather than going empty.
         var daySeed = HashCode.Combine(userId, clock.GetUtcNow().UtcDateTime.DayOfYear, clock.GetUtcNow().Year);
-        var wildcardPool = (farPool.Count >= wildcardCount ? farPool : farPool.Concat(stretchPool).ToList())
-            .Where(c => !picked.Contains(c.DrinkId))
+        var wildcardPool = farPool.Where(c => !picked.Contains(c.DrinkId)).ToList();
+        if (wildcardPool.Count < wildcardCount)
+        {
+            var seen = wildcardPool.Select(c => c.DrinkId).ToHashSet();
+            wildcardPool.AddRange(stretchPool.Concat(alleyPool)
+                .Where(c => !picked.Contains(c.DrinkId) && seen.Add(c.DrinkId)));
+        }
+        wildcardPool = wildcardPool
             .OrderByDescending(c => SeededScore(daySeed, c.DrinkId) * (1 + c.Popularity))
             .ToList();
         var wildcard = new List<Candidate>();
