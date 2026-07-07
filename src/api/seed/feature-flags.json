@@ -10,6 +10,16 @@
     "description": "Whether the home page shows the live API health/version line. Demonstrates a typed (bool) feature flag."
   },
   {
+    "key": "auth.verification_grace_days",
+    "value": "7",
+    "description": "Days an unverified account keeps full use (incl. rating) after signup (ADR-011 soft verification). Past this, rating requires a verified email."
+  },
+  {
+    "key": "auth.handle_cooldown_days",
+    "value": "30",
+    "description": "Minimum days between handle changes (Sprint 2 spec)."
+  },
+  {
     "key": "catalog.inherited_confidence_pct",
     "value": "30",
     "description": "Confidence (percent, 0-100) assigned to drink attribute values inherited from style baselines (ADR-009). Vector sync reads this."
