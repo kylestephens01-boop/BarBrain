@@ -203,7 +203,8 @@ public sealed class DigestServiceTests(PostgresFixture fixture)
         var now = new DateTimeOffset(2026, 7, 8, 12, 0, 0, TimeSpan.Zero);
         var user = new User
         {
-            UserName = handle, Email = $"{handle}@digest.test", ActivatedAt = now,
+            UserName = handle, Email = $"{handle}@digest.test",
+            BirthYear = 1990, AttestedAt = now, ActivatedAt = now,
         };
         db.Users.Add(user);
         db.UserCategoryInterests.Add(new UserCategoryInterest { UserId = user.Id, Category = DrinkCategory.Beer });

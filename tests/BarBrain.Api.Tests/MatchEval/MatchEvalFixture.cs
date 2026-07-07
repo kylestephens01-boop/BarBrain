@@ -228,7 +228,9 @@ public sealed class MatchEvalFixture : IAsyncLifetime
         var user = new User
         {
             UserName = handle, Email = $"{handle}@matcheval.test",
-            ActivatedAt = DateTimeOffset.UtcNow, // matchable
+            // Activated (matchable) — the DB gate requires birth year + attestation.
+            BirthYear = 1990, AttestedAt = DateTimeOffset.UtcNow,
+            ActivatedAt = DateTimeOffset.UtcNow,
         };
         db.Users.Add(user);
         db.UserCategoryInterests.Add(new UserCategoryInterest { UserId = user.Id, Category = Category });
@@ -299,6 +301,7 @@ public sealed class MatchEvalFixture : IAsyncLifetime
                 var user = new User
                 {
                     UserName = $"s{userCount}_{i}", Email = $"s{userCount}_{i}@matcheval.test",
+                    BirthYear = 1990, AttestedAt = DateTimeOffset.UtcNow,
                     ActivatedAt = DateTimeOffset.UtcNow,
                 };
                 db.Users.Add(user);
