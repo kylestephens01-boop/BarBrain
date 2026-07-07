@@ -33,6 +33,12 @@ builder.Services.AddCatalogServices();
 builder.AddBarBrainAuth();
 builder.Services.AddScoped<RatingService>();
 
+// --- Palate engine: profiles, sectioned feed, quiz (Sprint 3, ADR-025/027) --
+builder.Services.AddScoped<BarBrain.Api.Palate.PalateProfileService>();
+builder.Services.AddScoped<BarBrain.Api.Palate.RecommendationService>();
+builder.Services.AddScoped<BarBrain.Api.Palate.QuizService>();
+builder.Services.AddHostedService<BarBrain.Api.Palate.PalateNightlyService>();
+
 // Caddy fronts the API in every deployed shape and sets X-Forwarded-Proto;
 // honoring it makes the auth cookie Secure over https without breaking
 // plain-http localhost e2e. Single-box topology → trust the proxy hop.
@@ -88,6 +94,7 @@ app.MapEventEndpoints();
 app.MapCatalogEndpoints();
 app.MapAuthEndpoints();
 app.MapRatingEndpoints();
+app.MapPalateEndpoints();
 
 app.Run();
 return 0;
