@@ -2,102 +2,115 @@
 > Agents: update this at the END of every session. Keep it short and factual.
 
 ## Current sprint
-Sprint 3 — Palate Engine + Onboarding Quiz + Sectioned Feed (branch `sprint-3`,
-PR opened into main; Gate C1 review pending — the golden-set eval harness in
-CI is the gate). Sprint 2 merged via PR #4 (Gate B cleared).
-STILL OUTSTANDING from Sprint 1: the VPS bulk seed run per RUNBOOK — golden-set
-tests are seed-independent by design, but the founder's REAL-catalog rec-feel
-review (Gate C1 phone task) wants the seeded catalog first.
+Sprint 4 — Matching + Hybrid Recs + Weekly Digest (branch `sprint-4`, off `main`
+which now has Sprint 3 via PR #5). Gate C2 is EVAL-ONLY this sprint (charter):
+the synthetic-twins MatchEval suite in CI IS the acceptance gate — no founder
+feel-review until real users exist. Sprint 3 merged (PR #5); Sprint 2 (PR #4);
+Sprint 1 (PR #3). STILL OUTSTANDING from Sprint 1: the VPS bulk seed run per
+RUNBOOK (real-catalog feel review still wants it).
 
-## Done (Sprint 3)
-- **ADR-027 recorded + spec amended**: cross-category bridge recs promoted
-  from stretch to REQUIRED (moat mechanic); CF stays deferred (ADR-025 — no
-  CF tables/matrices; append-only history is the upgrade path); golden-set
-  eval gates rec regressions in CI; min-5 profile floor became a confidence
-  TIER so confidence-adaptive feeds can exist.
-- **Schema** (`Sprint3Palate`, additive; Origin backfilled 'user'):
-  ratings.Origin ('user'|'quiz' CHECK), user_category_interests,
-  user_palate_profiles (PreferenceVector 8d for recs, CentroidVector 8d for
-  the radar, BridgeVector 6d for cross-category — per (user, category)).
-- **PalateProfileService**: preference = (rating − user-mean)-weighted drink
-  vectors L2-normalized (identical-ratings fallbacks), centroid over liked
-  drinks, bridge on shared dims; pure Compute() for tests; recompute after
-  every rating write/delete; flag-gated nightly batch heals catalog-side
-  vector drift.
-- **RecommendationService**: HNSW-cosine pool → rank-banded sections (Alley/
-  Stretch/Wildcard) + MMR-lite diversity + smoothed popularity prior +
-  per-(user, UTC-day) deterministic wildcard seed. Confidence-adaptive shape
-  (cold: 4-item sections, 6 wildcards, no match %). Bridge picks injected
-  into Stretch per (source, target) pair, tagged cross_category, reason names
-  the source palate. EVERY rec carries its "because" (attribute names ride
-  along for UI emphasis). "Loved by your matches" = ComingSoon slot (Sprint 4).
-  All knobs are flags (Hard Rule 10).
-- **Quiz**: /onboarding interest gate → per-claimed-category staples quiz →
-  radar tease → feed. Staples lists in settings flags (JSON, editable without
-  deploy; unresolvable entries drop out): beer/whiskey by product (corridor
-  defaults), wine BY VARIETAL (style code → representative catalog drink so
-  quiz ratings stay REAL ratings, origin='quiz'). "Haven't tried" writes
-  NOTHING. quiz_completed event (ADR-017). Signup now routes to /onboarding
-  (skip link preserves the fast Gate B path).
-- **Web**: onboarding gate/quiz/done pages (design-ref Screens 1–3),
-  RadarChart component (8 spokes, synapse), real /feed (Screen 4: tabs incl.
-  amber Wildcard + disabled matches slot, category pills, teal reasons/match%
-  vs amber drink accents), Profile Palate tab (radar + teal bars + "N more
-  ratings" prompts).
-- **Golden-set eval harness** (`Category=RecEval`, own pgvector container,
-  fixed seed + frozen clock): 14 personas (12 spec'd + noiseless golden +
-  2-rating cold) → real profile job + real engine. Asserted: precision@10
-  ≥ 0.70 (env-overridable), LOO hit-rate@10 ≥ 0.25, wildcard farther than
-  alley per persona, determinism, golden top-pick == independent brute-force,
-  every-rec-has-a-because, confidence-adaptive shape, matches-slot deferred,
-  AND the moat test: whiskey-only peat lover surfaces smoky BEER via the
-  bridge. Report → TestResults/rec-eval-report.md (CI artifact, pass or fail).
-- **e2e**: onboarding-feed.spec (gate → quiz w/ skip → radar → 3 sections
-  with reasons → journal shows quiz ratings → palate tab), Sprint 2 specs
-  updated for the /onboarding landing.
+## Done (Sprint 4)
+- **Docs**: sprint-4.md amended with the applied charter standing decisions +
+  the eval-only Gate C2 note; ADR-007 (CF realized as density-gated blend),
+  ADR-014 (blend/tiers/hide-me/display-flag detail), ADR-019 (digest impl +
+  CAN-SPAM) amended; HUMAN-CHECKLIST 6 extended (digest physical address +
+  SMTP gate the weekly digest; log-only until set).
+- **Schema** (`Sprint4Matching`, additive): `users.HideFromMatches`,
+  `users.DigestUnsubscribedAt`, `users.DigestUnsubscribeToken` (unique;
+  backfilled per-row via `gen_random_uuid()` so the unique index holds on
+  existing rows), and `user_match_neighbors` (per-(user,neighbor,category)
+  attribute-sim + Pearson agreement + co-rated count + blended score, both
+  directions materialized). Migration-from-empty count → 5; new
+  MigrationFromSprint3Tests proves the Sprint3→4 upgrade + token backfill.
+- **MatchService** (ADR-014/007/025): PURE `ComputeEdge` = density-weighted
+  blend of preference-vector cosine (primary) + mean-centered co-rated Pearson
+  (significance-shrunk, floored at min-co-rated). CF weight = coRated/(coRated+K)
+  → attribute-sim dominates at low density, CF grows with density. Confidence
+  tier (low/med/high) from co-rated depth. `ComputeAllAsync` full-rebuilds the
+  graph (includes hidden users; hide-me enforced on READ). Read surfaces:
+  `GetMatchesAsync` (aggregates per-category edges → one row/neighbor, honors
+  hide-me both directions + display-mode flag) and `LovedByMatchesAsync` (feed
+  + social proof). All knobs are flags (`match.*`).
+- **MatchNightlyService**: nightly rebuild (hour 10, after palate recompute),
+  flag-gated. **Endpoints**: GET /api/matches, GET/PUT match settings
+  (hide-me), PUT digest subscription, unauthenticated CAN-SPAM
+  GET /api/digest/unsubscribe?token= (full-page HTML, under /api/* so the SW
+  leaves it alone), + admin POST /api/admin/matches/rebuild and /digest/run
+  (Gate C2 / e2e triggers; admin-token gated).
+- **Feed hybrid** (RecommendationService): "Loved by your matches" is now a
+  REAL 4th section (was ComingSoon). CF nudges Up-Your-Alley scores toward
+  match-loved drinks (density-gated — cold users get pure content, so the
+  golden RecEval is unchanged). Social proof (`LovedByMatchCount/Handle`) rides
+  on every rec. RecDto gained two optional trailing fields.
+- **Weekly digest** (ADR-019): `DigestComposer` (recap / ADR-016-safe
+  weekly-distinct-drink streak / top pick per section / match hook — each
+  block flag-gated), `DigestRenderer` (pure, inline-styled, two-temperature,
+  CAN-SPAM footer w/ physical address + unsubscribe), `DigestService.RunOnceAsync`
+  (compose→render→send, `digest_sent` events), `WeeklyDigestService` (weekly
+  schedule). `IDigestSender`=LoggingDigestSender (log-only, mirrors Sprint 2
+  verification). CAN-SPAM guard: NEVER delivers without a configured physical
+  address (`digest.physical_address`) — log-only until then.
+- **Gate C2 eval** (`Category=MatchEval`, own pgvector container): planted
+  twin pairs among decoys → asserts top-1 match = twin for ≥90%; density
+  weighting (pure-math test runs everywhere + seeded low/high-density pairs);
+  hide-me both directions; match-% flag toggles display; sparsity sim at
+  50/500 users → CI artifact `match-eval-report.md`. Digest covered by
+  DigestServiceTests (block flags, unsubscribe, no-address log-only guard) +
+  DigestRendererTests (litmus HTML artifact, no-volume-copy assertion).
+- **Web**: `/matches` page (handle, teal %, confidence label, early-estimate
+  caption, amber recent-loves; hidden + empty states; NO interaction —
+  one-way), feed matches section + teal social-proof line + "Loved by matches"
+  pill, Profile "Privacy & email" section (hide-me + digest toggles), Matches
+  nav link. New token-based CSS only.
+- **e2e**: matching.spec (two like-palates match → eager shows %, conservative
+  hides it via a live flag flip, hide-me removes both directions), digest.spec
+  (litmus screenshot + CAN-SPAM footer), onboarding-feed.spec updated (matches
+  tab now live+empty for a solo user).
 
 ## In progress
-(nothing — Gate C1 review is the blocker by design)
+(nothing — Gate C2 is the CI eval by design; no human review until real users)
 
 ## Decisions made within spec bounds (log)
-- Wine varietal quiz items resolve to a representative drink (most publicly
-  rated, then name) — keeps "quiz ratings are real ratings" literal; a
-  varietal with no catalog drink drops out gracefully.
-- Bridge picks live in Stretch (adjacent exploration) and replace tail picks
-  rather than growing the section; cross-category MMR pairs get no
-  similarity penalty (different geometries).
-- Cold profiles show no match % (an early guess shouldn't wear a percent);
-  eval asserts this.
-- Wildcard determinism is per (user, UTC day) — stable feed within a day,
-  fresh tomorrow; the eval freezes the clock.
-- Eval thresholds read env vars (RECEVAL_PRECISION_MIN, RECEVAL_LOO_HITRATE_MIN)
-  with spec defaults — "thresholds in config" without a settings-table dep in
-  tests.
-- Attribute bridge naming: bridge dims 0–5 == category dims 0–5 (verified in
-  the seed; relied on for bridge reason copy).
+- Match neighbors materialized per-(user,category); "Your Matches" aggregates
+  to one row/neighbor on read (evidence-weighted mean, weight = 1+coRated),
+  confidence from the best category's co-rated depth.
+- Co-rating agreement clamps negatives to 0 for the blend (we don't surface
+  anti-matches), but stores the raw shrunk Pearson for auditing.
+- Hide-me enforced on READ (immediate both directions) rather than only in the
+  nightly batch; the batch still includes hidden users so un-hiding is instant too.
+- CF hybrid nudges score WITHIN distance bands (band assignment stays
+  attribute-distance based) → a user with no matches sees an unchanged feed,
+  which is what keeps the Sprint 3 golden eval green.
+- Digest streak = consecutive rolling-7-day buckets with ≥1 rating (ADR-016
+  weekly-only), shown only at ≥2 weeks; never per-serving/per-day.
+- Digest unsubscribe token backfilled with gen_random_uuid() in the migration
+  (per-row) so the new unique index holds and tokens aren't guessable.
 
 ## Doc inconsistency to flag (carried)
 - Muted-text token: BRAND.md `--bb-text-muted` vs DESIGN-REFERENCE `--bb-muted`
   (alias in place; founder may standardize).
 
 ## Environment note (this build machine)
-Docker/Node absent: authored-not-run locally = Testcontainers suites (incl.
-the new RecEval collection) + Playwright. Verified locally: `dotnet build`
-(0 warnings), `dotnet test` (35 passed / 75 skipped absent Docker). CI runs
-everything for real.
+Docker/Node absent: authored-not-run locally = Testcontainers suites (incl. the
+new MatchEval + DigestService collections) + Playwright. Verified locally:
+`dotnet build` (api/web/tests, 0 warnings), `dotnet test` (38 passed / 86
+skipped absent Docker; the new pure density-weighting math test runs locally).
+CI runs everything for real and uploads match-eval-report.md +
+rec-eval-report.md + digest-litmus.html.
 
 ## Blockers / needs founder
-- **Gate C1 review**: skim the CI rec-eval report artifact (per-persona
-  table); on the dev URL, make a deliberate-persona account (e.g. rate like
-  a stout lover), check the feed agrees, read 5 "because" lines. Real-catalog
-  feel needs the VPS bulk seed run (RUNBOOK) first.
-- Radar-matches-intuition check for founder-known accounts (gate task).
-- Carried: HUMAN-CHECKLIST 6–9 (SMTP/Google/Apple/Turnstile creds), 14
-  (fonts/logo/Tabler webfont assets), charter proposals P1–P3, beer.db call.
+- **HUMAN-CHECKLIST 6 (now gates the digest)**: set `digest.physical_address`
+  (CAN-SPAM) + wire an SMTP provider before the weekly digest can send to real
+  users. Until then it is log-only by design (guard enforced in DigestService).
+  Flip `digest.enabled` on once both exist.
+- **Gate C2**: eval-only this sprint — the MatchEval CI suite + sparsity report
+  ARE the acceptance. When real users exist: check Your Matches on real/persona
+  accounts, flip `match.display_mode`, read the sparsity report, receive a
+  digest (admin POST /api/admin/digest/run?force=true previews it, log-only).
+- Carried: VPS bulk seed run (RUNBOOK); HUMAN-CHECKLIST 7–9 (Google/Apple/
+  Turnstile creds), 14 (fonts/logo assets), charter proposals P1–P3, beer.db call.
 
 ## Next session should
-After Gate C1 + merge: Sprint 4 (matching + "Loved by your matches" — the
-feed slot and ADR-014 are waiting; density-weighted co-rating agreement can
-now read the append-only history). If the founder runs the bulk seed, spot-
-check feed quality on the real catalog and tune flags (bands, popularity
-weight) — they're all settings, no deploy needed.
+After Gate C2 (CI green) + merge: Sprint 5 (venues — check-in, personalized
+menus; ADR-015). The match graph + digest jobs are flag-gated and nightly; tune
+`match.*` / `feed.cf_weight_pct` on the real catalog once the bulk seed lands.
