@@ -1,5 +1,7 @@
 @page "/"
+@using BarBrain.Web.Services
 @inject HttpClient Http
+@inject UserState User
 
 <PageTitle>BarBrain</PageTitle>
 
@@ -9,6 +11,22 @@
 <h1 class="bb-display">Bar<span class="bb-pour">Brain</span></h1>
 
 <p class="bb-banner" data-testid="home-banner">@_banner</p>
+
+@if (User.Me is { } me)
+{
+    <div class="bb-home-actions" data-testid="home-signed-in">
+        <p>Hey <strong>@me.Handle</strong> — what are you having?</p>
+        <a class="bb-btn bb-btn--primary" href="/search">Find a drink</a>
+        <a class="bb-btn" href="/profile">Your journal</a>
+    </div>
+}
+else
+{
+    <div class="bb-home-actions" data-testid="home-signed-out">
+        <a class="bb-btn bb-btn--primary" href="/signup" data-testid="get-started">Get started</a>
+        <a class="bb-btn" href="/login">I have an account</a>
+    </div>
+}
 
 @if (_showStatus)
 {
@@ -28,10 +46,6 @@
     </div>
 }
 
-<p class="bb-muted bb-foundation-note">
-    Sprint 0 foundation. Flip <code>home.banner_text</code> via the admin API to
-    change the line above without a redeploy.
-</p>
 
 @code {
     private string _banner = "";
@@ -44,6 +58,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await User.EnsureLoadedAsync();
+
         // Flag-driven config (proof of the feature-flag pipeline).
         try
         {

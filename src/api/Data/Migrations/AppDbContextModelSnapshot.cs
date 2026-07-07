@@ -432,6 +432,74 @@ namespace BarBrain.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("BarBrain.Api.Data.Entities.Rating", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DrinkId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsLatest")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LocationContext")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("Value")
+                        .HasPrecision(2, 1)
+                        .HasColumnType("numeric(2,1)");
+
+                    b.Property<Guid?>("VenueId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VenueId");
+
+                    b.HasIndex("CreatedByUserId", "CreatedAt")
+                        .HasDatabaseName("ix_ratings_journal");
+
+                    b.HasIndex("CreatedByUserId", "DrinkId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_ratings_latest_per_user_drink")
+                        .HasFilter("\"IsLatest\"");
+
+                    b.HasIndex("DrinkId", "Visibility", "IsLatest");
+
+                    b.ToTable("ratings", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_ratings_location_context", "\"LocationContext\" IN ('home_bar','venue','untagged')");
+
+                            t.HasCheckConstraint("ck_ratings_value", "\"Value\" >= 1.0 AND \"Value\" <= 5.0 AND (\"Value\" * 2) = floor(\"Value\" * 2)");
+
+                            t.HasCheckConstraint("ck_ratings_venue_pairing", "(\"LocationContext\" = 'untagged') = (\"VenueId\" IS NULL)");
+
+                            t.HasCheckConstraint("ck_ratings_visibility", "\"Visibility\" IN ('public','private')");
+                        });
+                });
+
             modelBuilder.Entity("BarBrain.Api.Data.Entities.Setting", b =>
                 {
                     b.Property<string>("Key")
@@ -591,19 +659,193 @@ namespace BarBrain.Api.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<int>("AccessFailedCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("ActivatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("AttestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("BirthYear")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("text");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Handle")
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<bool>("EmailConfirmed")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("HandleChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("LockoutEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("LockoutEnd")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("NormalizedEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("NormalizedUserName")
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<string>("PasswordHash")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SecurityStamp")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("Handle");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Handle")
-                        .IsUnique();
+                    b.HasIndex("NormalizedEmail")
+                        .IsUnique()
+                        .HasDatabaseName("ux_users_normalized_email")
+                        .HasFilter("\"NormalizedEmail\" IS NOT NULL");
 
-                    b.ToTable("users", (string)null);
+                    b.HasIndex("NormalizedUserName")
+                        .IsUnique()
+                        .HasDatabaseName("UserNameIndex");
+
+                    b.HasIndex("UserName")
+                        .IsUnique()
+                        .HasDatabaseName("IX_users_Handle");
+
+                    b.ToTable("users", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_users_activation_requires_gate", "\"ActivatedAt\" IS NULL OR (\"BirthYear\" IS NOT NULL AND \"AttestedAt\" IS NOT NULL AND \"Handle\" IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_users_birth_year", "\"BirthYear\" IS NULL OR (\"BirthYear\" >= 1900 AND \"BirthYear\" <= 2100)");
+
+                            t.HasCheckConstraint("ck_users_handle_lowercase", "\"Handle\" IS NULL OR \"Handle\" = lower(\"Handle\")");
+                        });
+                });
+
+            modelBuilder.Entity("BarBrain.Api.Data.Entities.Venue", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<Guid?>("OwnerUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("VenueType")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_venues_one_home_bar_per_user")
+                        .HasFilter("\"VenueType\" = 'home_bar'");
+
+                    b.ToTable("venues", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_venues_home_bar_private", "\"VenueType\" <> 'home_bar' OR (\"OwnerUserId\" IS NOT NULL AND \"Visibility\" = 'private')");
+
+                            t.HasCheckConstraint("ck_venues_owner_visibility", "\"OwnerUserId\" IS NOT NULL OR \"Visibility\" = 'public'");
+
+                            t.HasCheckConstraint("ck_venues_type", "\"VenueType\" IN ('home_bar','venue')");
+
+                            t.HasCheckConstraint("ck_venues_visibility", "\"Visibility\" IN ('public','private')");
+                        });
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ClaimType")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ClaimValue")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("user_claims", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<System.Guid>", b =>
+                {
+                    b.Property<string>("LoginProvider")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProviderKey")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProviderDisplayName")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("LoginProvider", "ProviderKey");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("user_logins", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<System.Guid>", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("LoginProvider")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Value")
+                        .HasColumnType("text");
+
+                    b.HasKey("UserId", "LoginProvider", "Name");
+
+                    b.ToTable("user_tokens", (string)null);
                 });
 
             modelBuilder.Entity("BarBrain.Api.Data.Entities.Drink", b =>
@@ -707,6 +949,32 @@ namespace BarBrain.Api.Data.Migrations
                     b.Navigation("MergedInto");
                 });
 
+            modelBuilder.Entity("BarBrain.Api.Data.Entities.Rating", b =>
+                {
+                    b.HasOne("BarBrain.Api.Data.Entities.User", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BarBrain.Api.Data.Entities.Drink", "Drink")
+                        .WithMany()
+                        .HasForeignKey("DrinkId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BarBrain.Api.Data.Entities.Venue", "Venue")
+                        .WithMany()
+                        .HasForeignKey("VenueId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("Drink");
+
+                    b.Navigation("Venue");
+                });
+
             modelBuilder.Entity("BarBrain.Api.Data.Entities.Style", b =>
                 {
                     b.HasOne("BarBrain.Api.Data.Entities.Style", "Parent")
@@ -734,6 +1002,43 @@ namespace BarBrain.Api.Data.Migrations
                     b.Navigation("Attribute");
 
                     b.Navigation("Style");
+                });
+
+            modelBuilder.Entity("BarBrain.Api.Data.Entities.Venue", b =>
+                {
+                    b.HasOne("BarBrain.Api.Data.Entities.User", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
+                {
+                    b.HasOne("BarBrain.Api.Data.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<System.Guid>", b =>
+                {
+                    b.HasOne("BarBrain.Api.Data.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<System.Guid>", b =>
+                {
+                    b.HasOne("BarBrain.Api.Data.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("BarBrain.Api.Data.Entities.Drink", b =>

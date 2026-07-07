@@ -9,6 +9,11 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.9" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.9" />
+    <!-- Community Apple Sign In handler (generates the ES256 client secret from
+         the .p8 key). Registered only when Apple creds are configured. -->
+    <PackageReference Include="AspNet.Security.OAuth.Apple" Version="10.0.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2" />
     <!-- Npgsql 10.0.2 pins EF Relational 10.0.4; bump it so the whole EF graph
          (Design, tests) unifies on 10.0.9 and the build stays warning-free. -->

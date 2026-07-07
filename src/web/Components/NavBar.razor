@@ -1,0 +1,36 @@
+@* Bottom nav (DESIGN-REFERENCE global rules): Home, Feed, Search, Venues,
+   Profile. Active = --bb-synapse. 44px tap targets. Feed/Venues route to
+   placeholder pages until Sprints 3/5. *@
+@inject NavigationManager Nav
+@implements IDisposable
+
+<nav class="bb-nav" aria-label="Main">
+    @foreach (var item in Items)
+    {
+        <NavLink class="bb-nav__item" href="@item.Href"
+                 Match="@(item.Href == "" ? NavLinkMatch.All : NavLinkMatch.Prefix)">
+            <Icon Name="@item.Icon" Size="22" />
+            <span class="bb-nav__label">@item.Label</span>
+        </NavLink>
+    }
+</nav>
+
+@code {
+    private sealed record NavItem(string Href, string Icon, string Label);
+
+    private static readonly NavItem[] Items =
+    [
+        new("", "home", "Home"),
+        new("feed", "sparkles", "Feed"),
+        new("search", "search", "Search"),
+        new("venues", "map-pin", "Venues"),
+        new("profile", "user", "Profile"),
+    ];
+
+    protected override void OnInitialized() => Nav.LocationChanged += OnLocationChanged;
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+        => StateHasChanged();
+
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
+}

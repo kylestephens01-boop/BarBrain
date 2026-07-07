@@ -37,14 +37,22 @@ async function onActivate(event) {
         .map(key => caches.delete(key)));
 }
 
+// API-owned paths must reach the server even as TOP-LEVEL NAVIGATIONS —
+// the OAuth challenge/callback hops (/api/auth/external/*, Sprint 2) and
+// email-verification links are full-page navigations, and serving cached
+// index.html for them breaks sign-in (the SPA renders "Not found" instead
+// of following the provider redirect).
+const serverOwnedPaths = [ /^\/api\//, /^\/health$/, /^\/version$/ ];
+
 async function onFetch(event) {
     let cachedResponse = null;
     if (event.request.method === 'GET') {
         // For all navigation requests, try to serve index.html from cache,
-        // unless that request is for an offline resource.
-        // If you need some URLs to be server-rendered, edit the following check to exclude those URLs
+        // unless that request is for an offline resource or a server-owned URL.
+        const requestPath = new URL(event.request.url).pathname;
         const shouldServeIndexHtml = event.request.mode === 'navigate'
-            && !manifestUrlList.some(url => url === event.request.url);
+            && !manifestUrlList.some(url => url === event.request.url)
+            && !serverOwnedPaths.some(pattern => pattern.test(requestPath));
 
         const request = shouldServeIndexHtml ? 'index.html' : event.request;
         const cache = await caches.open(cacheName);

@@ -1,0 +1,76 @@
+@* Half-step star input/display (DESIGN-REFERENCE: stars OUTLINED and visible
+   before any interaction — stroke --bb-stroke; filled = --bb-pour, a beverage
+   object). Interactive mode: each star is two half-star buttons (left = X.5,
+   right = X.0) with 44px-min combined tap targets and real labels, so the
+   flow is screen-reader- and keyboard-operable (accessibility baseline). *@
+
+@if (Interactive)
+{
+    <div class="bb-stars bb-stars--input" role="group" aria-label="Rating">
+        @for (var star = 1; star <= 5; star++)
+        {
+            var full = (decimal)star;
+            var half = star - 0.5m;
+            <span class="bb-star" style="width:@(Size)px;height:@(Size)px">
+                @StarSvg(FillOf(star))
+                <button type="button" class="bb-star__hit bb-star__hit--left"
+                        aria-label="@(half) stars" aria-pressed="@(Value == half)"
+                        @onclick="() => SetAsync(half)"></button>
+                <button type="button" class="bb-star__hit bb-star__hit--right"
+                        aria-label="@(full) stars" aria-pressed="@(Value == full)"
+                        @onclick="() => SetAsync(full)"></button>
+            </span>
+        }
+        <span class="bb-stars__value" aria-live="polite">@(Value > 0 ? Value.ToString("0.0") : "")</span>
+    </div>
+}
+else
+{
+    <span class="bb-stars" role="img" aria-label="@Value.ToString("0.0") of 5 stars">
+        @for (var star = 1; star <= 5; star++)
+        {
+            <span class="bb-star" style="width:@(Size)px;height:@(Size)px">@StarSvg(FillOf(star))</span>
+        }
+    </span>
+}
+
+@code {
+    [Parameter] public decimal Value { get; set; }
+    [Parameter] public EventCallback<decimal> ValueChanged { get; set; }
+    [Parameter] public bool Interactive { get; set; }
+    [Parameter] public int Size { get; set; } = 20;
+
+    private enum Fill { Empty, Half, Full }
+
+    private Fill FillOf(int star)
+        => Value >= star ? Fill.Full : Value >= star - 0.5m ? Fill.Half : Fill.Empty;
+
+    private async Task SetAsync(decimal value)
+    {
+        Value = value;
+        await ValueChanged.InvokeAsync(value);
+    }
+
+    // One path, three fills. Half = filled star clipped to the left 50% drawn
+    // over the outline.
+    private static readonly string StarPath =
+        "M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z";
+
+    private int _clipSeq;
+    private readonly string _uid = Guid.NewGuid().ToString("N")[..8];
+
+    private RenderFragment StarSvg(Fill fill) => builder =>
+    {
+        var clipId = $"bb-star-half-{_uid}-{_clipSeq++}";
+        var svg = fill switch
+        {
+            Fill.Full =>
+                $"""<svg viewBox="0 0 24 24" width="100%" height="100%" aria-hidden="true"><path d="{StarPath}" fill="var(--bb-pour)" stroke="var(--bb-pour)" stroke-width="1.5" stroke-linejoin="round"/></svg>""",
+            Fill.Half =>
+                $"""<svg viewBox="0 0 24 24" width="100%" height="100%" aria-hidden="true"><path d="{StarPath}" fill="none" stroke="var(--bb-stroke)" stroke-width="1.5" stroke-linejoin="round"/><clipPath id="{clipId}"><rect x="0" y="0" width="12" height="24"/></clipPath><path d="{StarPath}" clip-path="url(#{clipId})" fill="var(--bb-pour)" stroke="var(--bb-pour)" stroke-width="1.5" stroke-linejoin="round"/></svg>""",
+            _ =>
+                $"""<svg viewBox="0 0 24 24" width="100%" height="100%" aria-hidden="true"><path d="{StarPath}" fill="none" stroke="var(--bb-stroke)" stroke-width="1.5" stroke-linejoin="round"/></svg>""",
+        };
+        builder.AddMarkupContent(0, svg);
+    };
+}

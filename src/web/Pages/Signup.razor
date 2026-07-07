@@ -1,0 +1,148 @@
+@page "/signup"
+@using System.Net
+@using BarBrain.Web.Components
+@using BarBrain.Web.Services
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject UserState User
+@inject IJSRuntime JS
+
+<PageTitle>Sign up — BarBrain</PageTitle>
+
+@if (_under21)
+{
+    <AgeStop />
+}
+else
+{
+    <h1>Create your account</h1>
+    <p class="bb-muted">Pseudonymous by design — pick a handle, not a name. 21+ only.</p>
+
+    @if (_providers is { External.Count: > 0 })
+    {
+        <div class="bb-oauth-row">
+            @foreach (var provider in _providers.External)
+            {
+                <button type="button" class="bb-btn bb-btn--oauth" data-testid="oauth-@provider.ToLowerInvariant()"
+                        @onclick="() => StartExternal(provider)">
+                    <Icon Name="@($"brand-{provider.ToLowerInvariant()}")" Size="18" />
+                    Continue with @provider
+                </button>
+            }
+        </div>
+        <div class="bb-divider" role="separator">or with email</div>
+    }
+
+    <form class="bb-form" @onsubmit="SubmitAsync" @onsubmit:preventDefault>
+        <label for="handle">Handle</label>
+        <input id="handle" name="handle" @bind="_handle" required minlength="3" maxlength="32"
+               autocomplete="username" spellcheck="false"
+               placeholder="lowercase letters, numbers, _" />
+
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" @bind="_email" required autocomplete="email" />
+
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" @bind="_password" required
+               minlength="8" autocomplete="new-password" />
+        <span class="bb-muted">At least 8 characters.</span>
+
+        <label for="dob">Date of birth</label>
+        <input id="dob" name="dob" type="date" @bind="_dateOfBirth" @bind:format="yyyy-MM-dd" required />
+        <span class="bb-muted">Used once to confirm you're 21+. We keep only your birth year.</span>
+
+        <div id="bb-turnstile"></div>
+
+        @if (_error is not null)
+        {
+            <p class="bb-form__error" role="alert" data-testid="signup-error">@_error</p>
+        }
+
+        <button type="submit" class="bb-btn bb-btn--primary" disabled="@_busy" data-testid="signup-submit">
+            @(_busy ? "Setting up…" : "Create account")
+        </button>
+    </form>
+
+    <p class="bb-muted">Already have an account? <a href="/login">Log in</a></p>
+}
+
+@code {
+    private string _handle = "";
+    private string _email = "";
+    private string _password = "";
+    private DateTime? _dateOfBirth;
+    private string? _error;
+    private bool _busy;
+    private bool _under21;
+    private AuthProvidersResponse? _providers;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await User.EnsureLoadedAsync();
+        if (User.IsSignedIn)
+        {
+            Nav.NavigateTo("/");
+            return;
+        }
+        try { _providers = await Http.GetFromJsonAsync<AuthProvidersResponse>("api/auth/providers"); }
+        catch { _providers = null; }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _providers?.TurnstileSiteKey is { Length: > 0 } key)
+        {
+            try { await JS.InvokeVoidAsync("bbTurnstile.render", key); }
+            catch { /* widget unavailable — the server decides what that means */ }
+        }
+    }
+
+    private void StartExternal(string provider)
+        => Nav.NavigateTo($"/api/auth/external/{provider.ToLowerInvariant()}/start?returnUrl=%2F", forceLoad: true);
+
+    private async Task SubmitAsync()
+    {
+        _error = null;
+        if (_dateOfBirth is null) { _error = "Enter your date of birth."; return; }
+
+        _busy = true;
+        try
+        {
+            string? turnstileToken = null;
+            if (_providers?.TurnstileSiteKey is { Length: > 0 })
+            {
+                try { turnstileToken = await JS.InvokeAsync<string?>("bbTurnstile.token"); }
+                catch { /* absent widget → null token; server decides */ }
+            }
+
+            var request = new SignupRequest(
+                _email.Trim(), _password, _handle.Trim(),
+                _dateOfBirth.Value.ToString("yyyy-MM-dd"), turnstileToken);
+            using var response = await Http.PostAsJsonAsync("api/auth/signup", request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var me = await response.Content.ReadFromJsonAsync<MeResponse>();
+                User.SetSignedIn(me!);
+                Nav.NavigateTo("/search?first=1");
+                return;
+            }
+
+            var error = await ApiErrors.ReadAsync(response);
+            if (error?.Code == "under_21")
+            {
+                _under21 = true; // hard stop — no account was created
+                return;
+            }
+            _error = error?.Message ?? "Signup didn't go through. Give it another try.";
+        }
+        catch
+        {
+            _error = "Couldn't reach the server. Check your connection and try again.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

@@ -55,6 +55,8 @@ jobs:
       - name: Start the stack
         run: |
           cp infra/.env.example infra/.env
+          # Mock Google/Apple so the OAuth+DOB e2e specs can run (Sprint 2).
+          sed -i 's/^AUTH_ENABLE_MOCK_EXTERNAL=false/AUTH_ENABLE_MOCK_EXTERNAL=true/' infra/.env
           docker compose -f infra/docker-compose.yml up -d --build
 
       - name: Wait for /health
