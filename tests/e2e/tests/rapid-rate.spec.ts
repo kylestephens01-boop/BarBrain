@@ -101,7 +101,9 @@ test('timing: rapid flow per-drink beats the old search-per-drink flow', async (
   await signup(page, 'timing');
 
   // --- OLD FLOW: search → drink page → rate → back, per drink (2 samples). ---
-  const oldFlowDrinks = ['pseudo sue', 'golden nugget'];
+  // NOT 'golden nugget' — private-rating.spec asserts GLOBAL drink-page state
+  // on it and requires that no other spec rates it publicly.
+  const oldFlowDrinks = ['fat tire', 'two hearted'];
   const oldStart = Date.now();
   for (const query of oldFlowDrinks) {
     await page.goto('/search');

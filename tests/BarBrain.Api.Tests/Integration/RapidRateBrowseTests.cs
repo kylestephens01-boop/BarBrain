@@ -220,10 +220,22 @@ public sealed class RapidRateBrowseTests(PostgresFixture fixture) : IAsyncLifeti
                     .SetProperty(d => d.Visibility, Visibility.Private)
                     .SetProperty(d => d.CreatedByUserId, aliceId));
         }
-
-        var ids = (await BrowseAsync(_alice)).Select(i => i.Id).ToHashSet();
-        Assert.DoesNotContain(_beerA, ids);
-        Assert.DoesNotContain(_beerC, ids);
-        Assert.Contains(_beerB, ids);
+        try
+        {
+            var ids = (await BrowseAsync(_alice)).Select(i => i.Id).ToHashSet();
+            Assert.DoesNotContain(_beerA, ids);
+            Assert.DoesNotContain(_beerC, ids);
+            Assert.Contains(_beerB, ids);
+        }
+        finally
+        {
+            // Catalog rows outlive CleanupIdentityDataAsync — an owned drink
+            // left behind would break every later suite's Users delete (FK).
+            await using var db = _harness.CreateDb();
+            await db.Drinks.Where(d => d.Id == _beerC)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(d => d.Visibility, Visibility.Public)
+                    .SetProperty(d => d.CreatedByUserId, (Guid?)null));
+        }
     }
 }
