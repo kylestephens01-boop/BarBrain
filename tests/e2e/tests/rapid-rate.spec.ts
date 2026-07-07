@@ -1,4 +1,4 @@
-import { test, expect, Page, TestInfo } from '@playwright/test';
+import { test, expect, Locator, Page, TestInfo } from '@playwright/test';
 
 /**
  * Sprint 4.5 gate: the rapid-rate surface lets a user express their palate
@@ -37,6 +37,23 @@ async function rateCard(page: Page, index: number, stars: string) {
   await expect(card.getByTestId('rr-saved')).toBeVisible({ timeout: 15_000 });
 }
 
+// private-rating.spec asserts GLOBAL drink-page state on Golden Nugget and
+// requires that no other spec rates it publicly — and once ITS rating lands,
+// Golden Nugget floats into the popular ordering this surface shows first.
+// Skip it wherever the browse list happens to serve it.
+const RESERVED_NAME = /golden nugget/i;
+
+async function nameOfCard(cards: Locator, index: number): Promise<string> {
+  return (await cards.nth(index).locator('.bb-rr-card__name').innerText()).trim();
+}
+
+/** First card index at or after `start` that isn't a reserved drink. */
+async function nextRatableIndex(cards: Locator, start: number): Promise<number> {
+  for (let i = start; ; i++) {
+    if (!RESERVED_NAME.test(await nameOfCard(cards, i))) return i;
+  }
+}
+
 test('browse, filter, rate 8 drinks inline, private 9th, unrated filter', async ({ page }, testInfo) => {
   test.setTimeout(180_000);
   await signup(page, 'rapid');
@@ -58,19 +75,23 @@ test('browse, filter, rate 8 drinks inline, private 9th, unrated filter', async 
   const values = ['4.5 stars', '3 stars', '5 stars', '2.5 stars',
                   '4 stars', '3.5 stars', '1.5 stars', '4 stars'];
   const ratedNames: string[] = [];
-  for (let i = 0; i < 8; i++) {
-    ratedNames.push((await cards.nth(i).locator('.bb-rr-card__name').innerText()).trim());
-    await rateCard(page, i, values[i]);
-    if (i === 0) await shot(page, testInfo, '03-first-noted');
-    if (i === 3) await shot(page, testInfo, '04-four-noted');
+  let idx = 0;
+  for (let n = 0; n < 8; n++) {
+    idx = await nextRatableIndex(cards, idx);
+    ratedNames.push(await nameOfCard(cards, idx));
+    await rateCard(page, idx, values[n]);
+    if (n === 0) await shot(page, testInfo, '03-first-noted');
+    if (n === 3) await shot(page, testInfo, '04-four-noted');
+    idx++;
   }
   await shot(page, testInfo, '05-eight-noted');
 
   // 9th drink: the secondary private toggle must not interrupt the flow.
-  const ninth = cards.nth(8);
-  ratedNames.push((await ninth.locator('.bb-rr-card__name').innerText()).trim());
+  idx = await nextRatableIndex(cards, idx);
+  const ninth = cards.nth(idx);
+  ratedNames.push(await nameOfCard(cards, idx));
   await ninth.getByTestId('rr-private').click();
-  await rateCard(page, 8, '3.5 stars');
+  await rateCard(page, idx, '3.5 stars');
   await shot(page, testInfo, '06-private-ninth');
 
   // All 9 landed through the real rating pipeline with correct visibility.
@@ -128,8 +149,11 @@ test('timing: rapid flow per-drink beats the old search-per-drink flow', async (
   await expect(cards.first()).toBeVisible({ timeout: 15_000 });
 
   const rapidStart = Date.now();
-  for (let i = 0; i < 8; i++) {
-    await rateCard(page, i, i % 2 === 0 ? '4 stars' : '3.5 stars');
+  let idx = 0;
+  for (let n = 0; n < 8; n++) {
+    idx = await nextRatableIndex(cards, idx);
+    await rateCard(page, idx, n % 2 === 0 ? '4 stars' : '3.5 stars');
+    idx++;
   }
   const rapidElapsedMs = Date.now() - rapidStart;
   const rapidPerDrinkMs = rapidElapsedMs / 8;
