@@ -30,6 +30,14 @@ Transparent, sufficient at MVP scale. Upgrade path: ML.NET Matrix Factorization.
 Deep learning deferred indefinitely.
 *Amended by ADR-025 (July 2026): CF is DEFERRED in sequencing — pgvector
 attribute similarity ships first; this ADR's design stands for when CF lands.*
+*Realized in Sprint 4 (July 2026): CF lands exactly as designed here — nightly
+per-category Pearson on mean-centered co-rated vectors, min-co-rated floor +
+shrinkage, top-K neighborhoods materialized (`user_match_neighbors`). It enters
+NOT as a standalone recommender but as a density-gated BLEND partner to
+attribute similarity (see ADR-014): the CF weight is ~0 at today's low
+co-rating density and grows with density, so attribute similarity carries the
+result until the co-rating matrix is dense enough to trust. No matrix
+factorization yet — that remains the future upgrade path.*
 
 **ADR-008 — Canonical drink = (producer, product, category).**
 Package format = rating metadata. Wine vintage = rating metadata, single entity.
@@ -57,6 +65,15 @@ every rec carries its "because." Mirrors venue four-shelf vocabulary.
 **ADR-014 — Match score = blended (attribute similarity + co-rating agreement,
 density-weighted); named matches** (handle + %, hide-me toggle, one-way only).
 Eager-labeled display behind a flag with conservative mode for scale.
+*Implemented in Sprint 4 (July 2026): blend = (1−w)·attribute-profile cosine +
+w·co-rating agreement, where w is a density weight derived from co-rated count
+(0 below the min-co-rated floor; asymptotes toward 1 as density grows) — so at
+current density attribute similarity dominates (ADR-007/025). Confidence tier
+(low/med/high) from co-rated depth. One-way by construction: a matches READ
+surface only, no interaction of any kind (Out of scope binds). Hide-me
+(`users.HideFromMatches`) excludes both directions and is enforced on READ so
+it takes effect immediately. Display flag `match.display_mode` defaults
+eager.*
 
 **ADR-015 — Check-in is the session primitive; Home Bar is a private virtual
 venue** auto-created per user, default rating location, excluded from discovery.
@@ -74,6 +91,17 @@ PII deleted either way.** Self-serve JSON export.
 
 **ADR-019 — Weekly email digest only in MVP** (no web push; iOS PWA push is
 install-gated/flaky). Blocks config-flagged.
+*Implemented in Sprint 4 (July 2026): weekly `WeeklyDigestService` composes a
+per-user model (week recap, weekly-distinct-drink streak per ADR-016 — breadth
+framing only, never volume; top picks per feed section; a match hook) with each
+block behind its own config flag. Sent through `IDigestSender`, whose default
+implementation LOGS the email (no SMTP yet — HUMAN-CHECKLIST item 6), mirroring
+the Sprint 2 verification-email pattern. CAN-SPAM: the footer carries a physical
+mailing address (config `digest.physical_address`) and an unsubscribe link at
+`/api/digest/unsubscribe?token=…` — under `/api/*`, which the Sprint 2 service
+worker already excludes from SPA interception, so it is a true full-page
+navigation. The digest will not send to a real inbox until the physical address
+is configured (log-only guard).*
 
 **ADR-020 — Seeding strategy: local-depth.** Corridor-priority product coverage
 before national breadth. Open Brewery DB = producers only (it has no products).

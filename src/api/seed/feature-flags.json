@@ -123,5 +123,125 @@
     "key": "catalog.merge_threshold_drink_pct",
     "value": "50",
     "description": "Minimum pg_trgm name similarity (percent) for a same-category drink pair to enter the merge queue."
+  },
+  {
+    "key": "match.nightly_enabled",
+    "value": "true",
+    "description": "Nightly user-user CF batch that rebuilds the palate-match graph (ADR-007/014)."
+  },
+  {
+    "key": "match.nightly_hour_utc",
+    "value": "10",
+    "description": "UTC hour for the nightly match rebuild (after the palate recompute at 9 so it reads fresh profiles)."
+  },
+  {
+    "key": "match.min_corated",
+    "value": "3",
+    "description": "Minimum drinks two users must both have rated in a category before their co-rating Pearson counts at all (ADR-007). Below this the match is pure attribute similarity."
+  },
+  {
+    "key": "match.cf_shrinkage",
+    "value": "5",
+    "description": "Significance-weighting constant: co-rating Pearson is scaled by n/(n+shrinkage), damping correlations from thin overlaps."
+  },
+  {
+    "key": "match.density_k",
+    "value": "10",
+    "description": "Density weight constant for the blend: CF weight = coRated/(coRated+K). Larger K keeps attribute similarity dominant longer as density grows (ADR-014/025)."
+  },
+  {
+    "key": "match.top_k_neighbors",
+    "value": "50",
+    "description": "Neighbor edges materialized per user in the nightly batch (strongest blended scores)."
+  },
+  {
+    "key": "match.display_mode",
+    "value": "eager",
+    "description": "Match-% display: 'eager' shows a percent from day one (labeled 'early estimate' at low confidence); 'conservative' shows it only at med+ confidence. Ships eager per charter (ADR-006/014)."
+  },
+  {
+    "key": "match.confidence_med_corated",
+    "value": "5",
+    "description": "Co-rated drinks (best category) for a match to reach 'med' confidence."
+  },
+  {
+    "key": "match.confidence_high_corated",
+    "value": "15",
+    "description": "Co-rated drinks (best category) for a match to reach 'high' confidence."
+  },
+  {
+    "key": "match.min_display_score_pct",
+    "value": "1",
+    "description": "Matches below this blended percent are not shown."
+  },
+  {
+    "key": "match.recent_love_min",
+    "value": "4.0",
+    "description": "Minimum rating for a match's drink to count as a 'recent love' (social proof + feed)."
+  },
+  {
+    "key": "match.feed_neighbor_count",
+    "value": "25",
+    "description": "How many of the strongest matches feed the 'Loved by Your Matches' section and rec social proof."
+  },
+  {
+    "key": "match.list_size",
+    "value": "25",
+    "description": "Matches returned on the 'Your Matches' surface."
+  },
+  {
+    "key": "feed.matches_section_size",
+    "value": "8",
+    "description": "Items in the 'Loved by Your Matches' feed section."
+  },
+  {
+    "key": "feed.cf_weight_pct",
+    "value": "20",
+    "description": "Weight (percent) of the CF match signal blended into Up Your Alley ranking as co-rating density grows (hybrid recs, ADR-014). Density-gated: no effect for cold users."
+  },
+  {
+    "key": "digest.enabled",
+    "value": "false",
+    "description": "Master switch for sending the weekly digest. Stays OFF until an SMTP provider AND a CAN-SPAM physical address are configured (HUMAN-CHECKLIST 6). While off, the digest is composed and LOGGED, never delivered."
+  },
+  {
+    "key": "digest.hour_utc",
+    "value": "14",
+    "description": "UTC hour the weekly digest job runs (14 = ~8am US Central)."
+  },
+  {
+    "key": "digest.day_of_week",
+    "value": "1",
+    "description": "Day of week the weekly digest runs (0=Sunday … 6=Saturday; 1=Monday)."
+  },
+  {
+    "key": "digest.physical_address",
+    "value": "",
+    "description": "CAN-SPAM footer mailing address. BLANK until a founder-provided registered-agent/virtual address exists (HUMAN-CHECKLIST 6/15). Empty forces the digest log-only, even if digest.enabled is true."
+  },
+  {
+    "key": "digest.public_base_url",
+    "value": "https://dev.barbrain.co",
+    "description": "Absolute base URL for links in the digest (the background job has no HTTP request to derive host from). Unsubscribe link is {base}/api/digest/unsubscribe?token=… — under /api/*, which the service worker leaves as a full-page navigation."
+  },
+  {
+    "key": "digest.block_recap",
+    "value": "true",
+    "description": "Digest block: this week's rating recap (breadth framing only, never volume)."
+  },
+  {
+    "key": "digest.block_streak",
+    "value": "true",
+    "description": "Digest block: weekly-distinct-drink discovery streak (ADR-016 — never consumption volume/frequency)."
+  },
+  {
+    "key": "digest.block_top_picks",
+    "value": "true",
+    "description": "Digest block: top recommendation per feed section."
+  },
+  {
+    "key": "digest.block_match_hook",
+    "value": "true",
+    "description": "Digest block: a palate-match hook ('a strong palate match was found' / 'your match tried X')."
   }
 ]

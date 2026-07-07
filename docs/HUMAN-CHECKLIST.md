@@ -17,6 +17,12 @@ Est. ~45–60 min total. Items 1–5 block Sprint 0; the rest block later sprint
    requires one): virtual mailbox or registered-agent service address. [Sprint 2]
    → Until wired, the API logs verification links (IVerificationEmailSender);
    swap in an SMTP sender + creds when this lands.
+   → [Sprint 4] The SAME provider + physical address now also gate the WEEKLY
+   DIGEST. Set the address in setting `digest.physical_address` (admin API, no
+   deploy). BLOCKER: the digest is log-only (IDigestSender logs the rendered
+   email) and REFUSES to send to real inboxes until that address is non-empty —
+   a real CAN-SPAM address must exist before the digest can send to real users.
+   Turn sending on with flag `digest.enabled` once both are set.
 7. Google Cloud console: OAuth client (web). Redirect URIs for dev + prod:
    `https://<host>/api/auth/callback/google`. Creds → env `GOOGLE_CLIENT_ID`,
    `GOOGLE_CLIENT_SECRET` (see infra/.env.example). Empty = button hidden. [Sprint 2]

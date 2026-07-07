@@ -71,8 +71,11 @@ test('interest gate → staples quiz → radar → sectioned feed with reasons',
     await shot(page, testInfo, `05-feed-${section}`);
   }
 
-  // The matches slot exists but is deferred (Sprint 4).
-  await expect(page.getByTestId('feed-tab-loved_by_your_matches')).toBeDisabled();
+  // Sprint 4: the matches section is live (not disabled), but a brand-new solo
+  // user has no computed matches yet, so it renders an empty state.
+  await expect(page.getByTestId('feed-tab-loved_by_your_matches')).toBeEnabled();
+  await page.getByTestId('feed-tab-loved_by_your_matches').click();
+  await expect(page.getByTestId('feed-empty')).toBeVisible({ timeout: 15_000 });
 
   // Quiz ratings are REAL ratings: they're in the journal with provenance.
   await page.goto('/profile');

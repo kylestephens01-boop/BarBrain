@@ -824,3 +824,18 @@ code {
 }
 .bb-rec-card__reason strong { color: var(--bb-synapse); font-weight: var(--bb-fw-medium); }
 .bb-rec-card__reason--pour strong { color: var(--bb-pour); }
+/* Social proof: surfaced by palate matches → intelligence, teal. */
+.bb-rec-card__social { color: var(--bb-synapse); font-size: 11px; line-height: 15px; }
+
+/* --- Matches ------------------------------------------------------------------ */
+.bb-match-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.bb-match-early { color: var(--bb-text-muted); font-size: 10px; line-height: 14px; }
+.bb-match-loves { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 2px; }
+.bb-match-love { color: var(--bb-pour); font-size: 11px; text-decoration: none; } /* the DRINK is amber */
+.bb-match-love:hover { text-decoration: underline; }
+
+/* --- Profile settings (privacy & email) --------------------------------------- */
+.bb-settings { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; }
+.bb-settings__row { align-items: flex-start; }
+.bb-settings__copy { display: flex; flex-direction: column; gap: 2px; }
+.bb-settings__name { color: var(--bb-coaster); font-size: 14px; font-weight: var(--bb-fw-medium); }

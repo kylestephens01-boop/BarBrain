@@ -25,8 +25,13 @@ public record FeedSection(
 /// One recommendation. <c>Reason</c> is the human "because" (hard product
 /// requirement, ADR-013/027); <c>ReasonAttributes</c> are the display names
 /// inside it, for the UI's teal emphasis. <c>Tag</c>: cross_category |
-/// new_territory | null. Cross-category items carry the palate's
-/// <c>SourceCategory</c> (ADR-027 bridge).
+/// new_territory | loved_by_matches | null. Cross-category items carry the
+/// palate's <c>SourceCategory</c> (ADR-027 bridge).
+///
+/// Social proof (Sprint 4, ADR-014): <c>LovedByMatchCount</c> is how many of
+/// the user's palate matches rated this highly, and <c>LovedByMatchHandle</c>
+/// is one such match's handle — for the "loved by @handle + N others" line.
+/// Null when no match loved it (or matching is off / cold).
 /// </summary>
 public record RecDto(
     Guid DrinkId,
@@ -40,7 +45,9 @@ public record RecDto(
     IReadOnlyList<string> ReasonAttributes,
     bool CrossCategory,
     string? SourceCategory,
-    string? Tag);
+    string? Tag,
+    int? LovedByMatchCount = null,
+    string? LovedByMatchHandle = null);
 
 // ---- Palate profile (radar) ---------------------------------------------------
 

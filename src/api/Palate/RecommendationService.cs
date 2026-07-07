@@ -29,7 +29,8 @@ namespace BarBrain.Api.Palate;
 public sealed class RecommendationService(
     AppDbContext db,
     ISettingsService settings,
-    TimeProvider clock)
+    TimeProvider clock,
+    MatchService matches)
 {
     // --- Flags (Hard Rule 10) -------------------------------------------------
     public const string PoolSizeFlag = "feed.pool_size";
@@ -43,11 +44,13 @@ public sealed class RecommendationService(
     public const string MmrLambdaFlag = "feed.mmr_lambda_pct";
     public const string BridgeEnabledFlag = "feed.bridge_enabled";
     public const string BridgeCountFlag = "feed.bridge_count";
+    public const string MatchesSectionSizeFlag = "feed.matches_section_size";
+    public const string CfWeightFlag = "feed.cf_weight_pct";
 
     public const string SectionAlley = "up_your_alley";
     public const string SectionStretch = "stretch_a_little";
     public const string SectionWildcard = "wildcard";
-    public const string SectionMatches = "loved_by_your_matches"; // Sprint 4 slot
+    public const string SectionMatches = "loved_by_your_matches"; // Sprint 4
 
     private sealed record Candidate(
         Guid DrinkId,
@@ -90,11 +93,20 @@ public sealed class RecommendationService(
             : await settings.GetIntAsync(WildcardColdFlag, 6, ct);
         var popularityWeight = await settings.GetIntAsync(PopularityWeightFlag, 10, ct) / 100.0;
         var mmrLambda = await settings.GetIntAsync(MmrLambdaFlag, 75, ct) / 100.0;
+        var cfWeight = await settings.GetIntAsync(CfWeightFlag, 20, ct) / 100.0;
 
         var pickSize = confidence == "cold" ? coldSectionSize : sectionSize;
 
         var popularity = await LoadPopularityAsync(ct);
         var attributeNames = await LoadAttributeNamesAsync(ct);
+
+        // Matches (ADR-014): drinks the user's palate matches loved. Powers the
+        // hybrid CF blend, the social-proof line, and the 4th feed section.
+        // Fallback ladder: a COLD user gets pure content (no CF), a warm/full
+        // user gets the blend — matching needs some ratings to mean anything.
+        var matchLoved = confidence == "cold"
+            ? new Dictionary<Guid, MatchLovedDrink>()
+            : (await matches.LovedByMatchesAsync(userId, ct)).ToDictionary(m => m.DrinkId);
 
         // --- Candidate pools, per category ------------------------------------
         var scored = new List<Candidate>();
@@ -107,6 +119,19 @@ public sealed class RecommendationService(
             else
                 popular.AddRange(await PopularCandidatesAsync(userId, category, poolSize / 3, popularity, ct));
         }
+
+        // Hybrid: nudge same-category scores toward drinks the user's matches
+        // loved (density-weighted — cfWeight × the strongest matching neighbor's
+        // score). Band assignment stays distance-based (attribute geometry is
+        // the spine); CF only reorders WITHIN a band via MMR, so a user with no
+        // matches sees an unchanged content-only feed (the golden eval relies
+        // on this).
+        if (cfWeight > 0 && matchLoved.Count > 0)
+            scored = scored
+                .Select(c => matchLoved.TryGetValue(c.DrinkId, out var ml)
+                    ? c with { Score = c.Score + cfWeight * ml.TopNeighborScore }
+                    : c)
+                .ToList();
 
         var ranked = scored.OrderBy(c => c.Distance).ThenBy(c => c.DrinkId).ToList();
         var alleyPool = ranked.Take(alleyBand).ToList();
@@ -165,13 +190,18 @@ public sealed class RecommendationService(
             }
         }
 
+        // 4th section (ADR-013/014): drinks the user's palate matches loved,
+        // that the user hasn't rated. No longer a stub — but still empty (and
+        // NOT "coming soon") when the user has no computed matches yet.
+        var matchesSectionSize = await settings.GetIntAsync(MatchesSectionSizeFlag, 8, ct);
+        var matchesSection = await BuildMatchesSectionAsync(matchLoved, matchesSectionSize, picked, ct);
+
         var sections = new List<FeedSection>
         {
-            new(SectionAlley, "Up your alley", alley.Select(c => ToDto(c, SectionAlley, confidence, attributeNames, profiles)).ToList()),
-            new(SectionStretch, "Stretch a little", stretch.Select(c => ToDto(c, SectionStretch, confidence, attributeNames, profiles)).ToList()),
-            new(SectionWildcard, "Wildcard", wildcard.Select(c => ToDto(c, SectionWildcard, confidence, attributeNames, profiles)).ToList()),
-            // The slot ships now; matching is Sprint 4 (charter decision).
-            new(SectionMatches, "Loved by your matches", [], ComingSoon: true),
+            new(SectionAlley, "Up your alley", alley.Select(c => ToDto(c, SectionAlley, confidence, attributeNames, profiles, matchLoved)).ToList()),
+            new(SectionStretch, "Stretch a little", stretch.Select(c => ToDto(c, SectionStretch, confidence, attributeNames, profiles, matchLoved)).ToList()),
+            new(SectionWildcard, "Wildcard", wildcard.Select(c => ToDto(c, SectionWildcard, confidence, attributeNames, profiles, matchLoved)).ToList()),
+            new(SectionMatches, "Loved by your matches", matchesSection),
         };
 
         return new FeedResponse(sections, confidence, totalRatings,
@@ -283,6 +313,56 @@ public sealed class RecommendationService(
         return picks;
     }
 
+    /// <summary>
+    /// "Loved by your matches": drinks the caller's palate matches rated highly
+    /// and the caller hasn't tried (ADR-013/014). Ordered by the strongest
+    /// matching neighbor first, then by how many matches loved it. Skips drinks
+    /// already placed in another section. Every item carries its "because"
+    /// (hard product requirement) — here the because IS the social proof.
+    /// </summary>
+    private async Task<List<RecDto>> BuildMatchesSectionAsync(
+        Dictionary<Guid, MatchLovedDrink> matchLoved, int size,
+        IReadOnlySet<Guid> picked, CancellationToken ct)
+    {
+        var ordered = matchLoved.Values
+            .Where(m => !picked.Contains(m.DrinkId))
+            .OrderByDescending(m => m.TopNeighborScore).ThenByDescending(m => m.MatchCount)
+            .ThenBy(m => m.DrinkId)
+            .Take(size)
+            .ToList();
+        if (ordered.Count == 0) return [];
+
+        var ids = ordered.Select(m => m.DrinkId).ToList();
+        var drinks = await db.Drinks.AsNoTracking()
+            .Where(d => ids.Contains(d.Id))
+            .Select(d => new
+            {
+                d.Id, d.Name, ProducerName = d.Producer.Name, d.Category,
+                StyleName = d.Style != null ? d.Style.Name : null, d.Abv,
+            })
+            .ToListAsync(ct);
+        var byId = drinks.ToDictionary(d => d.Id);
+
+        var items = new List<RecDto>();
+        foreach (var m in ordered)
+        {
+            if (!byId.TryGetValue(m.DrinkId, out var d)) continue;
+            var others = m.MatchCount - 1;
+            var reason = others switch
+            {
+                <= 0 => $"@{m.SampleHandle}, a strong palate match, rated this highly.",
+                1 => $"@{m.SampleHandle} and one other palate match rated this highly.",
+                _ => $"@{m.SampleHandle} and {others} other palate matches rated this highly.",
+            };
+            items.Add(new RecDto(
+                d.Id, d.Name, d.ProducerName, d.Category, d.StyleName, d.Abv,
+                MatchPct: null, reason, ReasonAttributes: [], CrossCategory: false,
+                SourceCategory: null, Tag: "loved_by_matches",
+                LovedByMatchCount: m.MatchCount, LovedByMatchHandle: m.SampleHandle));
+        }
+        return items;
+    }
+
     private async Task<Dictionary<Guid, double>> LoadPopularityAsync(CancellationToken ct)
     {
         // Smoothed count of latest PUBLIC ratings → [0,1). Fine at MVP scale;
@@ -380,7 +460,8 @@ public sealed class RecommendationService(
 
     private RecDto ToDto(
         Candidate c, string section, string confidence,
-        Dictionary<string, string[]> attributeNames, List<UserPalateProfile> profiles)
+        Dictionary<string, string[]> attributeNames, List<UserPalateProfile> profiles,
+        Dictionary<Guid, MatchLovedDrink> matchLoved)
     {
         var names = attributeNames.GetValueOrDefault(c.Category) ?? [];
         var profile = profiles.FirstOrDefault(p => p.Category == c.Category);
@@ -429,8 +510,18 @@ public sealed class RecommendationService(
         // Cold reads get no hard number — an early guess shouldn't wear a percent.
         if (confidence == "cold" && !c.CrossCategory) matchPct = null;
 
+        // Social proof (ADR-014): if the user's matches also loved this, say so.
+        int? lovedCount = null;
+        string? lovedHandle = null;
+        if (matchLoved.TryGetValue(c.DrinkId, out var ml))
+        {
+            lovedCount = ml.MatchCount;
+            lovedHandle = ml.SampleHandle;
+        }
+
         return new RecDto(c.DrinkId, c.Name, c.ProducerName, c.Category, c.StyleName,
-            c.Abv, matchPct, reason, reasonAttributes, c.CrossCategory, c.SourceCategory, tag);
+            c.Abv, matchPct, reason, reasonAttributes, c.CrossCategory, c.SourceCategory, tag,
+            lovedCount, lovedHandle);
     }
 
     /// <summary>Top contributing dims: weight[i] × value[i], positive weights only.</summary>

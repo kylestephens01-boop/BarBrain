@@ -153,12 +153,15 @@ public sealed class RecEvalTests(RecEvalFixture fixture)
     }
 
     [SkippableFact]
-    public void Matches_slot_exists_but_is_deferred_to_sprint_4()
+    public void Matches_section_is_live_but_empty_without_computed_matches()
     {
         EnsureWorld();
+        // Sprint 4: the slot is a real section now (not "coming soon"). These
+        // rec-eval personas are never run through the match batch, so it renders
+        // empty — the matcher itself is proven in the MatchEval suite (Gate C2).
         var slot = fixture.Results[0].Feed.Sections
             .Single(s => s.Key == RecommendationService.SectionMatches);
-        Assert.True(slot.ComingSoon);
+        Assert.False(slot.ComingSoon);
         Assert.Empty(slot.Items);
     }
 

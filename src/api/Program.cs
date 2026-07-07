@@ -39,6 +39,14 @@ builder.Services.AddScoped<BarBrain.Api.Palate.RecommendationService>();
 builder.Services.AddScoped<BarBrain.Api.Palate.QuizService>();
 builder.Services.AddHostedService<BarBrain.Api.Palate.PalateNightlyService>();
 
+// --- Matching + weekly digest (Sprint 4, ADR-014/007/019) -------------------
+builder.Services.AddScoped<BarBrain.Api.Palate.MatchService>();
+builder.Services.AddHostedService<BarBrain.Api.Palate.MatchNightlyService>();
+builder.Services.AddScoped<BarBrain.Api.Digest.DigestComposer>();
+builder.Services.AddScoped<BarBrain.Api.Digest.DigestService>();
+builder.Services.AddSingleton<BarBrain.Api.Digest.IDigestSender, BarBrain.Api.Digest.LoggingDigestSender>();
+builder.Services.AddHostedService<BarBrain.Api.Digest.WeeklyDigestService>();
+
 // Caddy fronts the API in every deployed shape and sets X-Forwarded-Proto;
 // honoring it makes the auth cookie Secure over https without breaking
 // plain-http localhost e2e. Single-box topology → trust the proxy hop.
@@ -95,6 +103,7 @@ app.MapCatalogEndpoints();
 app.MapAuthEndpoints();
 app.MapRatingEndpoints();
 app.MapPalateEndpoints();
+app.MapMatchEndpoints();
 
 app.Run();
 return 0;

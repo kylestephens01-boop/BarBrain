@@ -28,6 +28,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Rating> Ratings => Set<Rating>();
     public DbSet<UserCategoryInterest> UserCategoryInterests => Set<UserCategoryInterest>();
     public DbSet<UserPalateProfile> UserPalateProfiles => Set<UserPalateProfile>();
+    public DbSet<UserMatchNeighbor> UserMatchNeighbors => Set<UserMatchNeighbor>();
     public DbSet<Producer> Producers => Set<Producer>();
     public DbSet<Style> Styles => Set<Style>();
     public DbSet<AttributeDefinition> AttributeDefinitions => Set<AttributeDefinition>();
@@ -90,6 +91,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(u => u.Email).HasMaxLength(256);
             e.Property(u => u.NormalizedEmail).HasMaxLength(256);
             e.HasIndex(u => u.UserName).IsUnique().HasDatabaseName("IX_users_Handle");
+            // The unsubscribe link looks the user up by this token alone (no
+            // session), so it must be unique and indexed.
+            e.HasIndex(u => u.DigestUnsubscribeToken).IsUnique()
+                .HasDatabaseName("ux_users_digest_unsub_token");
             // DB-level email uniqueness (Identity's own EmailIndex is not unique;
             // UserManager's check alone has a race window).
             e.HasIndex(u => u.NormalizedEmail).IsUnique()
@@ -203,6 +208,33 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(p => p.BridgeVector).HasColumnType("vector(6)");
             e.HasOne(p => p.User).WithMany()
                 .HasForeignKey(p => p.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserMatchNeighbor>(e =>
+        {
+            e.ToTable("user_match_neighbors", t =>
+            {
+                t.HasCheckConstraint("ck_user_match_neighbors_category", categoryCheck);
+                // A user is never their own match.
+                t.HasCheckConstraint("ck_user_match_neighbors_no_self",
+                    "\"UserId\" <> \"NeighborUserId\"");
+                t.HasCheckConstraint("ck_user_match_neighbors_corated",
+                    "\"CoRatedCount\" >= 0");
+                // The blended score is a similarity in [0, 1].
+                t.HasCheckConstraint("ck_user_match_neighbors_score",
+                    "\"BlendedScore\" >= 0 AND \"BlendedScore\" <= 1");
+            });
+            e.HasKey(m => new { m.UserId, m.NeighborUserId, m.Category });
+            e.Property(m => m.Category).HasMaxLength(16);
+            e.HasOne(m => m.User).WithMany()
+                .HasForeignKey(m => m.UserId).OnDelete(DeleteBehavior.Cascade);
+            // Cascade only from one side (User); the neighbor FK restricts so a
+            // single user deletion doesn't try to multi-cascade the same rows.
+            e.HasOne(m => m.Neighbor).WithMany()
+                .HasForeignKey(m => m.NeighborUserId).OnDelete(DeleteBehavior.Restrict);
+            // "Who matches me", strongest first.
+            e.HasIndex(m => new { m.UserId, m.BlendedScore })
+                .HasDatabaseName("ix_user_match_neighbors_user_score");
         });
 
         modelBuilder.Entity<Producer>(e =>

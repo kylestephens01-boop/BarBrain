@@ -21,16 +21,17 @@ public sealed class MigrationFromEmptyTests(PostgresFixture fixture)
 
         // A truly empty DB: the full ordered chain is pending.
         var pending = (await db.Database.GetPendingMigrationsAsync()).ToList();
-        Assert.Equal(4, pending.Count);
+        Assert.Equal(5, pending.Count);
         Assert.EndsWith("InitialCreate", pending[0]);
         Assert.EndsWith("Sprint1Catalog", pending[1]);
         Assert.EndsWith("Sprint2Identity", pending[2]);
         Assert.EndsWith("Sprint3Palate", pending[3]);
+        Assert.EndsWith("Sprint4Matching", pending[4]);
 
         await db.Database.MigrateAsync();
 
         var applied = (await db.Database.GetAppliedMigrationsAsync()).ToList();
-        Assert.Equal(4, applied.Count);
+        Assert.Equal(5, applied.Count);
         Assert.Empty(await db.Database.GetPendingMigrationsAsync());
 
         Assert.True(await ScalarBoolAsync(db,
@@ -45,6 +46,7 @@ public sealed class MigrationFromEmptyTests(PostgresFixture fixture)
                      "style_attributes", "drinks", "drink_attributes", "merge_queue",
                      "venues", "ratings", "user_logins", "user_claims", "user_tokens",
                      "user_category_interests", "user_palate_profiles",
+                     "user_match_neighbors",
                  })
         {
             Assert.True(await TableExistsAsync(db, table), $"missing table {table}");

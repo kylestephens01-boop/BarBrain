@@ -111,7 +111,9 @@ public sealed class RecEvalFixture : IAsyncLifetime
         _cache ??= new MemoryCache(new MemoryCacheOptions());
         var settings = new SettingsService(db, _cache);
         var clock = new FixedTimeProvider(FixedNow);
-        return (db, new PalateProfileService(db, clock), new RecommendationService(db, settings, clock));
+        var matchService = new MatchService(db, settings);
+        return (db, new PalateProfileService(db, clock),
+            new RecommendationService(db, settings, clock, matchService));
     }
 
     // --- World building ---------------------------------------------------------

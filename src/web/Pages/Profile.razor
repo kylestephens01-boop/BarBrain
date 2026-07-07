@@ -33,7 +33,6 @@ else
                 class="bb-tab @(_tab == "palate" ? "is-active" : "")"
                 data-testid="palate-tab"
                 @onclick="OpenPalateAsync">Palate</button>
-        <button type="button" role="tab" aria-selected="false" class="bb-tab" disabled title="Arrives with Sprint 4">Matches</button>
         <button type="button" role="tab" aria-selected="false" class="bb-tab" disabled title="Arrives with Sprint 6">Badges</button>
     </div>
 
@@ -165,6 +164,33 @@ else
         </ul>
     }
     }
+
+    <section class="bb-card bb-settings" data-testid="profile-settings">
+        <h2 class="bb-label">Privacy &amp; email</h2>
+        @if (_settings is null)
+        {
+            <p class="bb-muted">Loading settings…</p>
+        }
+        else
+        {
+            <label class="bb-toggle bb-settings__row">
+                <input type="checkbox" @bind="_hideFromMatches" @bind:after="SaveHideAsync"
+                       data-testid="hide-me-toggle" />
+                <span class="bb-settings__copy">
+                    <span class="bb-settings__name">Hide me from matches</span>
+                    <span class="bb-muted">Turning this on removes you from everyone's matches, and hides your matches from you.</span>
+                </span>
+            </label>
+            <label class="bb-toggle bb-settings__row">
+                <input type="checkbox" @bind="_digestSubscribed" @bind:after="SaveDigestAsync"
+                       data-testid="digest-toggle" />
+                <span class="bb-settings__copy">
+                    <span class="bb-settings__name">Weekly digest</span>
+                    <span class="bb-muted">A weekly email of fresh picks and palate matches. Off is fine — nothing else changes.</span>
+                </span>
+            </label>
+        }
+    </section>
 }
 
 @code {
@@ -177,6 +203,9 @@ else
     private Guid? _confirmDelete;
     private string _tab = "journal";
     private PalateResponse? _palate;
+    private MatchSettingsResponse? _settings;
+    private bool _hideFromMatches;
+    private bool _digestSubscribed;
 
     private void ShowJournal() => _tab = "journal";
 
@@ -196,6 +225,39 @@ else
             return;
         }
         await LoadAsync();
+        await LoadSettingsAsync();
+    }
+
+    private async Task LoadSettingsAsync()
+    {
+        try
+        {
+            _settings = await Http.GetFromJsonAsync<MatchSettingsResponse>("api/matches/settings");
+        }
+        catch
+        {
+            _settings = new MatchSettingsResponse(false, false);
+        }
+        _hideFromMatches = _settings?.HideFromMatches ?? false;
+        _digestSubscribed = _settings?.DigestSubscribed ?? false;
+    }
+
+    private async Task SaveHideAsync()
+    {
+        try
+        {
+            await Http.PutAsJsonAsync("api/matches/hide", new HideFromMatchesRequest(_hideFromMatches));
+        }
+        catch { /* toggle keeps its state; user can retry */ }
+    }
+
+    private async Task SaveDigestAsync()
+    {
+        try
+        {
+            await Http.PutAsJsonAsync("api/digest/subscription", new DigestSubscriptionRequest(_digestSubscribed));
+        }
+        catch { /* toggle keeps its state; user can retry */ }
     }
 
     private async Task LoadAsync()
