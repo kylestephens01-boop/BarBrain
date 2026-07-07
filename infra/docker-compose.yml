@@ -37,6 +37,18 @@ services:
       ConnectionStrings__Default: "Host=postgres;Port=5432;Database=barbrain;Username=barbrain;Password=${POSTGRES_PASSWORD:-barbrain}"
       Admin__Token: ${ADMIN_TOKEN:-}
       GIT_SHA: ${GIT_SHA:-local}
+      # Mock Google/Apple for e2e ONLY (CI flips this). The API refuses to
+      # boot with it in the Production environment.
+      Auth__EnableMockExternal: ${AUTH_ENABLE_MOCK_EXTERNAL:-false}
+      # Real OAuth / Turnstile creds (HUMAN-CHECKLIST; empty = feature gated off).
+      Auth__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+      Auth__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
+      Auth__Apple__ClientId: ${APPLE_CLIENT_ID:-}
+      Auth__Apple__TeamId: ${APPLE_TEAM_ID:-}
+      Auth__Apple__KeyId: ${APPLE_KEY_ID:-}
+      Auth__Apple__PrivateKey: ${APPLE_PRIVATE_KEY:-}
+      Turnstile__SiteKey: ${TURNSTILE_SITE_KEY:-}
+      Turnstile__SecretKey: ${TURNSTILE_SECRET_KEY:-}
     ports:
       # Loopback only, for direct API testing during dev. Prod reaches the API
       # solely through Caddy; the overlay removes this mapping.
