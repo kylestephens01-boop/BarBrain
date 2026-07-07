@@ -24,7 +24,9 @@ test('a rating flipped private vanishes from the logged-out drink page', async (
   await page.fill('#password', 'correct-horse-battery');
   await page.fill('#dob', '1990-04-17');
   await page.getByTestId('signup-submit').click();
-  await expect(page.getByTestId('first-run-hint')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId('interest-beer')).toBeVisible({ timeout: 20_000 });
+  await page.getByTestId('onboarding-skip').click();
+  await expect(page.getByTestId('search-input')).toBeVisible({ timeout: 20_000 });
 
   await page.getByTestId('search-input').fill('king sue');
   await page.getByTestId('search-result').first().click();
