@@ -86,3 +86,10 @@ Verification quotes below were captured live on 2026-07-06.
    wait for founder sign-off.
 4. Only then write/point the importer, tagging every row with `source` +
    `source_ref`.
+
+> **Machine-enforced for product seeds (ADR-028):** this file is embedded into
+> the api binary at build time, and `import products --file <…>` refuses any
+> seed file whose `source` tag does not appear here (fail-closed — a missing
+> registry also refuses). Include the exact tag string (e.g.
+> `source = "seed:whiskey-national"`) in the new entry, then rebuild/redeploy
+> before importing.

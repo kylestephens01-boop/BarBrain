@@ -2,115 +2,84 @@
 > Agents: update this at the END of every session. Keep it short and factual.
 
 ## Current sprint
-Sprint 4 — Matching + Hybrid Recs + Weekly Digest (branch `sprint-4`, off `main`
-which now has Sprint 3 via PR #5). Gate C2 is EVAL-ONLY this sprint (charter):
-the synthetic-twins MatchEval suite in CI IS the acceptance gate — no founder
-feel-review until real users exist. Sprint 3 merged (PR #5); Sprint 2 (PR #4);
-Sprint 1 (PR #3). STILL OUTSTANDING from Sprint 1: the VPS bulk seed run per
-RUNBOOK (real-catalog feel review still wants it).
+Sprint 4.6 — Catalog Importer v2 mini-sprint (branch `sprint-4.6`, off `main`
+which has Sprint 4 via PR #6). Spec: docs/specs/sprint-4.6.md. Generic
+product-seed loader: per-file provenance, editorial attribute overrides,
+machine-enforced license gate. NOTE: sprint-4.5 (rapid-rate) is a SIBLING
+branch, PR still open when this branched — this branch deliberately avoids all
+rapid-rate files except an additive feature-flags.json entry (expect a trivial
+merge there whichever lands second). Sprint 4 merged (PR #6); Sprint 3 (PR #5);
+Sprint 2 (PR #4); Sprint 1 (PR #3). STILL OUTSTANDING from Sprint 1: the VPS
+bulk seed run per RUNBOOK.
 
-## Done (Sprint 4)
-- **Docs**: sprint-4.md amended with the applied charter standing decisions +
-  the eval-only Gate C2 note; ADR-007 (CF realized as density-gated blend),
-  ADR-014 (blend/tiers/hide-me/display-flag detail), ADR-019 (digest impl +
-  CAN-SPAM) amended; HUMAN-CHECKLIST 6 extended (digest physical address +
-  SMTP gate the weekly digest; log-only until set).
-- **Schema** (`Sprint4Matching`, additive): `users.HideFromMatches`,
-  `users.DigestUnsubscribedAt`, `users.DigestUnsubscribeToken` (unique;
-  backfilled per-row via `gen_random_uuid()` so the unique index holds on
-  existing rows), and `user_match_neighbors` (per-(user,neighbor,category)
-  attribute-sim + Pearson agreement + co-rated count + blended score, both
-  directions materialized). Migration-from-empty count → 5; new
-  MigrationFromSprint3Tests proves the Sprint3→4 upgrade + token backfill.
-- **MatchService** (ADR-014/007/025): PURE `ComputeEdge` = density-weighted
-  blend of preference-vector cosine (primary) + mean-centered co-rated Pearson
-  (significance-shrunk, floored at min-co-rated). CF weight = coRated/(coRated+K)
-  → attribute-sim dominates at low density, CF grows with density. Confidence
-  tier (low/med/high) from co-rated depth. `ComputeAllAsync` full-rebuilds the
-  graph (includes hidden users; hide-me enforced on READ). Read surfaces:
-  `GetMatchesAsync` (aggregates per-category edges → one row/neighbor, honors
-  hide-me both directions + display-mode flag) and `LovedByMatchesAsync` (feed
-  + social proof). All knobs are flags (`match.*`).
-- **MatchNightlyService**: nightly rebuild (hour 10, after palate recompute),
-  flag-gated. **Endpoints**: GET /api/matches, GET/PUT match settings
-  (hide-me), PUT digest subscription, unauthenticated CAN-SPAM
-  GET /api/digest/unsubscribe?token= (full-page HTML, under /api/* so the SW
-  leaves it alone), + admin POST /api/admin/matches/rebuild and /digest/run
-  (Gate C2 / e2e triggers; admin-token gated).
-- **Feed hybrid** (RecommendationService): "Loved by your matches" is now a
-  REAL 4th section (was ComingSoon). CF nudges Up-Your-Alley scores toward
-  match-loved drinks (density-gated — cold users get pure content, so the
-  golden RecEval is unchanged). Social proof (`LovedByMatchCount/Handle`) rides
-  on every rec. RecDto gained two optional trailing fields.
-- **Weekly digest** (ADR-019): `DigestComposer` (recap / ADR-016-safe
-  weekly-distinct-drink streak / top pick per section / match hook — each
-  block flag-gated), `DigestRenderer` (pure, inline-styled, two-temperature,
-  CAN-SPAM footer w/ physical address + unsubscribe), `DigestService.RunOnceAsync`
-  (compose→render→send, `digest_sent` events), `WeeklyDigestService` (weekly
-  schedule). `IDigestSender`=LoggingDigestSender (log-only, mirrors Sprint 2
-  verification). CAN-SPAM guard: NEVER delivers without a configured physical
-  address (`digest.physical_address`) — log-only until then.
-- **Gate C2 eval** (`Category=MatchEval`, own pgvector container): planted
-  twin pairs among decoys → asserts top-1 match = twin for ≥90%; density
-  weighting (pure-math test runs everywhere + seeded low/high-density pairs);
-  hide-me both directions; match-% flag toggles display; sparsity sim at
-  50/500 users → CI artifact `match-eval-report.md`. Digest covered by
-  DigestServiceTests (block flags, unsubscribe, no-address log-only guard) +
-  DigestRendererTests (litmus HTML artifact, no-volume-copy assertion).
-- **Web**: `/matches` page (handle, teal %, confidence label, early-estimate
-  caption, amber recent-loves; hidden + empty states; NO interaction —
-  one-way), feed matches section + teal social-proof line + "Loved by matches"
-  pill, Profile "Privacy & email" section (hide-me + digest toggles), Matches
-  nav link. New token-based CSS only.
-- **e2e**: matching.spec (two like-palates match → eager shows %, conservative
-  hides it via a live flag flip, hide-me removes both directions), digest.spec
-  (litmus screenshot + CAN-SPAM footer), onboarding-feed.spec updated (matches
-  tab now live+empty for a solo user).
-
-## In progress
-(nothing — Gate C2 is the CI eval by design; no human review until real users)
+## Done (Sprint 4.6)
+- **Flag (brief provenance)**: the brief said docs/proposals/catalog-import-v2.md
+  and docs/SEED-FORMAT.md already existed from an earlier analysis pass —
+  NEITHER did (no docs/proposals/ at all). Design was derived from
+  CatalogImportService + SCHEMA.md per the brief's fallback; SEED-FORMAT.md and
+  the sprint spec were authored in this mini-sprint. Also the brief's license
+  gate cite is ADR-024 (not ADR-023); implemented against ADR-024.
+- **Importer** (`ImportProductsAsync(filePath, dataSourcesPath?)`): any
+  product-seed file, corridor shape + additions (docs/SEED-FORMAT.md is the
+  contract). Per-file `source` tag (must start `seed:`) on every row;
+  idempotency unchanged on (Source, SourceRef) upserts. `ImportCorridorAsync`
+  is now a one-line delegation → corridor behavior/provenance identical by
+  construction, proven by CatalogImportTests running unchanged.
+- **Overrides**: optional per-drink `attributes` block → drink_attributes rows
+  with source='moderator' (ADR-028 justifies vs SCHEMA.md's closed set),
+  confidence = file-level `attributeConfidence` else new flag
+  `catalog.seed_override_confidence_pct` (default 80). Non-overridden dims
+  inherit exactly as before (vector sync fills only MISSING dims). Malformed
+  overrides (unknown key, out-of-range) fail the run loudly. Importer never
+  deletes attribute rows (removing an override ≠ revert).
+- **License gate (ADR-024, fail-closed)**: docs/DATA-SOURCES.md embedded in
+  the api binary (csproj EmbeddedResource); unregistered tag → refuse before
+  any DB write. Tests can substitute the registry via `dataSourcesPath`.
+- **CLI**: `import products --file <path>` (+ usage/RUNBOOK). NO migration —
+  drink_attributes already had Value/Source/Confidence.
+- **Docs**: sprint-4.6 spec, SEED-FORMAT.md (new), ADR-028, DATA-SOURCES.md
+  gate note, RUNBOOK verb.
+- **Tests**: CatalogProductImportTests — provenance + moderator rows + right
+  confidence + inheritance + override lands in category AND bridge vectors;
+  flag-default confidence; idempotent re-run (all-unchanged, no dupes) +
+  override edit updates in place; undocumented source refused by the REAL
+  embedded registry with nothing written; unknown key / 0–10-scale value fail
+  loudly; plain Fact (runs without Docker) proves the embedded registry ships
+  with the bundled tags. Ctor gained ISettingsService → 4 test construction
+  sites updated.
 
 ## Decisions made within spec bounds (log)
-- Match neighbors materialized per-(user,category); "Your Matches" aggregates
-  to one row/neighbor on read (evidence-weighted mean, weight = 1+coRated),
-  confidence from the best category's co-rated depth.
-- Co-rating agreement clamps negatives to 0 for the blend (we don't surface
-  anti-matches), but stores the raw shrunk Pearson for auditing.
-- Hide-me enforced on READ (immediate both directions) rather than only in the
-  nightly batch; the batch still includes hidden users so un-hiding is instant too.
-- CF hybrid nudges score WITHIN distance bands (band assignment stays
-  attribute-distance based) → a user with no matches sees an unchanged feed,
-  which is what keeps the Sprint 3 golden eval green.
-- Digest streak = consecutive rolling-7-day buckets with ≥1 rating (ADR-016
-  weekly-only), shown only at ≥2 weeks; never per-serving/per-day.
-- Digest unsubscribe token backfilled with gen_random_uuid() in the migration
-  (per-row) so the new unique index holds and tokens aren't guessable.
+- moderator (not manufacturer) for editorial seed overrides: our authored
+  numbers are curator judgment, not producer-published claims (ADR-028).
+- Gate reads an EMBEDDED registry (not a docs path at runtime): works
+  identically in dev/CI/container, fail-closed if missing; new source ⇒
+  rebuild, which its data batch needs anyway.
+- Malformed override = hard failure (vs corridor's warn-and-skip for
+  category/style, which is preserved): first-party editorial data must not be
+  silently skewed.
+- Importer never deletes moderator rows → seed re-runs can't clobber future
+  moderation-UI edits; removing an override from a file does not revert it.
+- ImportResult label for product files is the file's source tag (corridor logs
+  "seed:corridor" now, was "corridor") — log-only cosmetic change.
 
 ## Doc inconsistency to flag (carried)
 - Muted-text token: BRAND.md `--bb-text-muted` vs DESIGN-REFERENCE `--bb-muted`
   (alias in place; founder may standardize).
 
 ## Environment note (this build machine)
-Docker/Node absent: authored-not-run locally = Testcontainers suites (incl. the
-new MatchEval + DigestService collections) + Playwright. Verified locally:
-`dotnet build` (api/web/tests, 0 warnings), `dotnet test` (38 passed / 86
-skipped absent Docker; the new pure density-weighting math test runs locally).
-CI runs everything for real and uploads match-eval-report.md +
-rec-eval-report.md + digest-litmus.html.
+Docker/Node absent: authored-not-run locally = CatalogProductImportTests' four
+Testcontainers tests (plus all pre-existing suites). Verified locally:
+`dotnet build` 0 warnings; `dotnet test` 39 passed / 90 skipped (the new
+embedded-registry Fact runs locally). CI runs everything for real.
 
 ## Blockers / needs founder
-- **HUMAN-CHECKLIST 6 (now gates the digest)**: set `digest.physical_address`
-  (CAN-SPAM) + wire an SMTP provider before the weekly digest can send to real
-  users. Until then it is log-only by design (guard enforced in DigestService).
-  Flip `digest.enabled` on once both exist.
-- **Gate C2**: eval-only this sprint — the MatchEval CI suite + sparsity report
-  ARE the acceptance. When real users exist: check Your Matches on real/persona
-  accounts, flip `match.display_mode`, read the sparsity report, receive a
-  digest (admin POST /api/admin/digest/run?force=true previews it, log-only).
+- Carried from Sprint 4: HUMAN-CHECKLIST 6 (digest physical address + SMTP),
+  Gate C2 real-user follow-ups when users exist.
 - Carried: VPS bulk seed run (RUNBOOK); HUMAN-CHECKLIST 7–9 (Google/Apple/
   Turnstile creds), 14 (fonts/logo assets), charter proposals P1–P3, beer.db call.
 
 ## Next session should
-After Gate C2 (CI green) + merge: Sprint 5 (venues — check-in, personalized
-menus; ADR-015). The match graph + digest jobs are flag-gated and nightly; tune
-`match.*` / `feed.cf_weight_pct` on the real catalog once the bulk seed lands.
+- After this merges: the bourbon/whiskey national catalog is now unblocked as
+  a pure DATA task (author seed file + DATA-SOURCES.md entry + rebuild; zero
+  code). Remember the sprint-4.5 rapid-rate PR if still open.
+- Then Sprint 5 (venues — check-in, personalized menus; ADR-015).
