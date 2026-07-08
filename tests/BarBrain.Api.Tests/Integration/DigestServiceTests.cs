@@ -154,6 +154,7 @@ public sealed class DigestServiceTests(PostgresFixture fixture)
                 db,
                 new Api.Catalog.AttributeVectorService(db, settings0),
                 new Api.Catalog.MergeService(db, settings0, NullLogger<Api.Catalog.MergeService>.Instance),
+                settings0,
                 NullLogger<Api.Catalog.Import.CatalogImportService>.Instance);
             await import.ImportAttributesAsync(CatalogTestHarness.SeedDir);
 
