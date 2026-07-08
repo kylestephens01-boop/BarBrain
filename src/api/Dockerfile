@@ -9,9 +9,11 @@ COPY src/shared/BarBrain.Shared.csproj src/shared/
 COPY src/api/BarBrain.Api.csproj src/api/
 RUN dotnet restore src/api/BarBrain.Api.csproj
 
-# Then the sources.
+# Then the sources (+ the data-source license registry, which the csproj
+# embeds so the ADR-024 import gate travels inside the binary).
 COPY src/shared/ src/shared/
 COPY src/api/ src/api/
+COPY docs/DATA-SOURCES.md docs/
 
 # Git SHA is surfaced by /health and /version (BuildInfo). CI passes --build-arg.
 ARG GIT_SHA=local
