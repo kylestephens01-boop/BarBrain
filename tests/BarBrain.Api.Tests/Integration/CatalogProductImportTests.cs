@@ -186,6 +186,12 @@ public sealed class CatalogProductImportTests(PostgresFixture fixture) : IAsyncL
         Assert.Contains("DATA-SOURCES", ex.Message);
         Assert.False(await harness.Db.Producers.AnyAsync(p => p.Source == "seed:never-registered"));
         Assert.False(await harness.Db.Drinks.AnyAsync(d => d.Source == "seed:never-registered"));
+
+        // A SUBSTRING of a registered tag must not ride through the gate
+        // (seed:beer would be a substring hit on seed:beerdb).
+        var substring = WriteSeed(SeedJson(source: "seed:beer"));
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => harness.Import.ImportProductsAsync(substring));
     }
 
     [SkippableFact]
@@ -218,10 +224,11 @@ public sealed class CatalogProductImportTests(PostgresFixture fixture) : IAsyncL
             .GetManifestResourceStream(CatalogImportService.DataSourcesResourceName);
         Assert.NotNull(stream);
         var text = new StreamReader(stream!).ReadToEnd();
-        Assert.Contains(CatalogImportService.CorridorSource, text);
-        Assert.Contains(CatalogImportService.StylesSource, text);
-        Assert.Contains(CatalogImportService.OpenBreweryDbSource, text);
-        Assert.Contains(CatalogImportService.BeerDbSource, text);
-        Assert.Contains(CatalogImportService.TtbSource, text);
+        // Quoted form — the exact string the runtime gate matches on.
+        Assert.Contains($"\"{CatalogImportService.CorridorSource}\"", text);
+        Assert.Contains($"\"{CatalogImportService.StylesSource}\"", text);
+        Assert.Contains($"\"{CatalogImportService.OpenBreweryDbSource}\"", text);
+        Assert.Contains($"\"{CatalogImportService.BeerDbSource}\"", text);
+        Assert.Contains($"\"{CatalogImportService.TtbSource}\"", text);
     }
 }

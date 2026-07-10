@@ -90,6 +90,6 @@ Verification quotes below were captured live on 2026-07-06.
 > **Machine-enforced for product seeds (ADR-028):** this file is embedded into
 > the api binary at build time, and `import products --file <…>` refuses any
 > seed file whose `source` tag does not appear here (fail-closed — a missing
-> registry also refuses). Include the exact tag string (e.g.
-> `source = "seed:whiskey-national"`) in the new entry, then rebuild/redeploy
-> before importing.
+> registry also refuses). The gate matches the QUOTED tag, so include it
+> exactly as `source = "seed:whiskey-national"` (quotes required) in the new
+> entry, then rebuild/redeploy before importing.

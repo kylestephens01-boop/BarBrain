@@ -402,11 +402,14 @@ public sealed class CatalogImportService(
             registry = reader.ReadToEnd();
         }
 
-        if (!registry.Contains(sourceTag, StringComparison.Ordinal))
+        // Match the QUOTED tag ("seed:x") as registry entries write it — a bare
+        // substring check would let an unregistered tag ride on a registered
+        // superstring (e.g. seed:beer via seed:beerdb).
+        if (!registry.Contains($"\"{sourceTag}\"", StringComparison.Ordinal))
             throw new InvalidOperationException(
                 $"Source '{sourceTag}' has no entry in docs/DATA-SOURCES.md — the license gate "
-                + "(ADR-024) refuses to import. Register the source (URL, exact license, quoted "
-                + "wording, capture date) and rebuild before importing.");
+                + $"(ADR-024) refuses to import. Register the source (URL, exact license, quoted "
+                + $"wording, capture date, incl. the tag as \"{sourceTag}\") and rebuild before importing.");
     }
 
     // --------------------------------------------------------- bulk sources:
