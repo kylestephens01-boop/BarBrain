@@ -8,7 +8,8 @@ namespace BarBrain.Api.Tests.Integration;
 /// Generic product-seed importer acceptance (sprint 4.6 / ADR-028): per-file
 /// provenance tags, moderator-sourced editorial attribute overrides with
 /// inheritance fallback, idempotent re-runs, loud rejection of malformed
-/// overrides, and the fail-closed ADR-024 license gate. The corridor path is
+/// overrides, the fail-closed ADR-024 license gate, and (sprint 4.7) the
+/// --clear-attribute corrective verb. The corridor path is
 /// the same code (ImportCorridorAsync delegates here) and stays covered by
 /// CatalogImportTests unchanged.
 /// </summary>
@@ -173,6 +174,92 @@ public sealed class CatalogProductImportTests(PostgresFixture fixture) : IAsyncL
     }
 
     [SkippableFact]
+    public async Task Clear_attribute_removes_the_moderator_override_and_reverts_to_baseline()
+    {
+        Skip.IfNot(fixture.DockerAvailable, "Docker not available; integration test skipped.");
+        var registry = WriteRegistry(TestSource);
+        var seed = WriteSeed(SeedJson()); // flagship overrides smoke 0.85 + sweetness 0.9
+
+        using (var harness = new CatalogTestHarness(_connectionString))
+            await harness.Import.ImportProductsAsync(seed, registry);
+
+        using (var harness = new CatalogTestHarness(_connectionString))
+        {
+            var result = await harness.Import.ClearAttributeOverrideAsync(
+                TestSource, "td-flagship", "smoke");
+            Assert.Equal(ClearOverrideResult.Cleared, result);
+
+            var flagship = await harness.Db.Drinks.Include(d => d.Attributes)
+                .SingleAsync(d => d.SourceRef == "td-flagship");
+            var plain = await harness.Db.Drinks.Include(d => d.Attributes)
+                .SingleAsync(d => d.SourceRef == "td-plain");
+
+            // The dim fell back to the materialized style baseline — same
+            // value/source/confidence as the never-overridden drink's row.
+            var smoke = flagship.Attributes.Single(a => a.AttributeKey == "whiskey.smoke");
+            var plainSmoke = plain.Attributes.Single(a => a.AttributeKey == "whiskey.smoke");
+            Assert.Equal(AttributeValueSource.Inherited, smoke.Source);
+            Assert.Equal(plainSmoke.Value, smoke.Value, 3);
+            Assert.Equal(plainSmoke.Confidence, smoke.Confidence, 3);
+
+            // Vectors resynced to the baseline on BOTH scales (whiskey.smoke
+            // is dim 3 and bridge 3), with full 8-dim coverage intact.
+            Assert.Equal(8, flagship.Attributes.Count);
+            Assert.Equal(plainSmoke.Value, flagship.CategoryVector!.ToArray()[3], 3);
+            Assert.Equal(plainSmoke.Value, flagship.BridgeVector!.ToArray()[3], 3);
+
+            // The drink's OTHER override is untouched.
+            var sweetness = flagship.Attributes.Single(a => a.AttributeKey == "whiskey.sweetness");
+            Assert.Equal(AttributeValueSource.Moderator, sweetness.Source);
+            Assert.Equal(0.9, sweetness.Value, 3);
+        }
+
+        // Idempotent: a re-run (the dim now holds the materialized inherited
+        // row) and a never-overridden key are both no-ops, not errors.
+        using (var harness = new CatalogTestHarness(_connectionString))
+        {
+            var rows = await harness.Db.DrinkAttributes.CountAsync();
+            Assert.Equal(ClearOverrideResult.AlreadyBaseline,
+                await harness.Import.ClearAttributeOverrideAsync(TestSource, "td-flagship", "smoke"));
+            Assert.Equal(ClearOverrideResult.AlreadyBaseline,
+                await harness.Import.ClearAttributeOverrideAsync(TestSource, "td-plain", "oak"));
+            Assert.Equal(rows, await harness.Db.DrinkAttributes.CountAsync());
+        }
+    }
+
+    [SkippableFact]
+    public async Task Clear_attribute_refuses_non_moderator_rows_and_typoed_targets()
+    {
+        Skip.IfNot(fixture.DockerAvailable, "Docker not available; integration test skipped.");
+        using var harness = new CatalogTestHarness(_connectionString);
+        var registry = WriteRegistry(TestSource);
+        await harness.Import.ImportProductsAsync(WriteSeed(SeedJson()), registry);
+
+        // Re-provenance the smoke row as crowd data — clear must refuse it
+        // and leave it intact (this verb removes editorial overrides ONLY).
+        var smoke = await harness.Db.DrinkAttributes
+            .SingleAsync(a => a.Drink.SourceRef == "td-flagship" && a.AttributeKey == "whiskey.smoke");
+        smoke.Source = AttributeValueSource.Crowd;
+        await harness.Db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => harness.Import.ClearAttributeOverrideAsync(TestSource, "td-flagship", "smoke"));
+        Assert.Contains("'crowd'", ex.Message);
+        var survivor = await harness.Db.DrinkAttributes
+            .SingleAsync(a => a.Drink.SourceRef == "td-flagship" && a.AttributeKey == "whiskey.smoke");
+        Assert.Equal(AttributeValueSource.Crowd, survivor.Source);
+        Assert.Equal(0.85, survivor.Value, 3);
+
+        // Typos fail loudly instead of reading as "cleared".
+        var refEx = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => harness.Import.ClearAttributeOverrideAsync(TestSource, "td-flagshipp", "smoke"));
+        Assert.Contains("No drink", refEx.Message);
+        var keyEx = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => harness.Import.ClearAttributeOverrideAsync(TestSource, "td-flagship", "smokee"));
+        Assert.Contains("Unknown attribute", keyEx.Message);
+    }
+
+    [SkippableFact]
     public async Task Undocumented_source_is_refused_by_the_embedded_registry_and_writes_nothing()
     {
         Skip.IfNot(fixture.DockerAvailable, "Docker not available; integration test skipped.");
@@ -230,5 +317,51 @@ public sealed class CatalogProductImportTests(PostgresFixture fixture) : IAsyncL
         Assert.Contains($"\"{CatalogImportService.OpenBreweryDbSource}\"", text);
         Assert.Contains($"\"{CatalogImportService.BeerDbSource}\"", text);
         Assert.Contains($"\"{CatalogImportService.TtbSource}\"", text);
+        Assert.Contains($"\"{CatalogImportService.WhiskeyNationalSource}\"", text);
+    }
+
+    [SkippableFact]
+    public async Task Bundled_whiskey_national_seed_imports_idempotently_with_full_vector_coverage()
+    {
+        Skip.IfNot(fixture.DockerAvailable, "Docker not available; integration test skipped.");
+        using var harness = new CatalogTestHarness(_connectionString);
+        var path = Path.Combine(CatalogTestHarness.SeedDir, "whiskey-national.json");
+
+        // Real bundled file against the REAL embedded registry (dataSourcesPath
+        // omitted) — this run passing proves the tag is registered (ADR-024).
+        var first = await harness.Import.ImportProductsAsync(path);
+        Assert.True(first.Created > 0);
+        Assert.Equal(0, first.Skipped);
+
+        // Every drink styled (a typo'd WH-* code imports unstyled → vector
+        // NULL → caught here) with category + bridge vectors populated.
+        var drinks = await harness.Db.Drinks
+            .Where(d => d.Source == CatalogImportService.WhiskeyNationalSource)
+            .ToListAsync();
+        Assert.NotEmpty(drinks);
+        Assert.All(drinks, d => Assert.Equal(DrinkCategory.Whiskey, d.Category));
+        Assert.All(drinks, d => Assert.NotNull(d.StyleId));
+        Assert.All(drinks, d => Assert.NotNull(d.CategoryVector));
+        Assert.All(drinks, d => Assert.NotNull(d.BridgeVector));
+
+        // Overrides land as moderator rows — and SPARINGLY (spec: most drinks
+        // are pure style inheritance, per corridor precedent).
+        var overridden = await harness.Db.DrinkAttributes
+            .Where(a => a.Source == AttributeValueSource.Moderator
+                        && a.Drink.Source == CatalogImportService.WhiskeyNationalSource)
+            .Select(a => a.DrinkId).Distinct().CountAsync();
+        Assert.True(overridden > 0);
+        Assert.True(overridden < drinks.Count / 2,
+            $"{overridden}/{drinks.Count} drinks overridden — overrides must stay the exception.");
+
+        // Idempotent re-run: all-unchanged, no row growth.
+        var attributeRows = await harness.Db.DrinkAttributes.CountAsync();
+        var second = await harness.Import.ImportProductsAsync(path);
+        Assert.Equal(0, second.Created);
+        Assert.Equal(0, second.Updated);
+        Assert.Equal(0, second.Skipped);
+        Assert.Equal(drinks.Count, await harness.Db.Drinks
+            .CountAsync(d => d.Source == CatalogImportService.WhiskeyNationalSource));
+        Assert.Equal(attributeRows, await harness.Db.DrinkAttributes.CountAsync());
     }
 }

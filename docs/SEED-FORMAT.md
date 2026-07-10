@@ -74,7 +74,7 @@ bundled seeds).
 - **Removing an override later does NOT revert the row** — the importer only
   manages keys present in the file (it never deletes, so it cannot clobber
   future moderation-UI edits). To change a value, edit it; to genuinely revert
-  a dim to inheritance, that's a manual moderation action.
+  a dim to inheritance, use the `--clear-attribute` verb below.
 - **Malformed overrides fail the whole run loudly** (unknown attribute key,
   value or confidence outside 0–1). Seed files are first-party editorial data;
   warn-and-skip would silently skew the palate engine. Drink-level problems
@@ -85,6 +85,33 @@ bundled seeds).
   Registering a new source therefore requires a rebuild/redeploy — which a new
   data batch needs anyway.
 
+## Correcting a wrong override (`--clear-attribute`, sprint 4.7)
+
+Because re-imports never delete override rows, a wrong value can be *edited*
+via the seed file but not *reverted* by it. The sanctioned corrective is a
+CLI verb (deliberately not a seed-format or UI feature — it stays a manual,
+auditable operator action until Sprint 6 moderation tooling):
+
+```bash
+… import products --clear-attribute \
+    --source seed:whiskey-national --drink-ref bt-eagle-rare --key oak
+```
+
+- Resolves the drink by `(Source, SourceRef)` — the same identity keys the
+  importer upserts on. `--key` is the SHORT key exactly as seed files write it
+  (`oak`, not `whiskey.oak`); the drink's category is prefixed automatically.
+- Deletes the `drink_attributes` row for that key **only if its source is
+  `moderator`** — editorial overrides are the only provenance this verb may
+  remove. A `manufacturer`/`crowd`/`llm` row is refused loudly and left intact.
+- Then runs the importer's own vector resync: the dim falls back to
+  style-baseline inheritance (an `inherited` row is materialized) and the
+  category + bridge vectors are recomputed.
+- **Idempotent**: no row for the key, or an `inherited` row (which is what a
+  successful clear leaves behind — materialized baseline IS the "not
+  overridden" state), is a no-op, not an error.
+- Typos fail loudly: an unknown drink ref or unknown attribute key errors
+  rather than silently reporting success.
+
 ## Authoring rules (binding)
 
 - First-party facts only: names, ABVs, and style mappings from general or
@@ -92,5 +119,8 @@ bundled seeds).
   Rule 1). Attribute override values are BarBrain-original editorial data.
 - `ref` values are permanent. Renaming one orphans the old row and creates a
   duplicate on the next run.
+- `abv` at ONE decimal place — the column is `numeric(4,1)`, so a finer value
+  (e.g. 46.85 for 93.7 proof) is rounded on write and then differs from the
+  file on every re-run, breaking the all-unchanged idempotency contract.
 - Register the tag in DATA-SOURCES.md (URL/first-party statement, license,
   capture date) BEFORE authoring data against it.

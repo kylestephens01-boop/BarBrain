@@ -54,6 +54,15 @@ git clone --depth 1 https://github.com/openbeer/us-united-states /tmp/openbeer-u
 # docs/DATA-SOURCES.md — the importer refuses unregistered tags (fail-closed).
 … import products --file /data/<batch>.json
 
+# National American whiskey catalog (bundled with the api build; sprint 4.7)
+… import products --file seed/whiskey-national.json
+
+# Correct a wrong editorial override (SEED-FORMAT.md § Correcting a wrong
+# override): deletes the drink's source='moderator' attribute row for one key
+# and resyncs vectors so the dim reverts to style-baseline inheritance.
+# Idempotent; refuses non-moderator provenance. --key is the short key.
+… import products --clear-attribute --source <seed-tag> --drink-ref <ref> --key <attribute-key>
+
 # Near-duplicate fixtures for the merge-queue demo (CI/e2e use this)
 … import demo-dupes
 

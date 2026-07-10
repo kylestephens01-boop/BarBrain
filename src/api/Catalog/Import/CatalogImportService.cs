@@ -13,6 +13,9 @@ public sealed record ImportResult(string Source, int Created, int Updated, int U
         => $"{Source}: {Created} created, {Updated} updated, {Unchanged} unchanged, {Skipped} skipped";
 }
 
+/// <summary>Outcome of <see cref="CatalogImportService.ClearAttributeOverrideAsync"/>.</summary>
+public enum ClearOverrideResult { Cleared, AlreadyBaseline }
+
 /// <summary>
 /// All catalog importers (Sprint 1 spec): idempotent (re-run = no dupes, via
 /// the unique (Source, SourceRef) indexes and natural-key style matching),
@@ -43,6 +46,8 @@ public sealed class CatalogImportService(
     public const string BeerDbSource = "seed:beerdb";
     public const string TtbSource = "seed:ttb";
     public const string DemoSource = "seed:demo-dupes";
+    /// <summary>Bundled national whiskey catalog (sprint 4.7; the file declares this tag).</summary>
+    public const string WhiskeyNationalSource = "seed:whiskey-national";
 
     /// <summary>Config flag (Hard Rule 10): default confidence (percent) for seed attribute overrides.</summary>
     public const string SeedOverrideConfidenceFlag = "catalog.seed_override_confidence_pct";
@@ -373,6 +378,53 @@ public sealed class CatalogImportService(
         if (changed)
             await db.SaveChangesAsync(ct);
         return changed;
+    }
+
+    /// <summary>
+    /// Sanctioned corrective for a wrong editorial override (ADR-028 note):
+    /// deletes the drink's source='moderator' row for one attribute key so the
+    /// dim falls back to style-baseline inheritance, then resyncs vectors
+    /// through the exact path the importer uses. Only moderator rows are
+    /// removable: no row OR an 'inherited' row means the dim is already at
+    /// baseline (after a clear, the vector sync MATERIALIZES an inherited row —
+    /// that row IS the baseline state, so a re-run must be a no-op here, not a
+    /// refusal); manufacturer/crowd/llm provenance is refused outright. Unknown
+    /// drink ref or attribute key fails loudly — a typo must not read as "done".
+    /// </summary>
+    public async Task<ClearOverrideResult> ClearAttributeOverrideAsync(
+        string sourceTag, string drinkRef, string shortKey, CancellationToken ct = default)
+    {
+        var drink = await db.Drinks.FirstOrDefaultAsync(
+                d => d.Source == sourceTag && d.SourceRef == drinkRef, ct)
+            ?? throw new InvalidOperationException(
+                $"No drink with source '{sourceTag}' and ref '{drinkRef}'.");
+
+        var key = $"{drink.Category}.{shortKey}";
+        if (!await db.AttributeDefinitions.AnyAsync(a => a.Key == key, ct))
+            throw new InvalidOperationException(
+                $"Unknown attribute '{shortKey}' for category '{drink.Category}'.");
+
+        var row = await db.DrinkAttributes.FirstOrDefaultAsync(
+            a => a.DrinkId == drink.Id && a.AttributeKey == key, ct);
+        if (row is null || row.Source == AttributeValueSource.Inherited)
+        {
+            logger.LogInformation(
+                "{Source}/{Ref} {Key}: no moderator override to clear; already at style baseline.",
+                sourceTag, drinkRef, key);
+            return ClearOverrideResult.AlreadyBaseline;
+        }
+        if (row.Source != AttributeValueSource.Moderator)
+            throw new InvalidOperationException(
+                $"Attribute '{key}' on {sourceTag}/{drinkRef} has source '{row.Source}' — "
+                + "--clear-attribute removes editorial (moderator) overrides only.");
+
+        db.DrinkAttributes.Remove(row);
+        await db.SaveChangesAsync(ct);
+        await vectors.RecomputeDrinkVectorsAsync([drink.Id], ct);
+        logger.LogInformation(
+            "{Source}/{Ref} {Key}: moderator override cleared; dim reverted to style baseline.",
+            sourceTag, drinkRef, key);
+        return ClearOverrideResult.Cleared;
     }
 
     /// <summary>

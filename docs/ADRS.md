@@ -196,3 +196,18 @@ in the api binary and an unregistered source tag refuses to import
 anyway). The importer never deletes attribute rows: removing an override from
 a seed file does not revert the row, so future moderation-UI edits cannot be
 clobbered by a re-run.
+
+*Addendum (sprint 4.7):* the never-delete rule left no sanctioned way to undo a
+wrong override short of DB surgery — a gap flagged after PR #8 and made urgent
+by the whiskey-national authoring batch. Closed by a CLI-only corrective verb,
+`import products --clear-attribute --source <tag> --drink-ref <ref> --key
+<short-key>`: it deletes the drink's `source='moderator'` row for that key and
+runs the importer's vector resync, so the dim reverts to style-baseline
+inheritance. Only moderator rows are removable (manufacturer/crowd/llm refuse
+loudly); no row or an `inherited` row is an idempotent no-op — the materialized
+inherited row IS the baseline state a clear leaves behind, so refusing it would
+make re-runs error. Deliberately CLI-only (no seed-format change, no admin auth
+surface, no UI) so Sprint 6 moderation work is not pulled forward. Also per
+founder ruling: bottled-in-bond / single-barrel / barrel-proof designations are
+per-drink attribute overrides or name/metadata facts, NOT new WH-* style
+taxonomy codes.
