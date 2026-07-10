@@ -114,6 +114,11 @@ auditable operator action until Sprint 6 moderation tooling):
 
 ## Authoring rules (binding)
 
+> Process companion: docs/DATA-INTAKE.md is the standing playbook for turning
+> a first-party research doc into a seed file in this format — confidence
+> tiers (CONFIRMED/VERIFY/UNCONFIRMED), what may ship, and how open decisions
+> are batched to the founder.
+
 - First-party facts only: names, ABVs, and style mappings from general or
   producer-published knowledge. **Never** from competitor databases (Hard
   Rule 1). Attribute override values are BarBrain-original editorial data.
