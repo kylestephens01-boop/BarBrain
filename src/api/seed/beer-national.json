@@ -1,0 +1,84 @@
+{
+  // National beer catalog (docs/DATA-INTAKE.md process; source of record:
+  // docs/research/BarBrain National Beer Catalog.md). CONFIRMED entries with
+  // clean BJCP mappings only — first-party facts from producer sites, press
+  // releases, and labels; never aggregators (Hard Rule 1).
+  //
+  // OMITTED as corridor-covered drinks (union-of-seeds rule, DATA-INTAKE §2h):
+  // Budweiser, Miller Lite, Guinness Draught, SN Pale Ale, Hazy Little Thing,
+  // Two Hearted, Oberon, All Day IPA, Boston Lager, Lagunitas IPA, Goose IPA,
+  // Fat Tire, Voodoo Ranger IPA.
+  // Founder batch rulings (2026-07-10, recorded in the PR): Allagash White +
+  // Firestone 805 ship with NULL ABV (style CONFIRMED; exact ABV pending a
+  // first-party capture — never publish an unverified numeric); Stone
+  // Delicious maps 21A (gluten-reduction is process, not style); Black Butte
+  // XXXV maps 20A + override (annual reserve). HELD: Dogfish 60 Minute
+  // (site blocks automated fetch), Anchor Steam (re-confirm post-revival),
+  // Lagunitas IPNA (no NA style taxonomy — ADR territory). EXCLUDED:
+  // Yuengling Traditional Lager (UNCONFIRMED — conflicting 4.5%/4.9% ABV).
+  //
+  // Per-drink IBU is research-doc-only: the seed format has no IBU field.
+  // Overrides sparingly (3 of 24): only KBS (coffee/chocolate barrel-aged),
+  // Juice Force (fruit-forward hazy), and Black Butte XXXV (cherry/cocoa/
+  // vanilla pastry porter) meaningfully deviate from their baselines.
+  "source": "seed:beer-national",
+  "producers": [
+    { "ref": "molson-coors", "name": "Molson Coors", "type": "brewery", "city": "Golden", "region": "CO", "country": "US", "drinks": [
+      { "ref": "mc-coors-banquet", "name": "Coors Banquet", "category": "beer", "style": "1B", "abv": 5.0 }
+    ] },
+    { "ref": "grupo-modelo", "name": "Grupo Modelo", "type": "brewery", "city": "Mexico City", "region": null, "country": "MX", "drinks": [
+      { "ref": "gm-modelo-especial", "name": "Modelo Especial", "category": "beer", "style": "2A", "abv": 4.4 }
+    ] },
+    { "ref": "guinness", "name": "Guinness", "type": "brewery", "city": "Dublin", "region": null, "country": "IE", "drinks": [
+      { "ref": "gn-foreign-extra-stout", "name": "Guinness Foreign Extra Stout", "category": "beer", "style": "16D", "abv": 7.5 }
+    ] },
+    { "ref": "sierra-nevada", "name": "Sierra Nevada Brewing Co", "type": "brewery", "city": "Chico", "region": "CA", "country": "US", "drinks": [
+      { "ref": "sn-torpedo", "name": "Torpedo Extra IPA", "category": "beer", "style": "21A", "abv": 7.2 },
+      { "ref": "sn-celebration", "name": "Celebration Fresh Hop IPA", "category": "beer", "style": "21A", "abv": 6.8 } // fresh-hop seasonal (Oct–Dec)
+    ] },
+    { "ref": "bells", "name": "Bell's Brewery", "type": "brewery", "city": "Comstock", "region": "MI", "country": "US", "drinks": [
+      { "ref": "bl-double-two-hearted", "name": "Double Two Hearted", "category": "beer", "style": "22A", "abv": 11.0 },
+      { "ref": "bl-eclipse", "name": "Eclipse", "category": "beer", "style": "29A", "abv": 5.8 }, // raspberry wheat ale → Fruit Beer
+      { "ref": "bl-amber-ale", "name": "Amber Ale", "category": "beer", "style": "19A", "abv": 5.8 }
+    ] },
+    { "ref": "founders", "name": "Founders Brewing Co", "type": "brewery", "city": "Grand Rapids", "region": "MI", "country": "US", "drinks": [
+      { "ref": "fd-kbs", "name": "KBS (Kentucky Breakfast Stout)", "category": "beer", "style": "20C", "abv": 12.0, // bourbon-barrel imperial stout w/ coffee + chocolate
+        "attributes": { "sweetness": 0.7, "smoke": 0.85 } }
+    ] },
+    { "ref": "stone", "name": "Stone Brewing", "type": "brewery", "city": "Escondido", "region": "CA", "country": "US", "drinks": [
+      { "ref": "st-stone-ipa", "name": "Stone IPA", "category": "beer", "style": "21A", "abv": 6.9 },
+      { "ref": "st-ruination", "name": "Stone Ruination Double IPA", "category": "beer", "style": "22A", "abv": 8.2 },
+      { "ref": "st-stone-hazy-ipa", "name": "Stone Hazy IPA", "category": "beer", "style": "21C", "abv": 6.7 },
+      { "ref": "st-delicious-ipa", "name": "Stone Delicious IPA", "category": "beer", "style": "21A", "abv": 7.7 }, // gluten-reduced (process fact, not style)
+      { "ref": "st-fear-movie-lions", "name": "Stone ///Fear.Movie.Lions", "category": "beer", "style": "22A", "abv": 8.5 } // hazy double IPA → 22A (imperial strength governs)
+    ] },
+    { "ref": "new-belgium", "name": "New Belgium Brewing", "type": "brewery", "city": "Fort Collins", "region": "CO", "country": "US", "drinks": [
+      { "ref": "nb-vr-imperial-ipa", "name": "Voodoo Ranger Imperial IPA", "category": "beer", "style": "22A", "abv": 9.0 },
+      { "ref": "nb-vr-juice-force", "name": "Voodoo Ranger Juice Force", "category": "beer", "style": "22A", "abv": 9.5, // fruit-forward hazy imperial IPA
+        "attributes": { "fruit": 0.75, "bitterness": 0.6 } }
+    ] },
+    { "ref": "lagunitas", "name": "Lagunitas Brewing Co", "type": "brewery", "city": "Petaluma", "region": "CA", "country": "US", "drinks": [
+      { "ref": "lg-hazy-ipa", "name": "Lagunitas Hazy IPA", "category": "beer", "style": "21C", "abv": 5.5 }
+    ] },
+    { "ref": "deschutes", "name": "Deschutes Brewery", "type": "brewery", "city": "Bend", "region": "OR", "country": "US", "drinks": [
+      { "ref": "ds-black-butte-porter", "name": "Black Butte Porter", "category": "beer", "style": "20A", "abv": 5.5 },
+      { "ref": "ds-black-butte-xxxv", "name": "Black Butte XXXV", "category": "beer", "style": "20A", "abv": 11.0, // anniversary reserve pastry porter (cherries, cocoa, vanilla)
+        "attributes": { "sweetness": 0.75, "fruit": 0.6 } }
+    ] },
+    { "ref": "allagash", "name": "Allagash Brewing Company", "type": "brewery", "city": "Portland", "region": "ME", "country": "US", "drinks": [
+      { "ref": "al-allagash-white", "name": "Allagash White", "category": "beer", "style": "24A", "abv": null } // ABV pending first-party capture (sources range 5.1–5.5)
+    ] },
+    { "ref": "firestone-walker", "name": "Firestone Walker Brewing Company", "type": "brewery", "city": "Paso Robles", "region": "CA", "country": "US", "drinks": [
+      { "ref": "fw-805", "name": "805", "category": "beer", "style": "18A", "abv": null } // ABV pending first-party capture
+    ] },
+    { "ref": "oskar-blues", "name": "Oskar Blues Brewery", "type": "brewery", "city": "Longmont", "region": "CO", "country": "US", "drinks": [
+      { "ref": "ob-dales-pale-ale", "name": "Dale's Pale Ale", "category": "beer", "style": "18B", "abv": 6.5 }
+    ] },
+    { "ref": "odell", "name": "Odell Brewing Co", "type": "brewery", "city": "Fort Collins", "region": "CO", "country": "US", "drinks": [
+      { "ref": "od-odell-ipa", "name": "Odell IPA", "category": "beer", "style": "21A", "abv": 7.0 }
+    ] },
+    { "ref": "ballast-point", "name": "Ballast Point Brewing", "type": "brewery", "city": "San Diego", "region": "CA", "country": "US", "drinks": [
+      { "ref": "bp-sculpin", "name": "Sculpin IPA", "category": "beer", "style": "21A", "abv": 7.0 }
+    ] }
+  ]
+}

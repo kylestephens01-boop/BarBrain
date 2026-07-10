@@ -71,13 +71,14 @@ jobs:
           docker compose -f infra/docker-compose.yml logs
           exit 1
 
-      - name: Seed catalog (bundled seeds + whiskey-national + merge-queue demo fixtures)
+      - name: Seed catalog (bundled seeds + national catalogs + merge-queue demo fixtures)
         run: |
           docker compose -f infra/docker-compose.yml exec -T api dotnet BarBrain.Api.dll import bundled
-          # whiskey-national needs the styles that `bundled` just imported; the
-          # file ships in the image at /app/seed/ (csproj Content copy), and
-          # exec runs in WORKDIR /app so the relative path resolves.
+          # National catalogs need the styles that `bundled` just imported; the
+          # files ship in the image at /app/seed/ (csproj Content copy), and
+          # exec runs in WORKDIR /app so the relative paths resolve.
           docker compose -f infra/docker-compose.yml exec -T api dotnet BarBrain.Api.dll import products --file seed/whiskey-national.json
+          docker compose -f infra/docker-compose.yml exec -T api dotnet BarBrain.Api.dll import products --file seed/beer-national.json
           docker compose -f infra/docker-compose.yml exec -T api dotnet BarBrain.Api.dll import demo-dupes
 
       - uses: actions/setup-node@v4

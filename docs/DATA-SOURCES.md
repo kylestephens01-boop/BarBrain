@@ -77,6 +77,23 @@ Verification quotes below were captured live on 2026-07-06.
   ref. Drinks already carried by the corridor seed are intentionally not
   re-listed; producer overlap across sources resolves via the merge queue.
 
+### National beer catalog — founder/BarBrain-authored
+- **Upstream:** none (first-party). `src/api/seed/beer-national.json`,
+  authored from `docs/research/BarBrain National Beer Catalog.md` per
+  docs/DATA-INTAKE.md.
+- **License:** our own data. Producer/product names, ABVs, and style facts
+  compiled exclusively from first-party channels (brewery official sites,
+  official press releases, label/regulatory statements) — never competitor
+  rating/aggregator databases (Hard Rule 1). Attribute override values are
+  BarBrain-original editorial data. Research captured 2026-07; seed authored
+  2026-07-10.
+- **Confidence gating:** only CONFIRMED entries ship by default; VERIFY
+  entries require a recorded founder call; UNCONFIRMED numerics (most IBU
+  figures; Yuengling Traditional Lager's conflicting ABV) are never imported.
+- **Provenance tags:** `source = "seed:beer-national"`, `source_ref` = seed
+  ref. Drinks the corridor seed already carries are not re-listed; producer
+  overlap across sources resolves via the merge queue.
+
 ## Prohibited sources (named explicitly to prevent confusion)
 
 ### openbeerdb.com — "Open Beer Database" — DO NOT USE

@@ -40,6 +40,7 @@ venue menus. Solo founder + AI agents. Read this file fully before any work.
 ## Hard rules (NEVER — no exceptions, no creative interpretations)
 1. NEVER scrape, import, or reference competitor databases or curated content
    (Untappd, Vivino, Distiller, RateBeer, etc.). Seed sources are listed in specs.
+   Catalog data batches follow docs/DATA-INTAKE.md (research → seed playbook).
 2. NEVER store full date of birth. Birth year + attestation timestamp only.
 3. NEVER store IP addresses beyond transient abuse-control needs; no long-term IP.
 4. NEVER build mechanics that reward consumption volume or frequency (no daily
