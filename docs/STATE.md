@@ -2,66 +2,76 @@
 > Agents: update this at the END of every session. Keep it short and factual.
 
 ## Current sprint
-Sprint 4.5 — Rapid Rate mini-sprint (branch `sprint-4.5`, off `main` which now
-has Sprint 4 via PR #6). Spec: docs/specs/sprint-4.5.md. A fast browse-and-rate
-surface over the existing catalog + existing rating API — cold-start friction
-fix found via dogfooding. Sprint 4 merged (PR #6); Sprint 3 (PR #5); Sprint 2
+Sprint 4.6 — Catalog Importer v2 mini-sprint (branch `sprint-4.6`, off `main`).
+Spec: docs/specs/sprint-4.6.md. Generic product-seed loader: per-file
+provenance, editorial attribute overrides, machine-enforced license gate.
+Sprint 4.5 (rapid-rate) merged via PR #7 WHILE this PR was open — main merged
+back into this branch; conflicts were the predicted trivial pair (both
+feature-flags.json entries kept; this STATE.md — 4.5's handoff detail lives in
+main's history at PR #7). Sprint 4 merged (PR #6); Sprint 3 (PR #5); Sprint 2
 (PR #4); Sprint 1 (PR #3). STILL OUTSTANDING from Sprint 1: the VPS bulk seed
 run per RUNBOOK.
 
-## Done (Sprint 4.5)
-- **Docs**: sprint-4.5 spec (objective, binding out-of-scope incl. NO volume
-  gamification, design decisions applied). No ADR — no architecture decision
-  (one read endpoint composed from existing patterns).
-- **API** (read-only addition; rating write path untouched):
-  `GET /api/rapidrate/drinks` (authenticated) — paged browse with `category`,
-  `unratedOnly` (no rating row by me, any visibility/origin — QuizService
-  semantic), `sort=popular|name` (popular ≡ most-rated = count of latest public
-  ratings, computed on the fly like RecommendationService), per-row
-  `PublicRatingCount` + `MyLatestValue`. New `RapidRateItem` contract,
-  `RapidRateQueryService`, `RapidRateEndpoints`. One flag:
-  `rapidrate.page_size` (default 20). NO schema change, NO migration.
-- **Web**: `/rapid-rate` page — category pills, Haven't-rated toggle,
-  Popular/A–Z sort, Show-more paging (client de-dupes across unrated-window
-  drift; rated cards stay in place with a teal "Noted"). Cards rate inline via
-  the EXISTING POST /api/ratings (origin `user`, `home_bar` default); per-card
-  saving/saved/error states; secondary Private toggle (pre-rating → next post
-  is private; post-save → PATCH visibility) never blocks flow. CanRate=false →
-  notice card, stars read-only. Entry points: doorway card on Search (teal —
-  it recommends a flow, not a drink) + secondary CTA on onboarding-done.
-  NO new bottom-nav item (founder decision — design-ref nav inventory holds).
-- **Tests**: RapidRateBrowseTests (9 integration tests: auth, popular ordering
-  counts latest-public only, private/MyLatestValue, unratedOnly across
-  visibility+origin, category/sort validation, deterministic paging, page-size
-  flag, merged/private exclusion). rapid-rate.spec.ts e2e: flow proof (8 inline
-  ratings + private 9th + unrated filter + banned-copy grep) and a same-run
-  timing comparison old-flow vs rapid with a `timing-summary.md` CI artifact
-  (asserts 8 ratings < 60s AND rapid per-drink < old per-drink; no ratio
-  assert = no flake).
+## Done (Sprint 4.6)
+- **Flag (brief provenance)**: the brief said docs/proposals/catalog-import-v2.md
+  and docs/SEED-FORMAT.md already existed from an earlier analysis pass —
+  NEITHER did (no docs/proposals/ at all). Design was derived from
+  CatalogImportService + SCHEMA.md per the brief's fallback; SEED-FORMAT.md and
+  the sprint spec were authored in this mini-sprint. Also the brief's license
+  gate cite is ADR-024 (not ADR-023); implemented against ADR-024.
+- **Importer** (`ImportProductsAsync(filePath, dataSourcesPath?)`): any
+  product-seed file, corridor shape + additions (docs/SEED-FORMAT.md is the
+  contract). Per-file `source` tag (must start `seed:`) on every row;
+  idempotency unchanged on (Source, SourceRef) upserts. `ImportCorridorAsync`
+  is now a one-line delegation → corridor behavior/provenance identical by
+  construction, proven by CatalogImportTests running unchanged.
+- **Overrides**: optional per-drink `attributes` block → drink_attributes rows
+  with source='moderator' (ADR-028 justifies vs SCHEMA.md's closed set),
+  confidence = file-level `attributeConfidence` else new flag
+  `catalog.seed_override_confidence_pct` (default 80). Non-overridden dims
+  inherit exactly as before (vector sync fills only MISSING dims). Malformed
+  overrides (unknown key, out-of-range) fail the run loudly. Importer never
+  deletes attribute rows (removing an override ≠ revert).
+- **License gate (ADR-024, fail-closed)**: docs/DATA-SOURCES.md embedded in
+  the api binary (csproj EmbeddedResource); unregistered tag → refuse before
+  any DB write. Tests can substitute the registry via `dataSourcesPath`.
+- **CLI**: `import products --file <path>` (+ usage/RUNBOOK). NO migration —
+  drink_attributes already had Value/Source/Confidence.
+- **Docs**: sprint-4.6 spec, SEED-FORMAT.md (new), ADR-028, DATA-SOURCES.md
+  gate note, RUNBOOK verb.
+- **Tests**: CatalogProductImportTests — provenance + moderator rows + right
+  confidence + inheritance + override lands in category AND bridge vectors;
+  flag-default confidence; idempotent re-run (all-unchanged, no dupes) +
+  override edit updates in place; undocumented source refused by the REAL
+  embedded registry with nothing written; unknown key / 0–10-scale value fail
+  loudly; plain Fact (runs without Docker) proves the embedded registry ships
+  with the bundled tags. Ctor gained ISettingsService → 4 test construction
+  sites updated.
 
 ## Decisions made within spec bounds (log)
-- Popular ≡ most-rated (one sort option), on-the-fly count — materialize only
-  if it ever shows up in a profile trace.
-- Rapid ratings reuse origin `user` — the brief is explicit that a rapid-rate
-  rating is just a rating; no provenance change.
-- Re-tap = re-rate = new append-only row (platform semantic); no undo on the
-  surface — undo lives in the journal.
-- unratedOnly page drift accepted: filter applies at fetch time; client
-  de-dupes appended pages by drink id; skipped drinks reappear next visit.
-- No kill-switch flag: the surface is not phase-dependent (Hard Rule 10 covers
-  modes/thresholds/prompts); the one tunable (page size) is a flag.
-- Per-card error slots (deviation from the quiz's single global error) — with
-  ~20 cards on screen the error must sit next to the card it belongs to.
+- moderator (not manufacturer) for editorial seed overrides: our authored
+  numbers are curator judgment, not producer-published claims (ADR-028).
+- Gate reads an EMBEDDED registry (not a docs path at runtime): works
+  identically in dev/CI/container, fail-closed if missing; new source ⇒
+  rebuild, which its data batch needs anyway.
+- Malformed override = hard failure (vs corridor's warn-and-skip for
+  category/style, which is preserved): first-party editorial data must not be
+  silently skewed.
+- Importer never deletes moderator rows → seed re-runs can't clobber future
+  moderation-UI edits; removing an override from a file does not revert it.
+- ImportResult label for product files is the file's source tag (corridor logs
+  "seed:corridor" now, was "corridor") — log-only cosmetic change.
 
 ## Doc inconsistency to flag (carried)
 - Muted-text token: BRAND.md `--bb-text-muted` vs DESIGN-REFERENCE `--bb-muted`
   (alias in place; founder may standardize).
 
 ## Environment note (this build machine)
-Docker/Node absent: authored-not-run locally = RapidRateBrowseTests +
-rapid-rate.spec.ts (plus all pre-existing Testcontainers/Playwright suites).
-Verified locally: `dotnet build` 0 warnings, `dotnet test` 38 passed / 95
-skipped absent Docker. CI runs everything for real.
+Docker/Node absent: authored-not-run locally = CatalogProductImportTests' four
+Testcontainers tests (plus all pre-existing suites, now incl. 4.5's
+RapidRateBrowseTests). Verified locally after the merge: `dotnet build` 0
+warnings; `dotnet test` 39 passed / 99 skipped (the new embedded-registry Fact
+runs locally). CI runs everything for real.
 
 ## Blockers / needs founder
 - Carried from Sprint 4: HUMAN-CHECKLIST 6 (digest physical address + SMTP),
@@ -70,6 +80,9 @@ skipped absent Docker. CI runs everything for real.
   Turnstile creds), 14 (fonts/logo assets), charter proposals P1–P3, beer.db call.
 
 ## Next session should
-After sprint-4.5 CI green + merge: Sprint 5 (venues — check-in, personalized
-menus; ADR-015). Consider surfacing the rapid-rate doorway on the feed's empty
-states too if dogfooding says Search isn't discoverable enough.
+- After this merges: the bourbon/whiskey national catalog is now unblocked as
+  a pure DATA task (author seed file + DATA-SOURCES.md entry + rebuild; zero
+  code).
+- Then Sprint 5 (venues — check-in, personalized menus; ADR-015). Carried from
+  4.5: consider surfacing the rapid-rate doorway on the feed's empty states too
+  if dogfooding says Search isn't discoverable enough.

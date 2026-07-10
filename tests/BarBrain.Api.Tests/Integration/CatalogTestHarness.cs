@@ -28,7 +28,7 @@ public sealed class CatalogTestHarness : IDisposable
         Settings = new SettingsService(Db, _cache);
         Vectors = new AttributeVectorService(Db, Settings);
         Merges = new MergeService(Db, Settings, NullLogger<MergeService>.Instance);
-        Import = new CatalogImportService(Db, Vectors, Merges, NullLogger<CatalogImportService>.Instance);
+        Import = new CatalogImportService(Db, Vectors, Merges, Settings, NullLogger<CatalogImportService>.Instance);
         Queries = new CatalogQueryService(Db);
     }
 

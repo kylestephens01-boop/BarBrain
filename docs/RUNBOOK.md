@@ -49,6 +49,11 @@ git clone --depth 1 https://github.com/openbeer/us-united-states /tmp/openbeer-u
 # TTB COLA sample batch (public domain). Full extraction is deferred background work.
 … import ttb-sample --file <sample.csv>
 
+# Generic product-seed file (docs/SEED-FORMAT.md; ADR-028). The file declares
+# its own provenance source tag, which MUST already be registered in
+# docs/DATA-SOURCES.md — the importer refuses unregistered tags (fail-closed).
+… import products --file /data/<batch>.json
+
 # Near-duplicate fixtures for the merge-queue demo (CI/e2e use this)
 … import demo-dupes
 

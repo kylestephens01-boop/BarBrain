@@ -45,13 +45,28 @@ public sealed class StyleSeed
     public Dictionary<string, float>? Attributes { get; set; }
 }
 
-public sealed class CorridorSeedFile
+/// <summary>
+/// Generic product-seed file (docs/SEED-FORMAT.md). corridor-priority.json is
+/// one instance of this shape; any first-party product batch (e.g. a national
+/// whiskey catalog) is another, distinguished by its own provenance
+/// <see cref="Source"/> tag. Every tag must be registered in
+/// docs/DATA-SOURCES.md before the importer will accept the file (ADR-024).
+/// </summary>
+public sealed class ProductSeedFile
 {
+    /// <summary>Provenance tag written to every row, e.g. "seed:corridor".</summary>
     public required string Source { get; set; }
-    public required List<CorridorProducerSeed> Producers { get; set; }
+
+    /// <summary>
+    /// Confidence (0–1) for this file's attribute-override rows. Omitted →
+    /// the catalog.seed_override_confidence_pct flag decides.
+    /// </summary>
+    public float? AttributeConfidence { get; set; }
+
+    public required List<ProductProducerSeed> Producers { get; set; }
 }
 
-public sealed class CorridorProducerSeed
+public sealed class ProductProducerSeed
 {
     /// <summary>Stable SourceRef for idempotent re-import.</summary>
     public required string Ref { get; set; }
@@ -60,10 +75,10 @@ public sealed class CorridorProducerSeed
     public string? City { get; set; }
     public string? Region { get; set; }
     public string? Country { get; set; }
-    public List<CorridorDrinkSeed> Drinks { get; set; } = [];
+    public List<ProductDrinkSeed> Drinks { get; set; } = [];
 }
 
-public sealed class CorridorDrinkSeed
+public sealed class ProductDrinkSeed
 {
     public required string Ref { get; set; }
     public required string Name { get; set; }
@@ -71,4 +86,12 @@ public sealed class CorridorDrinkSeed
     /// <summary>Style code (preferred) or exact style name within the category.</summary>
     public string? Style { get; set; }
     public decimal? Abv { get; set; }
+
+    /// <summary>
+    /// Optional editorial attribute overrides keyed by SHORT key (e.g.
+    /// "sweetness"), 0–1; the importer prefixes the category. Written as
+    /// source='moderator' rows; dims not listed here inherit from the style
+    /// baseline exactly as an override-less drink does.
+    /// </summary>
+    public Dictionary<string, float>? Attributes { get; set; }
 }

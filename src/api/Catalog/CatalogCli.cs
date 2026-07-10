@@ -11,6 +11,7 @@ namespace BarBrain.Api.Catalog;
 /// binary that serves HTTP runs the importers, so compose can exec them:
 ///
 ///   dotnet run --project src/api -- import bundled
+///   dotnet BarBrain.Api.dll import products --file /data/whiskey-national.json
 ///   dotnet BarBrain.Api.dll import openbrewerydb --file /data/obdb.csv
 ///   dotnet BarBrain.Api.dll import beerdb --dir /data/openbeer-us
 ///   dotnet BarBrain.Api.dll import ttb-sample --file seed/ttb-cola-sample.csv
@@ -70,6 +71,9 @@ public static class CatalogCli
                 case ["import", "demo-dupes"]:
                     await import.ImportDemoDupesAsync();
                     break;
+                case ["import", "products", ..]:
+                    await import.ImportProductsAsync(RequireOption(args, "--file"));
+                    break;
                 case ["import", "openbrewerydb", ..]:
                     await import.ImportOpenBreweryDbAsync(RequireOption(args, "--file"));
                     break;
@@ -88,6 +92,7 @@ public static class CatalogCli
                 default:
                     Console.Error.WriteLine(
                         "Usage: import attributes|styles|corridor|bundled|demo-dupes" +
+                        " | import products --file <json>" +
                         " | import openbrewerydb --file <csv> | import beerdb --dir <checkout>" +
                         " | import ttb-sample --file <csv> | report [--out <path>]");
                     return 2;

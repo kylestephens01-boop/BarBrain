@@ -127,7 +127,7 @@ public sealed class RecEvalFixture : IAsyncLifetime
         var vectors = new Api.Catalog.AttributeVectorService(db, settings);
         var merges = new Api.Catalog.MergeService(db, settings,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<Api.Catalog.MergeService>.Instance);
-        var import = new Api.Catalog.Import.CatalogImportService(db, vectors, merges,
+        var import = new Api.Catalog.Import.CatalogImportService(db, vectors, merges, settings,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<Api.Catalog.Import.CatalogImportService>.Instance);
         await import.ImportAttributesAsync(Integration.CatalogTestHarness.SeedDir);
     }

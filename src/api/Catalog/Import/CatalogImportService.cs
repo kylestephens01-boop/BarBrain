@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using BarBrain.Api.Data;
 using BarBrain.Api.Data.Entities;
+using BarBrain.Api.Settings;
 using Microsoft.EntityFrameworkCore;
 
 namespace BarBrain.Api.Catalog.Import;
@@ -16,7 +17,9 @@ public sealed record ImportResult(string Source, int Created, int Updated, int U
 /// All catalog importers (Sprint 1 spec): idempotent (re-run = no dupes, via
 /// the unique (Source, SourceRef) indexes and natural-key style matching),
 /// provenance-tagged, and LICENSE-GATED — every source here has an entry in
-/// docs/DATA-SOURCES.md (ADR-024). Do not add a source without one.
+/// docs/DATA-SOURCES.md (ADR-024). Do not add a source without one. For
+/// product-seed files the gate is enforced at runtime: the registry is
+/// embedded in the binary and an unregistered source tag refuses to import.
 /// Importers never reach the network; bulk sources take a local file/dir path
 /// so runs are resumable and auditable (RUNBOOK documents the downloads).
 /// </summary>
@@ -24,6 +27,7 @@ public sealed class CatalogImportService(
     AppDbContext db,
     AttributeVectorService vectors,
     MergeService merges,
+    ISettingsService settings,
     ILogger<CatalogImportService> logger)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -39,6 +43,11 @@ public sealed class CatalogImportService(
     public const string BeerDbSource = "seed:beerdb";
     public const string TtbSource = "seed:ttb";
     public const string DemoSource = "seed:demo-dupes";
+
+    /// <summary>Config flag (Hard Rule 10): default confidence (percent) for seed attribute overrides.</summary>
+    public const string SeedOverrideConfidenceFlag = "catalog.seed_override_confidence_pct";
+    /// <summary>Logical name of the embedded docs/DATA-SOURCES.md (license gate, ADR-024).</summary>
+    public const string DataSourcesResourceName = "BarBrain.Api.DATA-SOURCES.md";
 
     // ------------------------------------------------------------------ seed:
     public async Task<ImportResult> ImportAttributesAsync(string seedDir, CancellationToken ct = default)
@@ -182,9 +191,33 @@ public sealed class CatalogImportService(
         return Log(new ImportResult("styles", created, updated, unchanged, 0));
     }
 
-    public async Task<ImportResult> ImportCorridorAsync(string seedDir, CancellationToken ct = default)
+    public Task<ImportResult> ImportCorridorAsync(string seedDir, CancellationToken ct = default)
+        => ImportProductsAsync(Path.Combine(seedDir, "corridor-priority.json"), dataSourcesPath: null, ct);
+
+    /// <summary>
+    /// Generic product-seed importer (docs/SEED-FORMAT.md): any file in the
+    /// <see cref="ProductSeedFile"/> shape, provenance-tagged with the file's
+    /// own declared source. Optional per-drink attribute overrides land as
+    /// source='moderator' rows (BarBrain editorial judgment); dims without an
+    /// override inherit from the style baseline exactly as before.
+    /// <paramref name="dataSourcesPath"/> substitutes the license registry the
+    /// gate reads (tests); null = the embedded docs/DATA-SOURCES.md.
+    /// </summary>
+    public async Task<ImportResult> ImportProductsAsync(
+        string filePath, string? dataSourcesPath = null, CancellationToken ct = default)
     {
-        var file = ReadJson<CorridorSeedFile>(Path.Combine(seedDir, "corridor-priority.json"));
+        var file = ReadJson<ProductSeedFile>(filePath);
+        EnsureSourceDocumented(file.Source, dataSourcesPath);
+
+        var overrideConfidence = file.AttributeConfidence
+            ?? await settings.GetIntAsync(SeedOverrideConfidenceFlag, 80, ct) / 100f;
+        if (overrideConfidence is < 0f or > 1f)
+            throw new InvalidOperationException(
+                $"{filePath}: attributeConfidence {overrideConfidence} is outside 0–1.");
+        var validAttributeKeys = file.Producers
+                .SelectMany(p => p.Drinks).Any(d => d.Attributes is { Count: > 0 })
+            ? (await db.AttributeDefinitions.AsNoTracking().Select(a => a.Key).ToListAsync(ct)).ToHashSet()
+            : [];
 
         var styles = await db.Styles.AsNoTracking().ToListAsync(ct);
         var stylesByCategoryCode = styles.Where(s => s.Code != null)
@@ -210,8 +243,8 @@ public sealed class CatalogImportService(
             {
                 if (!DrinkCategory.IsValid(drinkSeed.Category))
                 {
-                    logger.LogWarning("Corridor drink {Ref}: invalid category {Category}; skipped.",
-                        drinkSeed.Ref, drinkSeed.Category);
+                    logger.LogWarning("{Source} drink {Ref}: invalid category {Category}; skipped.",
+                        file.Source, drinkSeed.Ref, drinkSeed.Category);
                     skipped++;
                     continue;
                 }
@@ -225,16 +258,18 @@ public sealed class CatalogImportService(
                             (drinkSeed.Category, NameNormalizer.Normalize(styleRef)));
                     if (styleId is null)
                     {
-                        logger.LogWarning("Corridor drink {Ref}: unknown style '{Style}'; importing unstyled.",
-                            drinkSeed.Ref, styleRef);
+                        logger.LogWarning("{Source} drink {Ref}: unknown style '{Style}'; importing unstyled.",
+                            file.Source, drinkSeed.Ref, styleRef);
                     }
                 }
 
-                var existing = await db.Drinks.FirstOrDefaultAsync(
+                var drink = await db.Drinks.FirstOrDefaultAsync(
                     d => d.Source == file.Source && d.SourceRef == drinkSeed.Ref, ct);
-                if (existing is null)
+                var isNew = drink is null;
+                var baseChanged = false;
+                if (drink is null)
                 {
-                    var drink = new Drink
+                    drink = new Drink
                     {
                         ProducerId = producer.Id,
                         Name = drinkSeed.Name,
@@ -247,25 +282,28 @@ public sealed class CatalogImportService(
                     };
                     db.Drinks.Add(drink);
                     await db.SaveChangesAsync(ct);
-                    touchedDrinks.Add(drink.Id);
-                    created++;
                 }
-                else if (existing.Name != drinkSeed.Name || existing.StyleId != styleId
-                         || existing.Abv != drinkSeed.Abv)
+                else if (drink.Name != drinkSeed.Name || drink.StyleId != styleId
+                         || drink.Abv != drinkSeed.Abv)
                 {
-                    existing.Name = drinkSeed.Name;
-                    existing.NormalizedName = NameNormalizer.Normalize(drinkSeed.Name);
-                    existing.StyleId = styleId;
-                    existing.Abv = drinkSeed.Abv;
-                    existing.UpdatedAt = DateTimeOffset.UtcNow;
+                    drink.Name = drinkSeed.Name;
+                    drink.NormalizedName = NameNormalizer.Normalize(drinkSeed.Name);
+                    drink.StyleId = styleId;
+                    drink.Abv = drinkSeed.Abv;
+                    drink.UpdatedAt = DateTimeOffset.UtcNow;
                     await db.SaveChangesAsync(ct);
-                    touchedDrinks.Add(existing.Id);
-                    updated++;
+                    baseChanged = true;
                 }
-                else
-                {
-                    unchanged++;
-                }
+
+                var overridesChanged = drinkSeed.Attributes is { Count: > 0 }
+                    && await ApplyAttributeOverridesAsync(
+                        drink, drinkSeed, overrideConfidence, validAttributeKeys, filePath, ct);
+
+                if (isNew) created++;
+                else if (baseChanged || overridesChanged) updated++;
+                else unchanged++;
+                if (isNew || baseChanged || overridesChanged)
+                    touchedDrinks.Add(drink.Id);
             }
         }
 
@@ -274,7 +312,104 @@ public sealed class CatalogImportService(
         await merges.GenerateProducerCandidatesAsync(ct);
         await merges.GenerateDrinkCandidatesAsync(ct);
 
-        return Log(new ImportResult("corridor", created, updated, unchanged, skipped));
+        return Log(new ImportResult(file.Source, created, updated, unchanged, skipped));
+    }
+
+    /// <summary>
+    /// Upserts a drink's editorial override rows: source='moderator' (a human
+    /// curator's judgment — the only allowed source that means that; see
+    /// ADR-028), file-level confidence, replacing whatever row holds the dim
+    /// (typically the materialized 'inherited' one). Removing an override from
+    /// the seed later does NOT revert the row — edit the value instead.
+    /// Malformed overrides fail the import: this is first-party editorial
+    /// data, and a typo'd key or a 7.5-instead-of-0.75 must stop the run
+    /// rather than silently skew the palate engine.
+    /// </summary>
+    private async Task<bool> ApplyAttributeOverridesAsync(
+        Drink drink, ProductDrinkSeed seed, float confidence,
+        HashSet<string> validAttributeKeys, string filePath, CancellationToken ct)
+    {
+        var rows = await db.DrinkAttributes
+            .Where(a => a.DrinkId == drink.Id)
+            .ToDictionaryAsync(a => a.AttributeKey, ct);
+
+        var changed = false;
+        foreach (var (shortKey, value) in seed.Attributes!)
+        {
+            var key = $"{drink.Category}.{shortKey}";
+            if (!validAttributeKeys.Contains(key))
+                throw new InvalidOperationException(
+                    $"{filePath}: drink '{seed.Ref}' overrides unknown attribute '{shortKey}' "
+                    + $"for category '{drink.Category}'.");
+            if (value is < 0f or > 1f)
+                throw new InvalidOperationException(
+                    $"{filePath}: drink '{seed.Ref}' attribute '{shortKey}' value {value} is outside 0–1.");
+
+            if (rows.TryGetValue(key, out var row))
+            {
+                if (row.Source == AttributeValueSource.Moderator
+                    && Math.Abs(row.Value - value) < 0.0001f
+                    && Math.Abs(row.Confidence - confidence) < 0.0001f)
+                    continue;
+                row.Value = value;
+                row.Source = AttributeValueSource.Moderator;
+                row.Confidence = confidence;
+                row.UpdatedAt = DateTimeOffset.UtcNow;
+            }
+            else
+            {
+                db.DrinkAttributes.Add(new DrinkAttributeValue
+                {
+                    DrinkId = drink.Id,
+                    AttributeKey = key,
+                    Value = value,
+                    Source = AttributeValueSource.Moderator,
+                    Confidence = confidence,
+                });
+            }
+            changed = true;
+        }
+
+        if (changed)
+            await db.SaveChangesAsync(ct);
+        return changed;
+    }
+
+    /// <summary>
+    /// ADR-024 license gate, fail-closed: the source tag must appear in
+    /// docs/DATA-SOURCES.md, which is embedded into this assembly at build
+    /// time so the gate works identically in dev, CI, and the container.
+    /// </summary>
+    private static void EnsureSourceDocumented(string sourceTag, string? dataSourcesPath)
+    {
+        if (!sourceTag.StartsWith("seed:", StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                $"Product-seed source tag '{sourceTag}' must start with 'seed:' (provenance convention).");
+
+        string registry;
+        if (dataSourcesPath is not null)
+        {
+            registry = File.ReadAllText(dataSourcesPath);
+        }
+        else
+        {
+            using var stream = typeof(CatalogImportService).Assembly
+                .GetManifestResourceStream(DataSourcesResourceName)
+                ?? throw new InvalidOperationException(
+                    "Embedded DATA-SOURCES.md registry is missing from the build — the license "
+                    + "gate (ADR-024) cannot run, so the import is refused.");
+            using var reader = new StreamReader(stream);
+            registry = reader.ReadToEnd();
+        }
+
+        // Match the QUOTED tag ("seed:x") as registry entries write it — a bare
+        // substring check would let an unregistered tag ride on a registered
+        // superstring (e.g. seed:beer via seed:beerdb).
+        if (!registry.Contains($"\"{sourceTag}\"", StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                $"Source '{sourceTag}' has no entry in docs/DATA-SOURCES.md — the license gate "
+                + $"(ADR-024) refuses to import. Register the source (URL, exact license, quoted "
+                + $"wording, capture date, incl. the tag as \"{sourceTag}\") and rebuild before importing.");
     }
 
     // --------------------------------------------------------- bulk sources:

@@ -171,3 +171,28 @@ is invisible to screenshot review, a golden-set eval suite (fixed synthetic
 personas with known preference vectors → asserted rec ordering + threshold
 metrics) runs in CI and BLOCKS merge on regression. Every recommendation
 carries a human-readable "because" (hard product requirement, ADR-013).
+
+**ADR-028 — Generic product-seed importer: per-file provenance, moderator-
+sourced editorial overrides, embedded fail-closed license gate (sprint 4.6).**
+Product seeding is one generic importer (`import products --file <path>`,
+format: docs/SEED-FORMAT.md) instead of per-dataset methods: each seed file
+declares its own `seed:*` provenance tag (corridor keeps `seed:corridor`
+because its file declares it; `ImportCorridorAsync` now delegates), and
+idempotency stays on the `(Source, SourceRef)` partial unique upserts. A
+drink may carry an editorial attribute-override block whose rows land in
+`drink_attributes` as **`source='moderator'`** — of the schema's closed set,
+`inherited` means materialized style baseline, `manufacturer` means
+producer-published claims (which our authored numbers are not), `crowd` means
+user aggregate, and `llm` means machine-generated; a human curator's editorial
+judgment is precisely `moderator`. Override confidence: file-level
+`attributeConfidence`, else flag `catalog.seed_override_confidence_pct`
+(default 80; Hard Rule 10). Non-overridden dims inherit exactly as before
+(vector sync materializes only MISSING dims), keeping bridge dims on the
+shared 0–1 scale. Malformed overrides (unknown key, out-of-range value) fail
+the run loudly — first-party editorial data must not be silently skewed. The
+ADR-024 registry becomes machine-enforced: docs/DATA-SOURCES.md is EMBEDDED
+in the api binary and an unregistered source tag refuses to import
+(fail-closed; registering a source requires the rebuild its data batch needs
+anyway). The importer never deletes attribute rows: removing an override from
+a seed file does not revert the row, so future moderation-UI edits cannot be
+clobbered by a re-run.

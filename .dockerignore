@@ -15,5 +15,7 @@ tests/e2e/test-results/
 tests/e2e/playwright-report/
 **/*.user
 
-# Docs aren't needed inside images
+# Docs aren't needed inside images — EXCEPT the data-source license registry,
+# which the api embeds so the ADR-024 import gate is enforced in-container.
 docs/
+!docs/DATA-SOURCES.md

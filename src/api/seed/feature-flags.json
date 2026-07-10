@@ -248,5 +248,10 @@
     "key": "rapidrate.page_size",
     "value": "20",
     "description": "Cards per page on the rapid-rate browse surface (server default when the client omits pageSize)."
+  },
+  {
+    "key": "catalog.seed_override_confidence_pct",
+    "value": "80",
+    "description": "Default confidence (percent, 0-100) for editorial attribute overrides in product-seed files (source='moderator', ADR-028) when the file declares no attributeConfidence of its own."
   }
 ]

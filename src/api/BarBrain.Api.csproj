@@ -34,6 +34,10 @@
     <!-- Feature-flag seed is read at runtime relative to the content root.
          The SDK already includes it as Content; just ensure it's copied out. -->
     <Content Update="seed\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <!-- ADR-024 license gate: the data-source registry travels inside the
+         binary so `import products` can refuse unregistered sources anywhere
+         (dev, CI, container) without a docs checkout on disk. -->
+    <EmbeddedResource Include="..\..\docs\DATA-SOURCES.md" LogicalName="BarBrain.Api.DATA-SOURCES.md" />
   </ItemGroup>
 
 </Project>
