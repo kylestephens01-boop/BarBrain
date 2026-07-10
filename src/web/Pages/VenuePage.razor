@@ -202,8 +202,9 @@ else
                 <h2>Add to menu</h2>
                 <div class="bb-form">
                     <label for="menu-search">Find the drink</label>
-                    <input id="menu-search" @bind="_search" @bind:event="oninput" @onkeyup="SearchAsync"
-                           placeholder="Drink or brewery name" data-testid="menu-add-search" />
+                    <input id="menu-search" value="@_search" @oninput="OnSearchInput"
+                           placeholder="Drink or brewery name" autocomplete="off"
+                           data-testid="menu-add-search" />
 
                     @if (_searchResults is { Count: > 0 })
                     {
@@ -334,6 +335,12 @@ else
         {
             _busy = false;
         }
+    }
+
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        _search = e.Value?.ToString() ?? "";
+        await SearchAsync();
     }
 
     private async Task SearchAsync()

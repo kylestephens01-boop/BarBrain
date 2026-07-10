@@ -312,11 +312,17 @@ public sealed class VenueService(
     {
         var limit = await settings.GetIntAsync(MenuEditsPerDayFlag, 40, ct);
         var since = clock.GetUtcNow().AddHours(-24);
-        var recent = await db.Events.CountAsync(e =>
-            (e.Name == "menu_item_added" || e.Name == "menu_item_edited")
-            && e.OccurredAt >= since
-            && e.Properties!["userId"] == userId.ToString(), ct);
-        return recent >= limit
+        // The events table is the wiki audit trail; a day's menu events are few
+        // at MVP scale, so the per-user filter happens in memory rather than
+        // betting on jsonb-indexer translation.
+        var recent = await db.Events.AsNoTracking()
+            .Where(e => (e.Name == "menu_item_added" || e.Name == "menu_item_edited")
+                && e.OccurredAt >= since)
+            .Select(e => e.Properties)
+            .ToListAsync(ct);
+        var mine = userId.ToString();
+        var count = recent.Count(p => p is not null && p.GetValueOrDefault("userId") == mine);
+        return count >= limit
             ? new Failure(429, new ApiError("rate_limited",
                 "That's a lot of menu edits for one day — try again tomorrow."))
             : null;
