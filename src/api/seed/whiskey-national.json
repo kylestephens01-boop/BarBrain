@@ -1,0 +1,125 @@
+{
+  // National American whiskey/bourbon catalog (sprint 4.7; docs/SEED-FORMAT.md).
+  // First-party facts only: producer/product names and ABVs from general and
+  // producer-published knowledge — never competitor databases (Hard Rule 1).
+  // Batch-varying barrel-proof releases carry a REPRESENTATIVE producer-
+  // published ABV (marked inline). Drinks the corridor seed already carries
+  // (Buffalo Trace flagship, Eagle Rare 10, Maker's Mark, Woodford Distiller's
+  // Select, Four Roses Small Batch, JD Old No. 7, Bulleit Bourbon/Rye) are NOT
+  // re-listed — the catalog is the union of bundled seeds; producer overlap
+  // across sources resolves via the merge queue.
+  // Editorial overrides are used SPARINGLY: only expressions that meaningfully
+  // deviate from their style baseline (barrel-proof strength, double-oak or
+  // port finishes, peated malt). Everything else is pure style inheritance.
+  // Bottled-in-bond / single-barrel / barrel-proof are name facts or per-drink
+  // overrides, NOT style codes (founder ruling, ADR-028 addendum).
+  "source": "seed:whiskey-national",
+  "producers": [
+    { "ref": "buffalo-trace", "name": "Buffalo Trace Distillery", "type": "distillery", "city": "Frankfort", "region": "KY", "country": "US", "drinks": [
+      { "ref": "bt-eh-taylor-small-batch", "name": "E.H. Taylor Jr. Small Batch", "category": "whiskey", "style": "WH-AM-BRB", "abv": 50.0 },
+      { "ref": "bt-blantons-original", "name": "Blanton's Original Single Barrel", "category": "whiskey", "style": "WH-AM-BRB", "abv": 46.5 },
+      { "ref": "bt-weller-special-reserve", "name": "W.L. Weller Special Reserve", "category": "whiskey", "style": "WH-AM-WHT", "abv": 45.0 },
+      { "ref": "bt-weller-antique-107", "name": "W.L. Weller Antique 107", "category": "whiskey", "style": "WH-AM-WHT", "abv": 53.5 },
+      { "ref": "bt-sazerac-rye", "name": "Sazerac Rye", "category": "whiskey", "style": "WH-AM-RYE", "abv": 45.0 },
+      { "ref": "bt-stagg", "name": "Stagg", "category": "whiskey", "style": "WH-AM-BRB", "abv": 64.0, // barrel proof; batch-varying, representative
+        "attributes": { "body": 0.8, "oak": 0.8 } }
+    ] },
+    { "ref": "heaven-hill", "name": "Heaven Hill Distillery", "type": "distillery", "city": "Bardstown", "region": "KY", "country": "US", "drinks": [
+      { "ref": "hh-evan-williams-black", "name": "Evan Williams Black Label", "category": "whiskey", "style": "WH-AM-BRB", "abv": 43.0 },
+      { "ref": "hh-elijah-craig-small-batch", "name": "Elijah Craig Small Batch", "category": "whiskey", "style": "WH-AM-BRB", "abv": 47.0 },
+      { "ref": "hh-elijah-craig-barrel-proof", "name": "Elijah Craig Barrel Proof", "category": "whiskey", "style": "WH-AM-BRB", "abv": 60.5, // batch-varying, representative
+        "attributes": { "body": 0.8, "oak": 0.8 } },
+      { "ref": "hh-henry-mckenna-10", "name": "Henry McKenna Single Barrel 10 Year", "category": "whiskey", "style": "WH-AM-BRB", "abv": 50.0 }, // bottled in bond
+      { "ref": "hh-rittenhouse-rye", "name": "Rittenhouse Rye Bottled in Bond", "category": "whiskey", "style": "WH-AM-RYE", "abv": 50.0 },
+      { "ref": "hh-larceny-small-batch", "name": "Larceny Small Batch", "category": "whiskey", "style": "WH-AM-WHT", "abv": 46.0 },
+      { "ref": "hh-mellow-corn", "name": "Mellow Corn Bottled in Bond", "category": "whiskey", "style": "WH-AM-CORN", "abv": 50.0 }
+    ] },
+    { "ref": "jim-beam", "name": "James B. Beam Distilling Co", "type": "distillery", "city": "Clermont", "region": "KY", "country": "US", "drinks": [
+      { "ref": "jb-white-label", "name": "Jim Beam", "category": "whiskey", "style": "WH-AM-BRB", "abv": 40.0 },
+      { "ref": "jb-knob-creek-9", "name": "Knob Creek 9 Year", "category": "whiskey", "style": "WH-AM-BRB", "abv": 50.0 },
+      { "ref": "jb-knob-creek-single-barrel", "name": "Knob Creek Single Barrel Reserve", "category": "whiskey", "style": "WH-AM-BRB", "abv": 60.0,
+        "attributes": { "body": 0.75, "oak": 0.75 } },
+      { "ref": "jb-bookers", "name": "Booker's", "category": "whiskey", "style": "WH-AM-BRB", "abv": 63.0, // barrel proof; batch-varying, representative
+        "attributes": { "body": 0.8, "spice": 0.55 } },
+      { "ref": "jb-basil-hayden", "name": "Basil Hayden", "category": "whiskey", "style": "WH-AM-BRB", "abv": 40.0 },
+      { "ref": "jb-old-grand-dad-114", "name": "Old Grand-Dad 114", "category": "whiskey", "style": "WH-AM-BRB", "abv": 57.0 },
+      { "ref": "jb-old-overholt", "name": "Old Overholt Rye", "category": "whiskey", "style": "WH-AM-RYE", "abv": 43.0 }
+    ] },
+    { "ref": "makers-mark", "name": "Maker's Mark Distillery", "type": "distillery", "city": "Loretto", "region": "KY", "country": "US", "drinks": [
+      { "ref": "mm-46", "name": "Maker's Mark 46", "category": "whiskey", "style": "WH-AM-WHT", "abv": 47.0 },
+      { "ref": "mm-cask-strength", "name": "Maker's Mark Cask Strength", "category": "whiskey", "style": "WH-AM-WHT", "abv": 55.0, // batch-varying, representative
+        "attributes": { "body": 0.7 } }
+    ] },
+    { "ref": "wild-turkey", "name": "Wild Turkey Distillery", "type": "distillery", "city": "Lawrenceburg", "region": "KY", "country": "US", "drinks": [
+      { "ref": "wt-101", "name": "Wild Turkey 101", "category": "whiskey", "style": "WH-AM-BRB", "abv": 50.5 },
+      { "ref": "wt-rare-breed", "name": "Wild Turkey Rare Breed", "category": "whiskey", "style": "WH-AM-BRB", "abv": 58.4, // barrel proof; batch-varying, representative
+        "attributes": { "body": 0.75, "spice": 0.55 } },
+      { "ref": "wt-russells-reserve-10", "name": "Russell's Reserve 10 Year", "category": "whiskey", "style": "WH-AM-BRB", "abv": 45.0 },
+      { "ref": "wt-rye-101", "name": "Wild Turkey Rye 101", "category": "whiskey", "style": "WH-AM-RYE", "abv": 50.5 }
+    ] },
+    { "ref": "four-roses", "name": "Four Roses Distillery", "type": "distillery", "city": "Lawrenceburg", "region": "KY", "country": "US", "drinks": [
+      { "ref": "fr-bourbon", "name": "Four Roses Bourbon", "category": "whiskey", "style": "WH-AM-BRB", "abv": 40.0 },
+      { "ref": "fr-single-barrel", "name": "Four Roses Single Barrel", "category": "whiskey", "style": "WH-AM-BRB", "abv": 50.0 }
+    ] },
+    { "ref": "woodford", "name": "Woodford Reserve Distillery", "type": "distillery", "city": "Versailles", "region": "KY", "country": "US", "drinks": [
+      { "ref": "wf-double-oaked", "name": "Woodford Reserve Double Oaked", "category": "whiskey", "style": "WH-AM-BRB", "abv": 45.2,
+        "attributes": { "oak": 0.85, "sweetness": 0.75 } },
+      { "ref": "wf-rye", "name": "Woodford Reserve Rye", "category": "whiskey", "style": "WH-AM-RYE", "abv": 45.2 }
+    ] },
+    { "ref": "old-forester", "name": "Old Forester Distilling Co", "type": "distillery", "city": "Louisville", "region": "KY", "country": "US", "drinks": [
+      { "ref": "of-86", "name": "Old Forester 86 Proof", "category": "whiskey", "style": "WH-AM-BRB", "abv": 43.0 },
+      { "ref": "of-100", "name": "Old Forester 100 Proof", "category": "whiskey", "style": "WH-AM-BRB", "abv": 50.0 },
+      { "ref": "of-1920", "name": "Old Forester 1920 Prohibition Style", "category": "whiskey", "style": "WH-AM-BRB", "abv": 57.5,
+        "attributes": { "body": 0.75, "sweetness": 0.75 } },
+      { "ref": "of-rye", "name": "Old Forester Rye", "category": "whiskey", "style": "WH-AM-RYE", "abv": 50.0 }
+    ] },
+    { "ref": "jack-daniels", "name": "Jack Daniel's Distillery", "type": "distillery", "city": "Lynchburg", "region": "TN", "country": "US", "drinks": [
+      { "ref": "jd-gentleman-jack", "name": "Gentleman Jack", "category": "whiskey", "style": "WH-AM-TN", "abv": 40.0 },
+      { "ref": "jd-single-barrel-select", "name": "Jack Daniel's Single Barrel Select", "category": "whiskey", "style": "WH-AM-TN", "abv": 47.0 },
+      { "ref": "jd-tennessee-rye", "name": "Jack Daniel's Tennessee Rye", "category": "whiskey", "style": "WH-AM-RYE", "abv": 45.0 }
+    ] },
+    { "ref": "george-dickel", "name": "George Dickel (Cascade Hollow Distilling Co)", "type": "distillery", "city": "Tullahoma", "region": "TN", "country": "US", "drinks": [
+      { "ref": "gd-classic-no-8", "name": "George Dickel Classic No. 8", "category": "whiskey", "style": "WH-AM-TN", "abv": 40.0 },
+      { "ref": "gd-superior-no-12", "name": "George Dickel Superior No. 12", "category": "whiskey", "style": "WH-AM-TN", "abv": 45.0 },
+      { "ref": "gd-bottled-in-bond", "name": "George Dickel Bottled in Bond", "category": "whiskey", "style": "WH-AM-TN", "abv": 50.0 }
+    ] },
+    { "ref": "michters", "name": "Michter's Distillery", "type": "distillery", "city": "Louisville", "region": "KY", "country": "US", "drinks": [
+      { "ref": "mi-us1-bourbon", "name": "Michter's US*1 Small Batch Bourbon", "category": "whiskey", "style": "WH-AM-BRB", "abv": 45.7 },
+      { "ref": "mi-us1-rye", "name": "Michter's US*1 Single Barrel Rye", "category": "whiskey", "style": "WH-AM-RYE", "abv": 42.4 }
+    ] },
+    { "ref": "barton-1792", "name": "Barton 1792 Distillery", "type": "distillery", "city": "Bardstown", "region": "KY", "country": "US", "drinks": [
+      { "ref": "b2-1792-small-batch", "name": "1792 Small Batch", "category": "whiskey", "style": "WH-AM-BRB", "abv": 46.85 }
+    ] },
+    { "ref": "angels-envy", "name": "Angel's Envy Distillery", "type": "distillery", "city": "Louisville", "region": "KY", "country": "US", "drinks": [
+      { "ref": "ae-port-finish", "name": "Angel's Envy Kentucky Straight Bourbon (Port Finish)", "category": "whiskey", "style": "WH-AM-BRB", "abv": 43.3,
+        "attributes": { "sweetness": 0.75, "fruit": 0.6 } } // port-cask finish deviates from baseline
+    ] },
+    { "ref": "new-riff", "name": "New Riff Distilling", "type": "distillery", "city": "Newport", "region": "KY", "country": "US", "drinks": [
+      { "ref": "nr-bib-bourbon", "name": "New Riff Bottled in Bond Bourbon", "category": "whiskey", "style": "WH-AM-BRB", "abv": 50.0 },
+      { "ref": "nr-bib-rye", "name": "New Riff Bottled in Bond Rye", "category": "whiskey", "style": "WH-AM-RYE", "abv": 50.0 }
+    ] },
+    { "ref": "high-west", "name": "High West Distillery", "type": "distillery", "city": "Park City", "region": "UT", "country": "US", "drinks": [
+      { "ref": "hw-double-rye", "name": "High West Double Rye!", "category": "whiskey", "style": "WH-AM-RYE", "abv": 46.0 },
+      { "ref": "hw-american-prairie", "name": "High West American Prairie Bourbon", "category": "whiskey", "style": "WH-AM-BRB", "abv": 46.0 }
+    ] },
+    { "ref": "whistlepig", "name": "WhistlePig Whiskey", "type": "distillery", "city": "Shoreham", "region": "VT", "country": "US", "drinks": [
+      { "ref": "wp-10-year", "name": "WhistlePig 10 Year Small Batch Rye", "category": "whiskey", "style": "WH-AM-RYE", "abv": 50.0 }
+    ] },
+    { "ref": "westland", "name": "Westland Distillery", "type": "distillery", "city": "Seattle", "region": "WA", "country": "US", "drinks": [
+      { "ref": "wl-american-oak", "name": "Westland American Oak", "category": "whiskey", "style": "WH-AM-SM", "abv": 46.0 },
+      { "ref": "wl-peated", "name": "Westland Peated", "category": "whiskey", "style": "WH-AM-SM", "abv": 46.0,
+        "attributes": { "smoke": 0.6 } } // peated malt far above the American single malt baseline
+    ] },
+    { "ref": "stranahans", "name": "Stranahan's Colorado Whiskey", "type": "distillery", "city": "Denver", "region": "CO", "country": "US", "drinks": [
+      { "ref": "st-original", "name": "Stranahan's Original Single Malt", "category": "whiskey", "style": "WH-AM-SM", "abv": 47.3 }
+    ] },
+    { "ref": "balcones", "name": "Balcones Distilling", "type": "distillery", "city": "Waco", "region": "TX", "country": "US", "drinks": [
+      { "ref": "ba-baby-blue", "name": "Balcones Baby Blue Corn Whisky", "category": "whiskey", "style": "WH-AM-CORN", "abv": 46.0 },
+      { "ref": "ba-texas-single-malt", "name": "Balcones \"1\" Texas Single Malt", "category": "whiskey", "style": "WH-AM-SM", "abv": 53.0,
+        "attributes": { "body": 0.75 } }
+    ] },
+    { "ref": "garrison-brothers", "name": "Garrison Brothers Distillery", "type": "distillery", "city": "Hye", "region": "TX", "country": "US", "drinks": [
+      { "ref": "gb-small-batch", "name": "Garrison Brothers Small Batch", "category": "whiskey", "style": "WH-AM-BRB", "abv": 47.0 }
+    ] }
+  ]
+}

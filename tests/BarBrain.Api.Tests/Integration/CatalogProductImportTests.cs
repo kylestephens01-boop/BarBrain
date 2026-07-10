@@ -317,5 +317,51 @@ public sealed class CatalogProductImportTests(PostgresFixture fixture) : IAsyncL
         Assert.Contains($"\"{CatalogImportService.OpenBreweryDbSource}\"", text);
         Assert.Contains($"\"{CatalogImportService.BeerDbSource}\"", text);
         Assert.Contains($"\"{CatalogImportService.TtbSource}\"", text);
+        Assert.Contains($"\"{CatalogImportService.WhiskeyNationalSource}\"", text);
+    }
+
+    [SkippableFact]
+    public async Task Bundled_whiskey_national_seed_imports_idempotently_with_full_vector_coverage()
+    {
+        Skip.IfNot(fixture.DockerAvailable, "Docker not available; integration test skipped.");
+        using var harness = new CatalogTestHarness(_connectionString);
+        var path = Path.Combine(CatalogTestHarness.SeedDir, "whiskey-national.json");
+
+        // Real bundled file against the REAL embedded registry (dataSourcesPath
+        // omitted) — this run passing proves the tag is registered (ADR-024).
+        var first = await harness.Import.ImportProductsAsync(path);
+        Assert.True(first.Created > 0);
+        Assert.Equal(0, first.Skipped);
+
+        // Every drink styled (a typo'd WH-* code imports unstyled → vector
+        // NULL → caught here) with category + bridge vectors populated.
+        var drinks = await harness.Db.Drinks
+            .Where(d => d.Source == CatalogImportService.WhiskeyNationalSource)
+            .ToListAsync();
+        Assert.NotEmpty(drinks);
+        Assert.All(drinks, d => Assert.Equal(DrinkCategory.Whiskey, d.Category));
+        Assert.All(drinks, d => Assert.NotNull(d.StyleId));
+        Assert.All(drinks, d => Assert.NotNull(d.CategoryVector));
+        Assert.All(drinks, d => Assert.NotNull(d.BridgeVector));
+
+        // Overrides land as moderator rows — and SPARINGLY (spec: most drinks
+        // are pure style inheritance, per corridor precedent).
+        var overridden = await harness.Db.DrinkAttributes
+            .Where(a => a.Source == AttributeValueSource.Moderator
+                        && a.Drink.Source == CatalogImportService.WhiskeyNationalSource)
+            .Select(a => a.DrinkId).Distinct().CountAsync();
+        Assert.True(overridden > 0);
+        Assert.True(overridden < drinks.Count / 2,
+            $"{overridden}/{drinks.Count} drinks overridden — overrides must stay the exception.");
+
+        // Idempotent re-run: all-unchanged, no row growth.
+        var attributeRows = await harness.Db.DrinkAttributes.CountAsync();
+        var second = await harness.Import.ImportProductsAsync(path);
+        Assert.Equal(0, second.Created);
+        Assert.Equal(0, second.Updated);
+        Assert.Equal(0, second.Skipped);
+        Assert.Equal(drinks.Count, await harness.Db.Drinks
+            .CountAsync(d => d.Source == CatalogImportService.WhiskeyNationalSource));
+        Assert.Equal(attributeRows, await harness.Db.DrinkAttributes.CountAsync());
     }
 }
