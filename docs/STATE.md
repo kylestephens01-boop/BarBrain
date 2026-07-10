@@ -57,6 +57,9 @@ the VPS bulk seed run per RUNBOOK.
   cross-source pattern).
 - Whiskey-national verification is a CI integration test against the real
   bundled file (this machine has no Docker); VPS run still per RUNBOOK.
+- ABV authored at ONE decimal (column is numeric(4,1)) — CI caught 46.85
+  rounding to 46.9 in Postgres and breaking idempotent re-runs (1 forever-
+  "updated" drink); contract now in SEED-FORMAT authoring rules.
 
 ## Doc inconsistency to flag (carried)
 - Muted-text token: BRAND.md `--bb-text-muted` vs DESIGN-REFERENCE `--bb-muted`
