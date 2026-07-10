@@ -48,6 +48,8 @@ public sealed class CatalogImportService(
     public const string DemoSource = "seed:demo-dupes";
     /// <summary>Bundled national whiskey catalog (sprint 4.7; the file declares this tag).</summary>
     public const string WhiskeyNationalSource = "seed:whiskey-national";
+    /// <summary>Bundled national beer catalog (data-beer-national; the file declares this tag).</summary>
+    public const string BeerNationalSource = "seed:beer-national";
 
     /// <summary>Config flag (Hard Rule 10): default confidence (percent) for seed attribute overrides.</summary>
     public const string SeedOverrideConfidenceFlag = "catalog.seed_override_confidence_pct";
