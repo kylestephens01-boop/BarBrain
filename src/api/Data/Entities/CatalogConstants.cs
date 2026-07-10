@@ -58,6 +58,26 @@ public static class VenueType
     public const string Venue = "venue";
 }
 
+/// <summary>
+/// Trust tier of a public venue (Sprint 5). Admin-set only — there is no
+/// billing and no venue self-service claim flow in MVP.
+/// </summary>
+public static class VenueTier
+{
+    public const string Wiki = "wiki";
+    public const string Verified = "verified";
+}
+
+/// <summary>
+/// Provenance of a venue menu item (Sprint 5): crowd = wiki contribution,
+/// venue = maintained on behalf of a verified venue (founder-as-admin in MVP).
+/// </summary>
+public static class MenuItemSource
+{
+    public const string Crowd = "crowd";
+    public const string Venue = "venue";
+}
+
 /// <summary>Provenance of a rating (Sprint 3: quiz ratings are real ratings).</summary>
 public static class RatingOrigin
 {
@@ -76,6 +96,7 @@ public static class MergeEntityType
 {
     public const string Producer = "producer";
     public const string Drink = "drink";
+    public const string Venue = "venue";
 }
 
 /// <summary>Vector geometry (ADR-009): 8 dims per category, 6-dim bridge.</summary>

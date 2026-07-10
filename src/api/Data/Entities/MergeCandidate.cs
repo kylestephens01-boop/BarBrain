@@ -12,7 +12,7 @@ public class MergeCandidate
 {
     public Guid Id { get; set; } = Guid.CreateVersion7();
 
-    /// <summary>producer | drink (CHECK-constrained).</summary>
+    /// <summary>producer | drink | venue (CHECK-constrained).</summary>
     public required string EntityType { get; set; }
 
     public Guid? SourceProducerId { get; set; }
@@ -24,6 +24,11 @@ public class MergeCandidate
     public Drink? SourceDrink { get; set; }
     public Guid? TargetDrinkId { get; set; }
     public Drink? TargetDrink { get; set; }
+
+    public Guid? SourceVenueId { get; set; }
+    public Venue? SourceVenue { get; set; }
+    public Guid? TargetVenueId { get; set; }
+    public Venue? TargetVenue { get; set; }
 
     /// <summary>0–1 similarity confidence from the candidate generator.</summary>
     public float Similarity { get; set; }

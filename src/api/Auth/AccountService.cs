@@ -92,6 +92,7 @@ public sealed class AccountService(
         db.Venues.Add(new Venue
         {
             Name = "Home Bar",
+            NormalizedName = "home bar",
             VenueType = Data.Entities.VenueType.HomeBar,
             OwnerUserId = user.Id,
             Visibility = Visibility.Private,
