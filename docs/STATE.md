@@ -49,6 +49,37 @@ Docker/Node absent: the new Testcontainers test authored-not-run locally; CI
 runs it. Verified locally: build 0 warnings; `dotnet test` 39 passed / 103
 skipped; seed JSON parse/refs/vocab/ABV-precision checked by script.
 
+## Backlog (unscheduled — revisit on a concrete trigger, not speculatively)
+- **Live-catalog rec-quality eval verb (not yet built).** The golden-set eval
+  harness (ADR-027, RecEvalFixture/MatchEvalFixture) is fixture-only by design:
+  it builds its own throwaway Testcontainers Postgres, seeds a fully synthetic
+  catalog (8 archetype + 110 seeded-random drinks/category) and synthetic
+  users, and has no connection-string injection point. There is currently NO
+  way to measure Precision@10 (or any rec-quality metric) against the
+  live/deployed catalog. The `report` CLI verb confirms catalog/vector
+  coverage (producers/drinks by source, % vector coverage) but computes no
+  rec-quality metric.
+  Design notes for pickup:
+  - Persona.GenerateRatings only needs (Id, Category, Vector) — the live
+    catalog can supply this; a future `eval` CLI verb could run personas
+    through the real PalateProfileService/RecommendationService against real
+    data.
+  - MUST run against a snapshot/clone of the DB or inside a rolled-back
+    transaction — eval users/ratings must never persist into live data.
+  - The CI threshold (0.70) will NOT transfer as-is: the live catalog has far
+    fewer drinks per category (~47 vs. 110 synthetic-uniform), making the
+    "top quartile" ground truth noisier. A live baseline would need to be
+    established fresh, not compared against the CI number.
+  - Not urgent — current mitigation is manual spot-check (done 2026-07-10,
+    looked reasonable to the founder) + 100% vector coverage confirmed via
+    `report`. Triggers to revisit: user complaint about rec quality, or a
+    pre-launch quality gate.
+  Status at logging (2026-07-10): catalog 58 producers / 141 drinks
+  (whiskey/beer/wine) post whiskey-national + beer-national import and
+  merge-queue cleanup (12 producer merges approved, 10 drink-level
+  false-positive candidates correctly rejected). No Precision@10 number
+  available for the live catalog.
+
 ## Blockers / needs founder
 - VERIFY backlog for beer-national: capture exact ABV from allagash.com and
   firestonewalker.com (then backfill the two null ABVs), dogfish.com (manual
