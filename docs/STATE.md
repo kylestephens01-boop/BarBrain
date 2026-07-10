@@ -25,9 +25,12 @@ per RUNBOOK — now including whiskey-national.
   every section by the Source column (producers by source; drinks by
   category+source with vector coverage; attribute provenance). Nothing
   hardcodes seed:corridor.
-- **Verified in CI**: (to be confirmed on this PR's run) Playwright smoke
-  green with the new seed step; seed-report artifact shows
-  seed:whiskey-national rows alongside unchanged corridor + demo-dupes.
+- **Verified in CI (PR #10 run)**: Playwright smoke green with the new seed
+  step. Seed-report artifact: seed:whiskey-national 19 active + 1 merged
+  producers, 55 drinks at 100% vector coverage; 19 moderator rows at 0.80;
+  corridor (35 producers; 38/16/8 drinks) + demo-dupes (3) unchanged. Bonus
+  observation: one producer auto-merged across sources (1 approved in the
+  merge queue) — cross-source overlap behaving as designed.
 
 ## Doc inconsistency to flag (carried)
 - Muted-text token: BRAND.md `--bb-text-muted` vs DESIGN-REFERENCE `--bb-muted`
