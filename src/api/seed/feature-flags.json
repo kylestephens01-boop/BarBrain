@@ -243,5 +243,10 @@
     "key": "digest.block_match_hook",
     "value": "true",
     "description": "Digest block: a palate-match hook ('a strong palate match was found' / 'your match tried X')."
+  },
+  {
+    "key": "rapidrate.page_size",
+    "value": "20",
+    "description": "Cards per page on the rapid-rate browse surface (server default when the client omits pageSize)."
   }
 ]
