@@ -62,6 +62,21 @@ Verification quotes below were captured live on 2026-07-06.
   competitor databases.
 - **Provenance tags:** `source = "seed:corridor"`.
 
+### National American whiskey catalog — founder/BarBrain-authored
+- **Upstream:** none (first-party). `src/api/seed/whiskey-national.json`.
+- **License:** our own data. Distillery/producer names, product names, and
+  ABVs are facts entered from general knowledge and producer-published
+  information — never from competitor databases (Hard Rule 1). Attribute
+  override values are BarBrain-original editorial data. Batch-varying
+  barrel-proof releases carry a representative producer-published ABV (noted
+  inline in the file). Authored 2026-07-09.
+- **Designations:** bottled-in-bond / single-barrel / barrel-proof are name
+  facts or per-drink attribute overrides, NOT style taxonomy codes (founder
+  ruling, ADR-028 addendum).
+- **Provenance tags:** `source = "seed:whiskey-national"`, `source_ref` = seed
+  ref. Drinks already carried by the corridor seed are intentionally not
+  re-listed; producer overlap across sources resolves via the merge queue.
+
 ## Prohibited sources (named explicitly to prevent confusion)
 
 ### openbeerdb.com — "Open Beer Database" — DO NOT USE
