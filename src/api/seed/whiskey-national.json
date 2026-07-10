@@ -88,7 +88,7 @@
       { "ref": "mi-us1-rye", "name": "Michter's US*1 Single Barrel Rye", "category": "whiskey", "style": "WH-AM-RYE", "abv": 42.4 }
     ] },
     { "ref": "barton-1792", "name": "Barton 1792 Distillery", "type": "distillery", "city": "Bardstown", "region": "KY", "country": "US", "drinks": [
-      { "ref": "b2-1792-small-batch", "name": "1792 Small Batch", "category": "whiskey", "style": "WH-AM-BRB", "abv": 46.85 }
+      { "ref": "b2-1792-small-batch", "name": "1792 Small Batch", "category": "whiskey", "style": "WH-AM-BRB", "abv": 46.9 } // 93.7 proof, at the schema's 1-decimal precision
     ] },
     { "ref": "angels-envy", "name": "Angel's Envy Distillery", "type": "distillery", "city": "Louisville", "region": "KY", "country": "US", "drinks": [
       { "ref": "ae-port-finish", "name": "Angel's Envy Kentucky Straight Bourbon (Port Finish)", "category": "whiskey", "style": "WH-AM-BRB", "abv": 43.3,

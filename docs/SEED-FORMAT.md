@@ -119,5 +119,8 @@ auditable operator action until Sprint 6 moderation tooling):
   Rule 1). Attribute override values are BarBrain-original editorial data.
 - `ref` values are permanent. Renaming one orphans the old row and creates a
   duplicate on the next run.
+- `abv` at ONE decimal place — the column is `numeric(4,1)`, so a finer value
+  (e.g. 46.85 for 93.7 proof) is rounded on write and then differs from the
+  file on every re-run, breaking the all-unchanged idempotency contract.
 - Register the tag in DATA-SOURCES.md (URL/first-party statement, license,
   capture date) BEFORE authoring data against it.
