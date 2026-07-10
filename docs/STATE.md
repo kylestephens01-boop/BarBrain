@@ -2,52 +2,68 @@
 > Agents: update this at the END of every session. Keep it short and factual.
 
 ## Current sprint
-data-beer-national — intake playbook + national beer catalog (branch
-`data-beer-national`, off `main` after PR #10 merged). Unnumbered data
-mini-sprint, sprint discipline applies. History: 4.8 CI seed parity (PR #10);
+Sprint 5 — venues: check-in, personalized menus, QR kit (branch `sprint-5`,
+off `main` after PR #11 merged). Spec: docs/specs/sprint-5.md (pre-existing).
+History: data-beer-national (PR #11); 4.8 CI seed parity (PR #10);
 4.7 clear-attribute verb + whiskey-national (PR #9); 4.6 importer v2 (PR #8);
 4.5 rapid-rate (PR #7); Sprint 4 (PR #6); 3 (PR #5); 2 (PR #4); 1 (PR #3).
 STILL OUTSTANDING from Sprint 1: the VPS bulk seed run per RUNBOOK — now
 including whiskey-national AND beer-national.
 
 ## Done (this session)
-- **docs/DATA-INTAKE.md** — standing research→seed playbook (first-party-only
-  sourcing, CONFIRMED/VERIFY/UNCONFIRMED gating, register-tag-first, 1-decimal
-  ABV, existing-style-codes-only with flagged non-clean mappings, sparing
-  overrides, explicit non-numeric-field decisions, verify-by-import, merge
-  queue owns overlap, batch-the-decisions rule, session prompt template).
-  Cross-referenced from SEED-FORMAT.md and CLAUDE.md Hard Rule 1.
-- **docs/research/** — both first-party research compilations committed as
-  source-of-record (whiskey doc untouched, per brief).
-- **seed:beer-national registered** in DATA-SOURCES.md (own commit, ADR-024),
-  then **src/api/seed/beer-national.json**: 15 producers / 24 drinks from the
-  research doc's CONFIRMED core + founder batch rulings. 3 drinks (12.5%)
-  carry overrides (KBS, Juice Force, Black Butte XXXV). 2 ship with NULL ABV
-  by ruling (Allagash White, Firestone 805 — style CONFIRMED, exact ABV
-  pending first-party capture; never publish an unverified numeric).
-- **Founder batch rulings (2026-07-10, all recommendations accepted)**:
-  corridor-duped drinks omitted (13 of 41 researched — union-of-seeds rule);
-  HOLD Dogfish 60 Minute (site blocks automated fetch), Anchor Steam
-  (re-confirm post-2024 revival), Lagunitas IPNA (no NA style taxonomy — ADR
-  territory if wanted); EXCLUDE Yuengling Traditional Lager (UNCONFIRMED,
-  conflicting ABV); Stone Delicious = 21A (gluten-reduction is process);
-  Black Butte XXXV = 20A + override (annual reserve); Ruination "100+" IBU
-  moot (seed format has no drink IBU field).
-- **Verification**: Testcontainers test imports the real bundled
-  beer-national.json via the real embedded registry (zero skips, all styled,
-  full category+bridge vector coverage incl. the null-ABV drinks, overrides
-  sparse, idempotent re-run); registry Fact asserts the tag ships in the
-  binary (runs without Docker — passed locally); ci.yml smoke seed step now
-  imports beer-national after whiskey-national (4.8 parity pattern).
+- **Founder rulings captured (2026-07-10)**: shelf mapping (Favorites = own
+  rating ≥ flag; Familiar = rated before or known style; New for You /
+  Adventurous = closest/far share of unrated by palate similarity);
+  check-in expiry 4h via `checkin.expiry_hours`; NO manager-user-id concept
+  (founder-as-admin maintains verified menus; venue-owner auth deferred);
+  QuestPDF Community accepted → **ADR-029** (revenue-cap revisit recorded).
+  Batch: hours free-text, wiki rate limits as flags, denied-geo fallback =
+  name sort + hint, venue dedupe thresholds mirror producer trigram.
+- **Schema (`Sprint5Venues`)**: venues extended additively (NormalizedName
+  + partial trigram index on public venues, geo with range/pairing CHECKs and
+  a home-bar-no-geo CHECK — never store a user's home coordinates, address,
+  free-text hours, wiki|verified tier CHECK-paired to venue type, contributor
+  provenance, producer-pattern merge lifecycle); new `venue_menu_items` and
+  `checkins` (one OPEN per user via partial unique index); merge_queue venue
+  FK pair. Data ops: NormalizedName backfill + idempotent Home Bar backfill.
+- **API**: VenueService (wiki add w/ dedupe-on-add → merge queue, nearby
+  distance sort with haversine, wiki menu add/edit/confirm, rate limits from
+  flags with events as audit trail, Home Bar get/rename, admin tier);
+  CheckinService (one-tap, expiry flag, supersede-previous); RatingService
+  auto-tags untagged ratings during an active check-in (explicit contexts
+  win); PersonalizedMenuService (four shelves per ruling, "because" on every
+  rec, match % suppressed cold, popularity+style-group fallback);
+  MergeService venue merges (menus preserved, survivor wins collisions,
+  check-ins/ratings repoint); VenueKitService (QR PNG + QuestPDF one-pager).
+  Events: venue_added, menu_item_added/edited, checkin,
+  menu_viewed_personalized.
+- **Web (Screen 5)**: venues list (distance/name sort, wiki add form with
+  optional device geo), venue page (pre-check-in teaser + flat menu →
+  checked-in banner + four shelf tabs, amber Favorites/New-for-you underline
+  per design ref), wiki add-to-menu picker, recent activity. New icons:
+  circle-check, map-pin-check, lock, qrcode.
+- **Tests**: VenueFlowTests (all acceptance flows incl. Home Bar negative
+  surface + merge-preserves-menus + QR/PDF), MigrationFromSprint4Tests
+  (previous-schema chain + both backfills), VenueDistanceTests (no-Docker),
+  venues.spec.ts Playwright Gate D demo (geolocation denied throughout — no
+  GPS gate anywhere).
 
 ## Doc inconsistency to flag (carried)
 - Muted-text token: BRAND.md `--bb-text-muted` vs DESIGN-REFERENCE `--bb-muted`
   (alias in place; founder may standardize).
 
 ## Environment note (this build machine)
-Docker/Node absent: the new Testcontainers test authored-not-run locally; CI
-runs it. Verified locally: build 0 warnings; `dotnet test` 39 passed / 103
-skipped; seed JSON parse/refs/vocab/ABV-precision checked by script.
+Docker/Node absent: Testcontainers + Playwright suites authored-not-run
+locally; CI runs them — CI green is the done gate. Verified locally: build 0
+warnings; `dotnet test` 43 passed / 112 skipped.
+
+## Deferred within Sprint 5 (noted in PR)
+- Home Bar rename ships API-only (`PATCH /api/venues/home-bar`); no web
+  control yet — smallest matching surface is a profile-page field.
+- Admin venue-merge decisions ride the existing merge-queue API/page via the
+  shared DTO; AdminMergeQueue.razor was not restyled for venue rows.
+- Verified-tier menu maintenance is admin-token API only (founder ruling
+  2026-07-10 — no venue-owner auth concept in MVP).
 
 ## Backlog (unscheduled — revisit on a concrete trigger, not speculatively)
 - **Live-catalog rec-quality eval verb (not yet built).** The golden-set eval
@@ -92,7 +108,11 @@ skipped; seed JSON parse/refs/vocab/ABV-precision checked by script.
   84 stale product lines; producers-only import remains an option).
 
 ## Next session should
-- Sprint 5 (venues — check-in, personalized menus; ADR-015). Carried from
-  4.5: rapid-rate doorway on feed empty states if dogfooding warrants.
-- Wine-national is now a template exercise: DATA-INTAKE.md §4 prompt +
-  a wine research doc.
+- Watch Sprint 5 PR CI (Testcontainers + Playwright run there, not on this
+  machine); fix red if any; then Gate D review (founder, in a real corridor
+  bar: add it, 6 real taps, check in, judge the shelves; print the one-pager).
+- After Gate D approval → Sprint 6 (gamification + moderation; the unified
+  moderation queue absorbs venue merges).
+- Carried from 4.5: rapid-rate doorway on feed empty states if dogfooding
+  warrants. Wine-national remains a template exercise: DATA-INTAKE.md §4
+  prompt + a wine research doc.
