@@ -2,15 +2,15 @@
 > Agents: update this at the END of every session. Keep it short and factual.
 
 ## Current sprint
-Sprint 4.6 — Catalog Importer v2 mini-sprint (branch `sprint-4.6`, off `main`
-which has Sprint 4 via PR #6). Spec: docs/specs/sprint-4.6.md. Generic
-product-seed loader: per-file provenance, editorial attribute overrides,
-machine-enforced license gate. NOTE: sprint-4.5 (rapid-rate) is a SIBLING
-branch, PR still open when this branched — this branch deliberately avoids all
-rapid-rate files except an additive feature-flags.json entry (expect a trivial
-merge there whichever lands second). Sprint 4 merged (PR #6); Sprint 3 (PR #5);
-Sprint 2 (PR #4); Sprint 1 (PR #3). STILL OUTSTANDING from Sprint 1: the VPS
-bulk seed run per RUNBOOK.
+Sprint 4.6 — Catalog Importer v2 mini-sprint (branch `sprint-4.6`, off `main`).
+Spec: docs/specs/sprint-4.6.md. Generic product-seed loader: per-file
+provenance, editorial attribute overrides, machine-enforced license gate.
+Sprint 4.5 (rapid-rate) merged via PR #7 WHILE this PR was open — main merged
+back into this branch; conflicts were the predicted trivial pair (both
+feature-flags.json entries kept; this STATE.md — 4.5's handoff detail lives in
+main's history at PR #7). Sprint 4 merged (PR #6); Sprint 3 (PR #5); Sprint 2
+(PR #4); Sprint 1 (PR #3). STILL OUTSTANDING from Sprint 1: the VPS bulk seed
+run per RUNBOOK.
 
 ## Done (Sprint 4.6)
 - **Flag (brief provenance)**: the brief said docs/proposals/catalog-import-v2.md
@@ -68,9 +68,10 @@ bulk seed run per RUNBOOK.
 
 ## Environment note (this build machine)
 Docker/Node absent: authored-not-run locally = CatalogProductImportTests' four
-Testcontainers tests (plus all pre-existing suites). Verified locally:
-`dotnet build` 0 warnings; `dotnet test` 39 passed / 90 skipped (the new
-embedded-registry Fact runs locally). CI runs everything for real.
+Testcontainers tests (plus all pre-existing suites, now incl. 4.5's
+RapidRateBrowseTests). Verified locally after the merge: `dotnet build` 0
+warnings; `dotnet test` 39 passed / 99 skipped (the new embedded-registry Fact
+runs locally). CI runs everything for real.
 
 ## Blockers / needs founder
 - Carried from Sprint 4: HUMAN-CHECKLIST 6 (digest physical address + SMTP),
@@ -81,5 +82,7 @@ embedded-registry Fact runs locally). CI runs everything for real.
 ## Next session should
 - After this merges: the bourbon/whiskey national catalog is now unblocked as
   a pure DATA task (author seed file + DATA-SOURCES.md entry + rebuild; zero
-  code). Remember the sprint-4.5 rapid-rate PR if still open.
-- Then Sprint 5 (venues — check-in, personalized menus; ADR-015).
+  code).
+- Then Sprint 5 (venues — check-in, personalized menus; ADR-015). Carried from
+  4.5: consider surfacing the rapid-rate doorway on the feed's empty states too
+  if dogfooding says Search isn't discoverable enough.

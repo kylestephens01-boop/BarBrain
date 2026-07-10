@@ -834,6 +834,52 @@ code {
 .bb-match-love { color: var(--bb-pour); font-size: 11px; text-decoration: none; } /* the DRINK is amber */
 .bb-match-love:hover { text-decoration: underline; }
 
+/* --- Rapid rate (Sprint 4.5) ---------------------------------------------------- */
+.bb-rr-list { list-style: none; margin: 12px 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.bb-rr-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--bb-surface);
+  border-radius: var(--bb-radius);
+  border-left: 3px solid var(--bb-pour); /* the drink being rated → amber */
+  padding: 10px 12px;
+}
+.bb-rr-card__info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.bb-rr-card__name { font-weight: var(--bb-fw-medium); font-size: 14px; }
+.bb-rr-card__detail { color: var(--bb-text-muted); font-size: 11px; line-height: 15px; }
+.bb-rr-card__rate { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.bb-rr-card__row { display: flex; align-items: center; gap: 10px; min-height: 20px; }
+.bb-rr-status { font-size: 11px; color: var(--bb-text-muted); }
+.bb-rr-status--noted { color: var(--bb-synapse); } /* the profile learned → teal */
+.bb-rr-status--error { color: var(--bb-bitters); }
+.bb-rr-private {
+  background: none;
+  border: none;
+  padding: 4px 0;
+  color: var(--bb-text-muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+.bb-rr-private:hover { color: var(--bb-coaster); }
+.bb-rr-private.is-on { color: var(--bb-coaster); text-decoration: underline; }
+
+/* Search-page doorway into rapid rate: a recommendation of a FLOW, not a drink → teal. */
+.bb-rr-doorway {
+  display: block;
+  background: var(--bb-surface);
+  border-radius: var(--bb-radius);
+  border-left: 3px solid var(--bb-synapse);
+  padding: 10px 12px;
+  margin: 12px 0;
+  color: var(--bb-coaster);
+  text-decoration: none;
+}
+.bb-rr-doorway:hover { text-decoration: none; filter: brightness(1.08); }
+.bb-rr-doorway__title { font-weight: var(--bb-fw-medium); font-size: 14px; color: var(--bb-synapse); }
+.bb-rr-doorway__detail { color: var(--bb-text-muted); font-size: 11px; line-height: 15px; }
+
 /* --- Profile settings (privacy & email) --------------------------------------- */
 .bb-settings { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; }
 .bb-settings__row { align-items: flex-start; }
