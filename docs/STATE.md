@@ -2,87 +2,84 @@
 > Agents: update this at the END of every session. Keep it short and factual.
 
 ## Current sprint
-Sprint 4.6 — Catalog Importer v2 mini-sprint (branch `sprint-4.6`, off `main`).
-Spec: docs/specs/sprint-4.6.md. Generic product-seed loader: per-file
-provenance, editorial attribute overrides, machine-enforced license gate.
-Sprint 4.5 (rapid-rate) merged via PR #7 WHILE this PR was open — main merged
-back into this branch; conflicts were the predicted trivial pair (both
-feature-flags.json entries kept; this STATE.md — 4.5's handoff detail lives in
-main's history at PR #7). Sprint 4 merged (PR #6); Sprint 3 (PR #5); Sprint 2
-(PR #4); Sprint 1 (PR #3). STILL OUTSTANDING from Sprint 1: the VPS bulk seed
-run per RUNBOOK.
+Sprint 4.7 — override-clear verb + whiskey-national catalog mini-sprint
+(branch `sprint-4.7`, off `main` after PR #8 merged). Spec:
+docs/specs/sprint-4.7.md (authored this session from the founder brief).
+History: 4.6 importer v2 merged (PR #8); 4.5 rapid-rate (PR #7); Sprint 4
+(PR #6); 3 (PR #5); 2 (PR #4); 1 (PR #3). STILL OUTSTANDING from Sprint 1:
+the VPS bulk seed run per RUNBOOK.
 
-## Done (Sprint 4.6)
-- **Flag (brief provenance)**: the brief said docs/proposals/catalog-import-v2.md
-  and docs/SEED-FORMAT.md already existed from an earlier analysis pass —
-  NEITHER did (no docs/proposals/ at all). Design was derived from
-  CatalogImportService + SCHEMA.md per the brief's fallback; SEED-FORMAT.md and
-  the sprint spec were authored in this mini-sprint. Also the brief's license
-  gate cite is ADR-024 (not ADR-023); implemented against ADR-024.
-- **Importer** (`ImportProductsAsync(filePath, dataSourcesPath?)`): any
-  product-seed file, corridor shape + additions (docs/SEED-FORMAT.md is the
-  contract). Per-file `source` tag (must start `seed:`) on every row;
-  idempotency unchanged on (Source, SourceRef) upserts. `ImportCorridorAsync`
-  is now a one-line delegation → corridor behavior/provenance identical by
-  construction, proven by CatalogImportTests running unchanged.
-- **Overrides**: optional per-drink `attributes` block → drink_attributes rows
-  with source='moderator' (ADR-028 justifies vs SCHEMA.md's closed set),
-  confidence = file-level `attributeConfidence` else new flag
-  `catalog.seed_override_confidence_pct` (default 80). Non-overridden dims
-  inherit exactly as before (vector sync fills only MISSING dims). Malformed
-  overrides (unknown key, out-of-range) fail the run loudly. Importer never
-  deletes attribute rows (removing an override ≠ revert).
-- **License gate (ADR-024, fail-closed)**: docs/DATA-SOURCES.md embedded in
-  the api binary (csproj EmbeddedResource); unregistered tag → refuse before
-  any DB write. Tests can substitute the registry via `dataSourcesPath`.
-- **CLI**: `import products --file <path>` (+ usage/RUNBOOK). NO migration —
-  drink_attributes already had Value/Source/Confidence.
-- **Docs**: sprint-4.6 spec, SEED-FORMAT.md (new), ADR-028, DATA-SOURCES.md
-  gate note, RUNBOOK verb.
-- **Tests**: CatalogProductImportTests — provenance + moderator rows + right
-  confidence + inheritance + override lands in category AND bridge vectors;
-  flag-default confidence; idempotent re-run (all-unchanged, no dupes) +
-  override edit updates in place; undocumented source refused by the REAL
-  embedded registry with nothing written; unknown key / 0–10-scale value fail
-  loudly; plain Fact (runs without Docker) proves the embedded registry ships
-  with the bundled tags. Ctor gained ISettingsService → 4 test construction
-  sites updated.
+## Done (Sprint 4.7)
+- **Part 1 (code)** — `import products --clear-attribute --source <tag>
+  --drink-ref <ref> --key <short-key>`: sanctioned corrective for a wrong
+  editorial override (`CatalogImportService.ClearAttributeOverrideAsync`).
+  Resolves by (Source, SourceRef); deletes the drink_attributes row ONLY if
+  source='moderator' (manufacturer/crowd/llm refuse loudly, row intact);
+  reuses the importer's vector resync so the dim falls back to style-baseline
+  inheritance and category+bridge vectors recompute. Idempotent: no row or an
+  'inherited' row is a no-op. Unknown ref/key fail loudly. CLI-only by design
+  (no seed-format change, no admin auth, no UI — Sprint 6 not pulled forward).
+- **Ambiguity resolved (flagged, not silent)**: brief said refuse 'inherited'
+  AND be idempotent — but a successful clear MATERIALIZES an inherited row
+  (that row IS baseline state), so refusing it would error every re-run.
+  Inherited ⇒ already-at-baseline no-op; refusal reserved for
+  manufacturer/crowd/llm. Documented in spec, ADR-028 addendum, SEED-FORMAT.
+- **Part 2 (data)** — `seed:whiskey-national` registered in DATA-SOURCES.md
+  FIRST (own commit, per ADR-024), then src/api/seed/whiskey-national.json:
+  20 distilleries / 55 drinks, first-party facts, all WH-AM-* styles;
+  11 drinks (20%) with sparing editorial overrides (barrel proof, double-oak/
+  port finish, peated malt); batch-varying barrel proofs carry representative
+  ABVs (noted inline). Corridor-covered drinks NOT re-listed (union = catalog;
+  producer overlap → merge queue as designed). BiB/single-barrel/barrel-proof
+  = name facts or overrides, NOT style codes (founder ruling recorded in the
+  ADR-028 addendum).
+- **Tests**: clear → reverts to inherited baseline (value/source/confidence
+  match a never-overridden drink) + vectors resync on both scales + sibling
+  override survives + idempotent re-runs; refusal of a crowd-sourced row +
+  loud unknown-ref/key errors; whiskey-national REAL file imports via the
+  REAL embedded registry with zero skips, full style+vector coverage,
+  overrides sparse, idempotent re-run; registry Fact (no Docker needed) now
+  asserts the new tag ships in the binary.
+- **Docs**: SEED-FORMAT § Correcting a wrong override; RUNBOOK verbs (clear +
+  whiskey-national); ADR-028 addendum (additive, not a new ADR); sprint-4.7
+  spec; DATA-SOURCES.md entry.
 
 ## Decisions made within spec bounds (log)
-- moderator (not manufacturer) for editorial seed overrides: our authored
-  numbers are curator judgment, not producer-published claims (ADR-028).
-- Gate reads an EMBEDDED registry (not a docs path at runtime): works
-  identically in dev/CI/container, fail-closed if missing; new source ⇒
-  rebuild, which its data batch needs anyway.
-- Malformed override = hard failure (vs corridor's warn-and-skip for
-  category/style, which is preserved): first-party editorial data must not be
-  silently skewed.
-- Importer never deletes moderator rows → seed re-runs can't clobber future
-  moderation-UI edits; removing an override from a file does not revert it.
-- ImportResult label for product files is the file's source tag (corridor logs
-  "seed:corridor" now, was "corridor") — log-only cosmetic change.
+- 'inherited' row on clear = no-op, not refusal (see above — the only reading
+  where idempotency holds).
+- Unknown drink ref / attribute key on clear = loud error, not no-op (a typo
+  must not read as "cleared"); idempotency clause applies to keys, not refs.
+- `--key` takes the SHORT key exactly as seed files write it; category
+  auto-prefixed (consistent with SEED-FORMAT authoring).
+- No license gate on clear — it removes data, imports nothing.
+- whiskey-national omits drinks corridor already carries, to avoid authoring
+  known drink-dupes into the merge queue; producer overlap kept (normal
+  cross-source pattern).
+- Whiskey-national verification is a CI integration test against the real
+  bundled file (this machine has no Docker); VPS run still per RUNBOOK.
 
 ## Doc inconsistency to flag (carried)
 - Muted-text token: BRAND.md `--bb-text-muted` vs DESIGN-REFERENCE `--bb-muted`
   (alias in place; founder may standardize).
 
 ## Environment note (this build machine)
-Docker/Node absent: authored-not-run locally = CatalogProductImportTests' four
-Testcontainers tests (plus all pre-existing suites, now incl. 4.5's
-RapidRateBrowseTests). Verified locally after the merge: `dotnet build` 0
-warnings; `dotnet test` 39 passed / 99 skipped (the new embedded-registry Fact
-runs locally). CI runs everything for real.
+Docker/Node absent: the 3 new Testcontainers tests (clear ×2, whiskey-national
+×1) authored-not-run locally; CI runs them for real. Verified locally:
+`dotnet build` 0 warnings; `dotnet test` 39 passed / 102 skipped (embedded-
+registry Fact incl. the new tag runs locally). Whiskey seed JSON parse +
+vocab/range/ref-uniqueness checked by script locally.
 
 ## Blockers / needs founder
 - Carried from Sprint 4: HUMAN-CHECKLIST 6 (digest physical address + SMTP),
   Gate C2 real-user follow-ups when users exist.
-- Carried: VPS bulk seed run (RUNBOOK); HUMAN-CHECKLIST 7–9 (Google/Apple/
-  Turnstile creds), 14 (fonts/logo assets), charter proposals P1–P3, beer.db call.
+- Carried: VPS bulk seed run (RUNBOOK) — now also includes
+  `import products --file seed/whiskey-national.json`; HUMAN-CHECKLIST 7–9
+  (Google/Apple/Turnstile creds), 14 (fonts/logo assets), charter proposals
+  P1–P3, beer.db call.
 
 ## Next session should
-- After this merges: the bourbon/whiskey national catalog is now unblocked as
-  a pure DATA task (author seed file + DATA-SOURCES.md entry + rebuild; zero
-  code).
-- Then Sprint 5 (venues — check-in, personalized menus; ADR-015). Carried from
-  4.5: consider surfacing the rapid-rate doorway on the feed's empty states too
-  if dogfooding says Search isn't discoverable enough.
+- After this merges: Sprint 5 (venues — check-in, personalized menus;
+  ADR-015). Carried from 4.5: consider surfacing the rapid-rate doorway on
+  the feed's empty states if dogfooding says Search isn't discoverable enough.
+- Founder may want to eyeball the 11 whiskey-national override values (pure
+  editorial judgment) and the batch-varying representative ABVs.
