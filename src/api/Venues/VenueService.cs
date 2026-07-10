@@ -152,9 +152,12 @@ public sealed class VenueService(
     // --- Wiki menu -------------------------------------------------------------
 
     public async Task<List<MenuItemDto>> MenuAsync(Guid venueId, CancellationToken ct = default)
+        // Order BEFORE the constructor projection — EF can't translate member
+        // access on a constructor-bound DTO back to a column (CI e2e caught
+        // the 500).
         => await ProjectMenu(db.VenueMenuItems.AsNoTracking()
-                .Where(mi => mi.VenueId == venueId && mi.Drink.Status == EntityStatus.Active))
-            .OrderBy(mi => mi.DrinkName)
+                .Where(mi => mi.VenueId == venueId && mi.Drink.Status == EntityStatus.Active)
+                .OrderBy(mi => mi.Drink.Name))
             .ToListAsync(ct);
 
     /// <summary>

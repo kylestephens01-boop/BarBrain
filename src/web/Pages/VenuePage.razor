@@ -299,18 +299,28 @@ else
             return;
         }
 
+        // Menu loads degrade to an empty state — a failed fetch must not take
+        // the whole page down (the Blazor error banner is a dead end).
         if (CheckedInHere)
         {
-            var menuResponse = await Http.GetAsync($"api/venues/{Id}/menu/personalized");
-            _menu = menuResponse.IsSuccessStatusCode
-                ? await menuResponse.Content.ReadFromJsonAsync<PersonalizedMenuResponse>()
-                : null;
+            try
+            {
+                var menuResponse = await Http.GetAsync($"api/venues/{Id}/menu/personalized");
+                _menu = menuResponse.IsSuccessStatusCode
+                    ? await menuResponse.Content.ReadFromJsonAsync<PersonalizedMenuResponse>()
+                    : null;
+            }
+            catch { _menu = null; }
             if (_menu is { Shelves.Count: > 0 } && _menu.Shelves.All(s => s.Key != _activeShelf))
                 _activeShelf = _menu.Shelves[0].Key;
         }
         else
         {
-            _flatMenu = await Http.GetFromJsonAsync<List<MenuItemDto>>($"api/venues/{Id}/menu") ?? [];
+            try
+            {
+                _flatMenu = await Http.GetFromJsonAsync<List<MenuItemDto>>($"api/venues/{Id}/menu") ?? [];
+            }
+            catch { _flatMenu = []; }
         }
     }
 

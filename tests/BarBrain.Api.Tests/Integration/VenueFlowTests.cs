@@ -130,15 +130,10 @@ public sealed class VenueFlowTests(PostgresFixture fixture) : IAsyncLifetime
     public async Task Venue_add_rate_limit_is_flag_driven()
     {
         Skip.IfNot(fixture.DockerAvailable, "Docker not available; integration test skipped.");
-        // Plant the flag row BEFORE the app first reads it (cache fills on read).
-        await using (var db = _harness.CreateDb())
-        {
-            db.Settings.Add(new Setting
-            {
-                Key = "venues.add_per_day", Value = "2", UpdatedAt = DateTimeOffset.UtcNow,
-            });
-            await db.SaveChangesAsync();
-        }
+        // Through the admin API so the APP's settings cache invalidates — a raw
+        // row insert stays invisible until the snapshot TTL lapses (CI caught it).
+        (await _client.PutAsJsonAsync("/api/admin/settings/venues.add_per_day",
+            new SettingUpdateRequest("2"))).EnsureSuccessStatusCode();
 
         await AddVenueAsync("First Bar", CrLat, CrLng);
         await AddVenueAsync("Second Bar", CrLat, CrLng);
@@ -212,6 +207,13 @@ public sealed class VenueFlowTests(PostgresFixture fixture) : IAsyncLifetime
         foreach (var drink in new[] { favorite, ratedLow, knownStyle, closeNew, farNew })
             (await _client.PostAsJsonAsync($"/api/venues/{venue.Id}/menu",
                 new MenuItemAddRequest(drink, 7.50m))).EnsureSuccessStatusCode();
+
+        // The flat (pre-check-in) menu lists all five, name-ordered — the
+        // endpoint only e2e used to exercise (its 500 slipped past CI once).
+        var flat = await _client.GetFromJsonAsync<List<MenuItemDto>>($"/api/venues/{venue.Id}/menu");
+        Assert.Equal(5, flat!.Count);
+        Assert.Equal(flat.Select(i => i.DrinkName).OrderBy(n => n, StringComparer.Ordinal).ToList(),
+            flat.Select(i => i.DrinkName).ToList());
 
         // Pre-check-in: the personalized menu is locked (teaser state).
         var locked = await _client.GetAsync($"/api/venues/{venue.Id}/menu/personalized");
