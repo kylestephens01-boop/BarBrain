@@ -19,6 +19,11 @@
          (Design, tests) unifies on 10.0.9 and the build stays warning-free. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.9" />
     <PackageReference Include="Pgvector.EntityFrameworkCore" Version="0.3.0" />
+    <!-- QR table-tent kit (Sprint 5). QRCoder is MIT. QuestPDF is Community-
+         licensed (free under $1M annual revenue) — ADR-029 records the
+         revisit trigger if BarBrain crosses into real revenue. -->
+    <PackageReference Include="QRCoder" Version="1.6.0" />
+    <PackageReference Include="QuestPDF" Version="2025.7.0" />
   </ItemGroup>
 
   <PropertyGroup>

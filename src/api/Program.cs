@@ -42,6 +42,12 @@ builder.Services.AddHostedService<BarBrain.Api.Palate.PalateNightlyService>();
 // --- Rapid-rate browse read (Sprint 4.5) -------------------------------------
 builder.Services.AddScoped<BarBrain.Api.Catalog.RapidRateQueryService>();
 
+// --- Venues: wiki, check-in, four-shelf menu, QR kit (Sprint 5, ADR-015) -----
+builder.Services.AddScoped<BarBrain.Api.Venues.VenueService>();
+builder.Services.AddScoped<BarBrain.Api.Venues.CheckinService>();
+builder.Services.AddScoped<BarBrain.Api.Venues.PersonalizedMenuService>();
+builder.Services.AddScoped<BarBrain.Api.Venues.VenueKitService>();
+
 // --- Matching + weekly digest (Sprint 4, ADR-014/007/019) -------------------
 builder.Services.AddScoped<BarBrain.Api.Palate.MatchService>();
 builder.Services.AddHostedService<BarBrain.Api.Palate.MatchNightlyService>();
@@ -108,6 +114,7 @@ app.MapRatingEndpoints();
 app.MapPalateEndpoints();
 app.MapMatchEndpoints();
 app.MapRapidRateEndpoints();
+app.MapVenueEndpoints();
 
 app.Run();
 return 0;

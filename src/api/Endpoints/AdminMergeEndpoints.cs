@@ -31,6 +31,8 @@ public static class AdminMergeEndpoints
                 .Include(m => m.TargetProducer)
                 .Include(m => m.SourceDrink!).ThenInclude(d => d.Producer)
                 .Include(m => m.TargetDrink!).ThenInclude(d => d.Producer)
+                .Include(m => m.SourceVenue)
+                .Include(m => m.TargetVenue)
                 .Where(m => m.Status == wanted)
                 .OrderByDescending(m => m.Similarity).ThenBy(m => m.CreatedAt)
                 .Take(200)
@@ -77,10 +79,15 @@ public static class AdminMergeEndpoints
             p.Id, p.Name, string.Join(", ", new[] { p.City, p.Region }.Where(x => !string.IsNullOrEmpty(x))));
         MergeEntityRef Drink(Drink d) => new(
             d.Id, d.Name, $"{d.Producer.Name} · {d.Category}" + (d.Abv is { } abv ? $" · {abv}%" : ""));
+        MergeEntityRef VenueRef(Venue v) => new(
+            v.Id, v.Name, v.Address ?? (v.Latitude is { } lat ? $"{lat:0.####}, {v.Longitude:0.####}" : "no location"));
 
-        var (source, target) = m.EntityType == MergeEntityType.Producer
-            ? (Producer(m.SourceProducer!), Producer(m.TargetProducer!))
-            : (Drink(m.SourceDrink!), Drink(m.TargetDrink!));
+        var (source, target) = m.EntityType switch
+        {
+            MergeEntityType.Producer => (Producer(m.SourceProducer!), Producer(m.TargetProducer!)),
+            MergeEntityType.Drink => (Drink(m.SourceDrink!), Drink(m.TargetDrink!)),
+            _ => (VenueRef(m.SourceVenue!), VenueRef(m.TargetVenue!)),
+        };
 
         return new MergeCandidateDto(
             m.Id, m.EntityType, source, target, m.Similarity, m.Reason, m.Status, m.CreatedAt);

@@ -211,3 +211,10 @@ surface, no UI) so Sprint 6 moderation work is not pulled forward. Also per
 founder ruling: bottled-in-bond / single-barrel / barrel-proof designations are
 per-drink attribute overrides or name/metadata facts, NOT new WH-* style
 taxonomy codes.
+
+**ADR-029 — QuestPDF Community license for the QR one-pager (founder decision,
+July 2026).** The Sprint 5 table-tent PDF generator uses QuestPDF under its
+Community license, which is free only below $1M annual gross revenue. Recorded
+as a dependency-tracking decision: if BarBrain approaches real revenue, revisit
+(buy a license or swap the generator) BEFORE crossing the cap. QRCoder (MIT)
+needs no gate.

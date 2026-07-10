@@ -15,7 +15,8 @@ namespace BarBrain.Api.Ratings;
 public sealed class RatingService(
     AppDbContext db,
     TimeProvider clock,
-    Palate.PalateProfileService palateProfiles)
+    Palate.PalateProfileService palateProfiles,
+    Venues.CheckinService checkins)
 {
     public sealed record Failure(int Status, ApiError Error);
     private const int MergeHopLimit = 10;
@@ -54,7 +55,19 @@ public sealed class RatingService(
         if (drink.Visibility == Visibility.Private && drink.CreatedByUserId != userId)
             return Fail(404, "drink_not_found", "That drink isn't in the catalog.");
 
-        var venueId = await ResolveVenueAsync(userId, request.LocationContext, request.VenueId, ct);
+        // Auto-tag (ADR-015 / Sprint 5): an untagged rating made during an
+        // active check-in belongs to that venue. Explicit contexts (home_bar,
+        // venue) always win — the user said where they are.
+        var locationContext = request.LocationContext;
+        var requestedVenueId = request.VenueId;
+        if (locationContext == LocationContext.Untagged
+            && await checkins.ActiveVenueIdAsync(userId, ct) is { } checkedInVenueId)
+        {
+            locationContext = LocationContext.Venue;
+            requestedVenueId = checkedInVenueId;
+        }
+
+        var venueId = await ResolveVenueAsync(userId, locationContext, requestedVenueId, ct);
         if (venueId.Failure is not null)
             return (null, venueId.Failure);
 
@@ -66,7 +79,7 @@ public sealed class RatingService(
             Value = request.Value,
             Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(),
             Visibility = visibility,
-            LocationContext = request.LocationContext,
+            LocationContext = locationContext,
             VenueId = venueId.VenueId,
             Origin = origin,
             IsLatest = true,
