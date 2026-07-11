@@ -26,6 +26,12 @@
   inline), 21+ statement, contact/report mechanism linked in footer.
 - RUNBOOK.md complete: deploy, rollback, restore, incident basics, weekly ops
   (10-min founder routine).
+- Live-catalog rec-quality eval verb (founder-scoped 2026-07-10; launch-gate
+  trigger): CLI verb computing Precision@10 with the synthetic golden-set
+  personas against the LIVE catalog, strictly READ-ONLY — no synthetic
+  writes to production data (that constraint is why the fixture harness
+  cannot be pointed at the VPS). Reference: Gate C1 fixture baseline was
+  0.71 (fixture and live numbers are compared, not equated).
 
 ## Acceptance criteria
 - Export downloads valid JSON; both deletion paths work e2e (verify DB state).
@@ -34,9 +40,13 @@
 - Synthetic error visible in tracker with PII scrubbed (screenshot).
 - Dashboard renders cohorts from real dev data; kill thresholds annotated.
 - Founder receives a test alert on phone.
+- Eval verb runs on the VPS via the existing exec pattern (RUNBOOK `… <cmd>`
+  form), touches no production rows, and prints a single comparable
+  Precision@10 number.
 
 ## Out of scope
-Marketing site, app stores, payments, anything new — feature freeze.
+Marketing site, app stores, payments, anything new beyond the scoped
+live-catalog eval verb — feature freeze otherwise.
 
 ## Gate E (founder, ~30 min)
 Walk the launch checklist (generated as docs/LAUNCH.md): export your data,

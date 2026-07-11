@@ -9,6 +9,20 @@ Sprint 6 — gamification + moderation + PWA polish (branch `sprint-6`, off
 v2 (PR #8); 4.5 rapid-rate (PR #7); 4 (PR #6); 3 (PR #5); 2 (PR #4); 1 (PR #3).
 STILL OUTSTANDING from Sprint 1: the VPS bulk seed run per RUNBOOK.
 
+## Founder adjudications (2026-07-10, recorded in docs/charter-v7-adjudication)
+- Charter proposals **P1–P3 all APPROVED**, merged into charter v7 (founder
+  holds the settled text; docs/project-charter.md now carries the
+  adjudication record). ADR-022 amended founder-signed per P2; BRAND.md
+  prohibited-language gains the proof/ABV-as-potency line.
+- **beer.db REJECTED** (quality, not license) — moved to "Rejected sources"
+  in DATA-SOURCES.md; RUNBOOK import block removed. NOTE: rejection is
+  doc-enforced only — the quoted `"seed:beerdb"` tag stays in the registry
+  (a build test pins it), so the products-import gate would still pass it
+  and `import beerdb` never consulted the registry; fail-closing it for
+  real is a small code+test change, unscheduled.
+- **Live-catalog rec-quality eval verb: assigned to Sprint 7** (launch-gate
+  trigger fired) — scoped in docs/specs/sprint-7.md; removed from Backlog.
+
 ## Done (this session)
 - **Founder rulings captured (2026-07-10)**: badges are AMBER per
   DESIGN-REFERENCE Screen 7 (overriding the teal guess); "first drink added"
@@ -86,8 +100,9 @@ STILL OUTSTANDING from Sprint 1: the VPS bulk seed run per RUNBOOK.
 ## Doc inconsistency to flag (carried)
 - Muted-text token: BRAND.md `--bb-text-muted` vs DESIGN-REFERENCE
   `--bb-muted` (alias in place; founder may standardize).
-- Charter: docs/project-charter.md still carries ONLY the P1–P3 proposals —
-  settled text remains uncommitted (spec + ADRs used as scope record).
+- Charter: P1–P3 adjudicated (approved 2026-07-10); docs/project-charter.md
+  carries the adjudication record. Settled v7 text remains uncommitted —
+  founder to paste it above the marker (spec + ADRs used as scope record).
 
 ## Environment note (this build machine)
 Docker/Node absent: Testcontainers + Playwright suites authored-not-run
@@ -95,11 +110,10 @@ locally; CI runs them — CI green is the done gate. Verified locally: build
 0 warnings; `dotnet test` 63 passed / 125 skipped.
 
 ## Backlog (unscheduled — revisit on a concrete trigger, not speculatively)
-- **Live-catalog rec-quality eval verb (not yet built).** Golden-set eval is
-  fixture-only by design; no Precision@10 against the live catalog. Design
-  notes from Sprint 5 handoff still apply (personas over live data, must run
-  against a snapshot/rolled-back tx, CI threshold won't transfer). Triggers:
-  rec-quality complaint or pre-launch gate.
+- beer.db rejection is docs-only; the registry has no rejected-source
+  semantics. Trigger: next time importer code is touched, add a rejected
+  flag to the embedded registry, loud refusal on import, flip the CI test
+  accordingly.
 - Events table has no user_id column (userId lives in jsonb Properties) —
   fine for audit, awkward for per-user analytics; if the Sprint 7 dashboard
   needs per-user event queries, consider an additive indexed column then.
@@ -110,14 +124,13 @@ locally; CI runs them — CI green is the done gate. Verified locally: build
   affect Lighthouse/brand fidelity.
 - Carried: VERIFY backlog for beer-national ABVs (allagash/firestone/
   dogfish/anchor); VPS bulk seed run (RUNBOOK); HUMAN-CHECKLIST 6 (SMTP +
-  physical address), 7–9 (OAuth/Turnstile creds); Gate C2 follow-ups;
-  charter proposals P1–P3.
+  physical address), 7–9 (OAuth/Turnstile creds); Gate C2 follow-ups.
 
 ## Next session should
-- Watch Sprint 6 PR CI (Testcontainers + Playwright + NEW Lighthouse job run
-  there); fix red if any; then the Gate (founder, phone, ~10 min): earn a
-  badge on a real account, file + action a report in /admin, install the
-  PWA to the home screen. Approve → Sprint 7 (pre-launch hardening).
+- Sprint 6 PR (#13) is MERGED. Next: the Sprint 6 founder Gate (phone,
+  ~10 min): earn a badge on a real account, file + action a report in
+  /admin, install the PWA to the home screen. Approve → Sprint 7 kickoff
+  (pre-launch hardening, spec now includes the live-catalog eval verb).
 - Sprint 7 heads-up: JSON export must include badges (spec says so — the
   badge tables are ready for it); deletion flow interacts with
   moderation_actions' no-FK design (audit survives deletion, by design).
