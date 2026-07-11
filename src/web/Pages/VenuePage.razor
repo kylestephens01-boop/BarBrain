@@ -1,0 +1,401 @@
+@page "/venues/{Id:guid}"
+@using BarBrain.Web.Components
+@using BarBrain.Web.Services
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject UserState User
+
+<PageTitle>@(_page?.Venue.Name ?? "Venue") — BarBrain</PageTitle>
+
+@if (!_checked || (_page is null && !_notFound))
+{
+    <p class="bb-muted">Loading…</p>
+}
+else if (_notFound)
+{
+    <div class="bb-card">
+        <p>That venue doesn't exist.</p>
+        <a class="bb-btn" href="/venues">Back to venues</a>
+    </div>
+}
+else
+{
+    var venue = _page!.Venue;
+
+    <header class="bb-venue-header">
+        <a class="bb-back" href="/venues" aria-label="Back to venues"><Icon Name="arrow-left" Size="20" /></a>
+        <h1 data-testid="venue-name">@venue.Name</h1>
+    </header>
+
+    <div class="bb-venue-info">
+        <span class="bb-venue-card__icon" aria-hidden="true"><Icon Name="beer" Size="20" /></span>
+        <div>
+            <p class="bb-venue-info__meta">
+                @(venue.MenuCount == 1 ? "1 drink listed" : $"{venue.MenuCount} drinks listed")
+                @if (venue.Tier == "verified")
+                {
+                    <span class="bb-badge-verified" data-testid="venue-verified"><Icon Name="circle-check" Size="12" /> Verified menu</span>
+                }
+                else
+                {
+                    <span class="bb-venue-info__wiki">Community-managed</span>
+                }
+            </p>
+            @if (venue.Address is not null)
+            {
+                <p class="bb-muted">@venue.Address</p>
+            }
+            @if (venue.Hours is not null)
+            {
+                <p class="bb-muted">@venue.Hours</p>
+            }
+        </div>
+    </div>
+
+    @if (CheckedInHere)
+    {
+        @* Checked in: the personalized four-shelf menu (INTELLIGENCE → teal banner). *@
+        <div class="bb-checkin-banner" data-testid="checkin-banner">
+            <span class="bb-checkin-banner__icon" aria-hidden="true"><Icon Name="map-pin-check" Size="18" /></span>
+            <span>
+                <strong>Checked in</strong><br />
+                <span class="bb-muted">@(_menu?.Personalized == true ? "Menu sorted for your palate." : "Menu grouped by style while your palate takes shape.")</span>
+            </span>
+        </div>
+
+        @if (_menu is null)
+        {
+            <p class="bb-muted">Sorting the menu…</p>
+        }
+        else if (_menu.Shelves.All(s => s.Items.Count == 0))
+        {
+            <p class="bb-muted" data-testid="menu-empty">Nothing on this menu yet — add what's on tap below.</p>
+        }
+        else
+        {
+            <div class="bb-tab-row bb-tab-row--scroll" role="tablist" aria-label="Menu shelves">
+                @foreach (var shelf in _menu.Shelves)
+                {
+                    <button type="button" role="tab" aria-selected="@(_activeShelf == shelf.Key)"
+                            class="bb-tab @(_activeShelf == shelf.Key ? "is-active" : "") @(AmberShelf(shelf.Key) ? "bb-tab--pour" : "")"
+                            data-testid="shelf-tab-@shelf.Key"
+                            @onclick="() => _activeShelf = shelf.Key">
+                        @shelf.Title
+                        <span class="bb-tab__count">@shelf.Items.Count</span>
+                    </button>
+                }
+            </div>
+
+            var active = _menu.Shelves.FirstOrDefault(s => s.Key == _activeShelf) ?? _menu.Shelves[0];
+            @if (active.Items.Count == 0)
+            {
+                <p class="bb-muted" data-testid="shelf-empty">Nothing on this shelf tonight.</p>
+            }
+            else
+            {
+                <ul class="bb-rec-list" data-testid="shelf-items">
+                    @foreach (var rec in active.Items)
+                    {
+                        <li>
+                            <a class="bb-rec-card @(AmberShelf(active.Key) ? "bb-rec-card--pour" : "")"
+                               href="/drinks/@rec.Item.DrinkId" data-testid="menu-rec">
+                                <span class="bb-rec-card__top">
+                                    <span class="bb-rec-card__name">@rec.Item.DrinkName</span>
+                                    @if (rec.Item.Price is { } price)
+                                    {
+                                        <span class="bb-venue-price">$@price.ToString("0.##")</span>
+                                    }
+                                    else if (rec.MatchPct is { } pct)
+                                    {
+                                        <span class="bb-rec-card__match">@pct%</span>
+                                    }
+                                </span>
+                                <span class="bb-rec-card__detail">
+                                    @rec.Item.ProducerName · @(rec.Item.StyleName ?? Cap(rec.Item.Category))@(rec.Item.Abv is { } abv ? $" · {abv:0.#}%" : "")
+                                </span>
+                                @if (rec.Item.Price is not null && rec.MatchPct is { } pct2)
+                                {
+                                    <span class="bb-rec-card__match">@pct2% match</span>
+                                }
+                                @if (rec.Reason is not null)
+                                {
+                                    <span class="bb-rec-card__reason @(AmberShelf(active.Key) ? "bb-rec-card__reason--pour" : "")"
+                                          data-testid="menu-rec-reason">@rec.Reason</span>
+                                }
+                            </a>
+                        </li>
+                    }
+                </ul>
+            }
+        }
+    }
+    else
+    {
+        @* Pre-check-in: teaser + flat unsorted menu (Sprint 5 spec). *@
+        @if (User.IsSignedIn)
+        {
+            <div class="bb-checkin-teaser" data-testid="checkin-teaser">
+                <span aria-hidden="true"><Icon Name="lock" Size="22" /></span>
+                <p>Check in to see this menu sorted for you.</p>
+                @if (_checkinError is not null)
+                {
+                    <p class="bb-form__error" role="alert">@_checkinError</p>
+                }
+                <button type="button" class="bb-btn bb-btn--primary" disabled="@_busy"
+                        data-testid="checkin-button" @onclick="CheckinAsync">
+                    <Icon Name="map-pin-check" Size="16" /> Check in
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="bb-checkin-teaser" data-testid="checkin-teaser">
+                <span aria-hidden="true"><Icon Name="lock" Size="22" /></span>
+                <p>Sign in and check in to see this menu sorted for you.</p>
+                <a class="bb-btn bb-btn--primary" href="/signup">Get started</a>
+            </div>
+        }
+
+        @if (_flatMenu is null)
+        {
+            <p class="bb-muted">Loading menu…</p>
+        }
+        else if (_flatMenu.Count == 0)
+        {
+            <p class="bb-muted" data-testid="menu-empty">No menu yet — be the first to add what's on tap.</p>
+        }
+        else
+        {
+            <ul class="bb-rec-list" data-testid="flat-menu">
+                @foreach (var item in _flatMenu.Where(i => i.IsAvailable))
+                {
+                    <li>
+                        <a class="bb-rec-card bb-rec-card--pour" href="/drinks/@item.DrinkId" data-testid="menu-item">
+                            <span class="bb-rec-card__top">
+                                <span class="bb-rec-card__name">@item.DrinkName</span>
+                                @if (item.Price is { } price)
+                                {
+                                    <span class="bb-venue-price">$@price.ToString("0.##")</span>
+                                }
+                            </span>
+                            <span class="bb-rec-card__detail">
+                                @item.ProducerName · @(item.StyleName ?? Cap(item.Category))@(item.Abv is { } abv ? $" · {abv:0.#}%" : "")
+                            </span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        }
+    }
+
+    @* Wiki: add to menu (any signed-in account; rate-limited server-side). *@
+    @if (User.IsSignedIn)
+    {
+        <div class="bb-card bb-menu-add" data-testid="menu-add">
+            @if (!_addingMenuItem)
+            {
+                <button type="button" class="bb-btn" data-testid="menu-add-open"
+                        @onclick="() => _addingMenuItem = true">Add a drink to this menu</button>
+            }
+            else
+            {
+                <h2>Add to menu</h2>
+                <div class="bb-form">
+                    <label for="menu-search">Find the drink</label>
+                    <input id="menu-search" value="@_search" @oninput="OnSearchInput"
+                           placeholder="Drink or brewery name" autocomplete="off"
+                           data-testid="menu-add-search" />
+
+                    @if (_searchResults is { Count: > 0 })
+                    {
+                        <ul class="bb-menu-picker" data-testid="menu-add-results">
+                            @foreach (var hit in _searchResults)
+                            {
+                                <li>
+                                    <button type="button" class="bb-menu-picker__item @(hit.Id == _pickedDrink?.Id ? "is-active" : "")"
+                                            @onclick="() => _pickedDrink = hit">
+                                        @hit.Name <span class="bb-muted">· @hit.ProducerName</span>
+                                    </button>
+                                </li>
+                            }
+                        </ul>
+                    }
+
+                    <label for="menu-price">Price (optional)</label>
+                    <input id="menu-price" type="number" step="0.5" min="0" @bind="_price"
+                           data-testid="menu-add-price" />
+
+                    @if (_menuAddError is not null)
+                    {
+                        <p class="bb-form__error" role="alert" data-testid="menu-add-error">@_menuAddError</p>
+                    }
+                    <button type="button" class="bb-btn bb-btn--primary"
+                            disabled="@(_pickedDrink is null || _busy)"
+                            data-testid="menu-add-submit" @onclick="AddMenuItemAsync">Add it</button>
+                    <button type="button" class="bb-btn" @onclick="() => _addingMenuItem = false">Done</button>
+                </div>
+            }
+        </div>
+    }
+
+    @if (_page.RecentActivity.Count > 0)
+    {
+        <h2>Recent here</h2>
+        <ul class="bb-venue-activity" data-testid="venue-activity">
+            @foreach (var activity in _page.RecentActivity)
+            {
+                <li>
+                    <span>@@@activity.Handle rated <strong>@activity.DrinkName</strong></span>
+                    <span class="bb-venue-activity__value">@activity.Value.ToString("0.#")★</span>
+                </li>
+            }
+        </ul>
+    }
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private VenuePageDto? _page;
+    private List<MenuItemDto>? _flatMenu;
+    private PersonalizedMenuResponse? _menu;
+    private bool _checked;
+    private bool _notFound;
+    private bool _busy;
+    private string? _checkinError;
+    private string _activeShelf = "favorites";
+
+    private bool _addingMenuItem;
+    private string _search = "";
+    private List<DrinkSummary>? _searchResults;
+    private DrinkSummary? _pickedDrink;
+    private decimal? _price;
+    private string? _menuAddError;
+
+    private bool CheckedInHere => _page is { CheckedInHere: true };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await User.EnsureLoadedAsync();
+        await LoadAsync();
+        _checked = true;
+    }
+
+    private async Task LoadAsync()
+    {
+        _notFound = false;
+        var response = await Http.GetAsync($"api/venues/{Id}");
+        if (!response.IsSuccessStatusCode)
+        {
+            _notFound = true;
+            return;
+        }
+        _page = await response.Content.ReadFromJsonAsync<VenuePageDto>();
+
+        // The QR deep link may carry a merged id; land on the canonical page.
+        if (_page is not null && _page.Venue.Id != Id)
+        {
+            Nav.NavigateTo($"/venues/{_page.Venue.Id}", replace: true);
+            return;
+        }
+
+        // Menu loads degrade to an empty state — a failed fetch must not take
+        // the whole page down (the Blazor error banner is a dead end).
+        if (CheckedInHere)
+        {
+            try
+            {
+                var menuResponse = await Http.GetAsync($"api/venues/{Id}/menu/personalized");
+                _menu = menuResponse.IsSuccessStatusCode
+                    ? await menuResponse.Content.ReadFromJsonAsync<PersonalizedMenuResponse>()
+                    : null;
+            }
+            catch { _menu = null; }
+            if (_menu is { Shelves.Count: > 0 } && _menu.Shelves.All(s => s.Key != _activeShelf))
+                _activeShelf = _menu.Shelves[0].Key;
+        }
+        else
+        {
+            try
+            {
+                _flatMenu = await Http.GetFromJsonAsync<List<MenuItemDto>>($"api/venues/{Id}/menu") ?? [];
+            }
+            catch { _flatMenu = []; }
+        }
+    }
+
+    private async Task CheckinAsync()
+    {
+        _checkinError = null;
+        _busy = true;
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/checkins", new CheckinRequest(Id));
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadAsync();
+            }
+            else
+            {
+                var error = await ApiErrors.ReadAsync(response);
+                _checkinError = error?.Message ?? "Something went wrong — try again.";
+            }
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        _search = e.Value?.ToString() ?? "";
+        await SearchAsync();
+    }
+
+    private async Task SearchAsync()
+    {
+        var q = _search.Trim();
+        if (q.Length < 2) { _searchResults = null; return; }
+        try
+        {
+            _searchResults = await Http.GetFromJsonAsync<List<DrinkSummary>>(
+                $"api/catalog/search?q={Uri.EscapeDataString(q)}&limit=8");
+        }
+        catch { _searchResults = null; }
+    }
+
+    private async Task AddMenuItemAsync()
+    {
+        if (_pickedDrink is null) return;
+        _menuAddError = null;
+        _busy = true;
+        try
+        {
+            var response = await Http.PostAsJsonAsync($"api/venues/{Id}/menu",
+                new MenuItemAddRequest(_pickedDrink.Id, _price));
+            if (response.IsSuccessStatusCode)
+            {
+                _pickedDrink = null;
+                _search = "";
+                _searchResults = null;
+                _price = null;
+                await LoadAsync();
+            }
+            else
+            {
+                var error = await ApiErrors.ReadAsync(response);
+                _menuAddError = error?.Message ?? "Something went wrong — try again.";
+            }
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    /// <summary>Design ref: Favorites + New for you underline amber; others teal.</summary>
+    private static bool AmberShelf(string key) => key is "favorites" or "new_for_you";
+
+    private static string Cap(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s[1..];
+}

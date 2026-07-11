@@ -25,6 +25,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<EventRecord> Events => Set<EventRecord>();
 
     public DbSet<Venue> Venues => Set<Venue>();
+    public DbSet<VenueMenuItem> VenueMenuItems => Set<VenueMenuItem>();
+    public DbSet<Checkin> Checkins => Set<Checkin>();
     public DbSet<Rating> Ratings => Set<Rating>();
     public DbSet<UserCategoryInterest> UserCategoryInterests => Set<UserCategoryInterest>();
     public DbSet<UserPalateProfile> UserPalateProfiles => Set<UserPalateProfile>();
@@ -127,17 +129,110 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 // it can never leak into discovery.
                 t.HasCheckConstraint("ck_venues_home_bar_private",
                     "\"VenueType\" <> 'home_bar' OR (\"OwnerUserId\" IS NOT NULL AND \"Visibility\" = 'private')");
+                // Tier exists exactly for public venues (wiki default;
+                // verified is admin-set — no billing anywhere, Sprint 5 spec).
+                t.HasCheckConstraint("ck_venues_tier",
+                    "\"Tier\" IS NULL OR \"Tier\" IN ('wiki','verified')");
+                t.HasCheckConstraint("ck_venues_tier_pairing",
+                    "(\"VenueType\" = 'venue') = (\"Tier\" IS NOT NULL)");
+                // Geo comes as a pair, in range — and NEVER on a Home Bar
+                // (it would be the user's home coordinates; privacy posture).
+                t.HasCheckConstraint("ck_venues_geo_pairing",
+                    "(\"Latitude\" IS NULL) = (\"Longitude\" IS NULL)");
+                t.HasCheckConstraint("ck_venues_geo_range",
+                    "(\"Latitude\" IS NULL OR (\"Latitude\" >= -90 AND \"Latitude\" <= 90))" +
+                    " AND (\"Longitude\" IS NULL OR (\"Longitude\" >= -180 AND \"Longitude\" <= 180))");
+                t.HasCheckConstraint("ck_venues_home_bar_no_geo",
+                    "\"VenueType\" <> 'home_bar' OR (\"Latitude\" IS NULL AND \"Address\" IS NULL)");
+                // Merge lifecycle mirrors producers; Home Bars never merge.
+                t.HasCheckConstraint("ck_venues_status",
+                    "\"Status\" IN ('active','merged')");
+                t.HasCheckConstraint("ck_venues_merge_pairing",
+                    "(\"Status\" = 'merged') = (\"MergedIntoVenueId\" IS NOT NULL)");
+                t.HasCheckConstraint("ck_venues_no_self_merge",
+                    "\"MergedIntoVenueId\" IS NULL OR \"MergedIntoVenueId\" <> \"Id\"");
+                t.HasCheckConstraint("ck_venues_home_bar_never_merged",
+                    "\"VenueType\" <> 'home_bar' OR \"Status\" = 'active'");
             });
             e.HasKey(v => v.Id);
             e.Property(v => v.Name).HasMaxLength(128).IsRequired();
+            e.Property(v => v.NormalizedName).HasMaxLength(128).IsRequired();
             e.Property(v => v.VenueType).HasMaxLength(16).IsRequired();
+            e.Property(v => v.Tier).HasMaxLength(16);
+            e.Property(v => v.Address).HasMaxLength(256);
+            e.Property(v => v.Hours).HasMaxLength(256);
             e.Property(v => v.Visibility).HasMaxLength(16);
+            e.Property(v => v.Status).HasMaxLength(16);
             e.HasOne(v => v.Owner).WithMany()
                 .HasForeignKey(v => v.OwnerUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(v => v.CreatedBy).WithMany()
+                .HasForeignKey(v => v.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(v => v.MergedInto).WithMany()
+                .HasForeignKey(v => v.MergedIntoVenueId).OnDelete(DeleteBehavior.Restrict);
             // Exactly one Home Bar per user, guaranteed by the database.
             e.HasIndex(v => v.OwnerUserId).IsUnique()
                 .HasFilter("\"VenueType\" = 'home_bar'")
                 .HasDatabaseName("ux_venues_one_home_bar_per_user");
+            // Fuzzy dedupe/search over PUBLIC venues only — thousands of
+            // identically-named Home Bars would be pure trigram noise.
+            e.HasIndex(v => v.NormalizedName).HasMethod("gin").HasOperators("gin_trgm_ops")
+                .HasFilter("\"VenueType\" = 'venue'")
+                .HasDatabaseName("ix_venues_normalized_name_trgm");
+        });
+
+        modelBuilder.Entity<VenueMenuItem>(e =>
+        {
+            e.ToTable("venue_menu_items", t =>
+            {
+                t.HasCheckConstraint("ck_venue_menu_items_source",
+                    "\"Source\" IN ('crowd','venue')");
+                t.HasCheckConstraint("ck_venue_menu_items_price",
+                    "\"Price\" IS NULL OR \"Price\" >= 0");
+                t.HasCheckConstraint("ck_venue_menu_items_visibility",
+                    "\"Visibility\" IN ('public','private')");
+                t.HasCheckConstraint("ck_venue_menu_items_owner_visibility",
+                    "\"CreatedByUserId\" IS NOT NULL OR \"Visibility\" = 'public'");
+            });
+            e.HasKey(mi => mi.Id);
+            e.Property(mi => mi.Price).HasPrecision(6, 2);
+            e.Property(mi => mi.Source).HasMaxLength(16).IsRequired();
+            e.Property(mi => mi.Visibility).HasMaxLength(16);
+            // Menu rows die with their venue; drinks in use can't be deleted.
+            e.HasOne(mi => mi.Venue).WithMany()
+                .HasForeignKey(mi => mi.VenueId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(mi => mi.Drink).WithMany()
+                .HasForeignKey(mi => mi.DrinkId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(mi => mi.CreatedBy).WithMany()
+                .HasForeignKey(mi => mi.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+            // One menu row per (venue, drink); venue merges dedupe on move.
+            e.HasIndex(mi => new { mi.VenueId, mi.DrinkId }).IsUnique()
+                .HasDatabaseName("ux_venue_menu_items_venue_drink");
+            e.HasIndex(mi => mi.DrinkId);
+        });
+
+        modelBuilder.Entity<Checkin>(e =>
+        {
+            e.ToTable("checkins", t =>
+            {
+                t.HasCheckConstraint("ck_checkins_window",
+                    "\"ExpiresAt\" > \"CreatedAt\"");
+                t.HasCheckConstraint("ck_checkins_ended",
+                    "\"EndedAt\" IS NULL OR \"EndedAt\" >= \"CreatedAt\"");
+            });
+            e.HasKey(c => c.Id);
+            e.HasOne(c => c.User).WithMany()
+                .HasForeignKey(c => c.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(c => c.Venue).WithMany()
+                .HasForeignKey(c => c.VenueId).OnDelete(DeleteBehavior.Restrict);
+            // At most one OPEN check-in per user (ADR-015: check-in is THE
+            // session primitive) — the service ends the old one first, the
+            // database refuses a second either way.
+            e.HasIndex(c => c.UserId).IsUnique()
+                .HasFilter("\"EndedAt\" IS NULL")
+                .HasDatabaseName("ux_checkins_one_open_per_user");
+            // Venue recent activity, newest first.
+            e.HasIndex(c => new { c.VenueId, c.CreatedAt })
+                .HasDatabaseName("ix_checkins_venue_recent");
         });
 
         modelBuilder.Entity<Rating>(e =>
@@ -454,18 +549,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.ToTable("merge_queue", t =>
             {
                 t.HasCheckConstraint("ck_merge_queue_entity_type",
-                    "\"EntityType\" IN ('producer','drink')");
+                    "\"EntityType\" IN ('producer','drink','venue')");
                 t.HasCheckConstraint("ck_merge_queue_status",
                     "\"Status\" IN ('pending','approved','rejected')");
                 t.HasCheckConstraint("ck_merge_queue_similarity",
                     "\"Similarity\" >= 0 AND \"Similarity\" <= 1");
                 // Exactly the FK pair matching EntityType is populated.
                 t.HasCheckConstraint("ck_merge_queue_typed_pair",
-                    "(\"EntityType\" = 'producer' AND \"SourceProducerId\" IS NOT NULL AND \"TargetProducerId\" IS NOT NULL AND \"SourceDrinkId\" IS NULL AND \"TargetDrinkId\" IS NULL)" +
-                    " OR (\"EntityType\" = 'drink' AND \"SourceDrinkId\" IS NOT NULL AND \"TargetDrinkId\" IS NOT NULL AND \"SourceProducerId\" IS NULL AND \"TargetProducerId\" IS NULL)");
+                    "(\"EntityType\" = 'producer' AND \"SourceProducerId\" IS NOT NULL AND \"TargetProducerId\" IS NOT NULL AND \"SourceDrinkId\" IS NULL AND \"TargetDrinkId\" IS NULL AND \"SourceVenueId\" IS NULL AND \"TargetVenueId\" IS NULL)" +
+                    " OR (\"EntityType\" = 'drink' AND \"SourceDrinkId\" IS NOT NULL AND \"TargetDrinkId\" IS NOT NULL AND \"SourceProducerId\" IS NULL AND \"TargetProducerId\" IS NULL AND \"SourceVenueId\" IS NULL AND \"TargetVenueId\" IS NULL)" +
+                    " OR (\"EntityType\" = 'venue' AND \"SourceVenueId\" IS NOT NULL AND \"TargetVenueId\" IS NOT NULL AND \"SourceProducerId\" IS NULL AND \"TargetProducerId\" IS NULL AND \"SourceDrinkId\" IS NULL AND \"TargetDrinkId\" IS NULL)");
                 t.HasCheckConstraint("ck_merge_queue_distinct_pair",
                     "(\"SourceProducerId\" IS NULL OR \"SourceProducerId\" <> \"TargetProducerId\")" +
-                    " AND (\"SourceDrinkId\" IS NULL OR \"SourceDrinkId\" <> \"TargetDrinkId\")");
+                    " AND (\"SourceDrinkId\" IS NULL OR \"SourceDrinkId\" <> \"TargetDrinkId\")" +
+                    " AND (\"SourceVenueId\" IS NULL OR \"SourceVenueId\" <> \"TargetVenueId\")");
                 t.HasCheckConstraint("ck_merge_queue_decision",
                     "(\"Status\" = 'pending') = (\"DecidedAt\" IS NULL)");
             });
@@ -483,11 +580,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasForeignKey(m => m.SourceDrinkId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(m => m.TargetDrink).WithMany()
                 .HasForeignKey(m => m.TargetDrinkId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(m => m.SourceVenue).WithMany()
+                .HasForeignKey(m => m.SourceVenueId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(m => m.TargetVenue).WithMany()
+                .HasForeignKey(m => m.TargetVenueId).OnDelete(DeleteBehavior.Cascade);
 
             e.HasIndex(m => new { m.Status, m.CreatedAt });
             // One PENDING candidate per exact pair (generator canonicalizes
             // pair order, so symmetric dupes don't arise).
-            e.HasIndex(m => new { m.EntityType, m.SourceProducerId, m.TargetProducerId, m.SourceDrinkId, m.TargetDrinkId })
+            e.HasIndex(m => new { m.EntityType, m.SourceProducerId, m.TargetProducerId, m.SourceDrinkId, m.TargetDrinkId, m.SourceVenueId, m.TargetVenueId })
                 .IsUnique()
                 .HasFilter("\"Status\" = 'pending'")
                 .HasDatabaseName("ux_merge_queue_pending_pair");

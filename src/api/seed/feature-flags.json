@@ -253,5 +253,40 @@
     "key": "catalog.seed_override_confidence_pct",
     "value": "80",
     "description": "Default confidence (percent, 0-100) for editorial attribute overrides in product-seed files (source='moderator', ADR-028) when the file declares no attributeConfidence of its own."
+  },
+  {
+    "key": "checkin.expiry_hours",
+    "value": "4",
+    "description": "Hours a check-in stays active before it expires (ADR-015 session window; founder ruling 2026-07-10). Checking in elsewhere ends the previous one immediately."
+  },
+  {
+    "key": "venues.add_per_day",
+    "value": "5",
+    "description": "Wiki rate limit: venues one account may add per rolling 24h (Sprint 5 spec)."
+  },
+  {
+    "key": "venues.menu_edits_per_day",
+    "value": "40",
+    "description": "Wiki rate limit: menu-item adds/edits/confirms one account may make per rolling 24h (Sprint 5 spec)."
+  },
+  {
+    "key": "catalog.merge_threshold_venue_pct",
+    "value": "55",
+    "description": "Minimum pg_trgm name similarity (percent) for a public-venue pair to enter the merge queue (mirrors the producer threshold)."
+  },
+  {
+    "key": "venues.dedupe_radius_m",
+    "value": "200",
+    "description": "Geo gate for venue dedupe candidates: name-similar pairs only queue when within this many meters (pairs where either side lacks geo still queue on name alone)."
+  },
+  {
+    "key": "menu.favorites_min",
+    "value": "4.0",
+    "description": "Minimum latest rating for a menu drink to shelve as a Favorite (four-shelf mapping, founder ruling 2026-07-10)."
+  },
+  {
+    "key": "menu.new_for_you_share_pct",
+    "value": "50",
+    "description": "Of unrated, unfamiliar menu drinks ranked by palate similarity, the closest X percent shelve as New for You; the rest as Adventurous."
   }
 ]

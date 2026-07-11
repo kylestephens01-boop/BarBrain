@@ -17,6 +17,8 @@ public sealed class MergeService(AppDbContext db, ISettingsService settings, ILo
     /// <summary>Config flags (Hard Rule 10): similarity thresholds in percent.</summary>
     public const string ProducerThresholdFlag = "catalog.merge_threshold_producer_pct";
     public const string DrinkThresholdFlag = "catalog.merge_threshold_drink_pct";
+    public const string VenueThresholdFlag = "catalog.merge_threshold_venue_pct";
+    public const string VenueRadiusFlag = "venues.dedupe_radius_m";
 
     private sealed class CandidateRow
     {
@@ -121,6 +123,62 @@ public sealed class MergeService(AppDbContext db, ISettingsService settings, ILo
     }
 
     /// <summary>
+    /// Venue dedupe (Sprint 5 spec): name-trigram similarity gated by geo
+    /// proximity — a name-similar pair only queues when the venues sit within
+    /// the configured radius of each other (or either side lacks geo, where
+    /// distance can't clear them). Public venue-type venues only; Home Bars
+    /// never participate. Pass <paramref name="onlyVenueId"/> to scan one
+    /// venue against the rest (the wiki add-venue flow).
+    /// </summary>
+    public async Task<int> GenerateVenueCandidatesAsync(
+        Guid? onlyVenueId = null, CancellationToken ct = default)
+    {
+        var threshold = await settings.GetIntAsync(VenueThresholdFlag, 55, ct) / 100f;
+        var radiusM = await settings.GetIntAsync(VenueRadiusFlag, 200, ct);
+
+        // Haversine via earth radius 6371km; venues are corridor-scale so the
+        // spherical approximation is far below the dedupe radius tolerance.
+        var rows = await db.Database.SqlQuery<CandidateRow>($"""
+            SELECT a."Id" AS "SourceId", b."Id" AS "TargetId",
+                   similarity(a."NormalizedName", b."NormalizedName") AS "Sim",
+                   FALSE AS "SameProducer", NULL::numeric AS "AbvDelta"
+            FROM venues a
+            JOIN venues b
+              ON (a."CreatedAt", a."Id") > (b."CreatedAt", b."Id")
+             AND a."NormalizedName" % b."NormalizedName"
+            WHERE a."VenueType" = 'venue' AND b."VenueType" = 'venue'
+              AND a."Status" = 'active' AND b."Status" = 'active'
+              AND ({onlyVenueId}::uuid IS NULL OR a."Id" = {onlyVenueId} OR b."Id" = {onlyVenueId})
+              AND similarity(a."NormalizedName", b."NormalizedName") >= {threshold}
+              AND (a."Latitude" IS NULL OR b."Latitude" IS NULL
+                   OR 6371000 * 2 * asin(sqrt(
+                        pow(sin(radians(b."Latitude" - a."Latitude") / 2), 2)
+                        + cos(radians(a."Latitude")) * cos(radians(b."Latitude"))
+                          * pow(sin(radians(b."Longitude" - a."Longitude") / 2), 2)))
+                      <= {radiusM})
+              AND NOT EXISTS (
+                    SELECT 1 FROM merge_queue m
+                    WHERE (m."SourceVenueId" = a."Id" AND m."TargetVenueId" = b."Id")
+                       OR (m."SourceVenueId" = b."Id" AND m."TargetVenueId" = a."Id"))
+            """).ToListAsync(ct);
+
+        foreach (var row in rows)
+        {
+            db.MergeQueue.Add(new MergeCandidate
+            {
+                EntityType = MergeEntityType.Venue,
+                SourceVenueId = row.SourceId,
+                TargetVenueId = row.TargetId,
+                Similarity = row.Sim,
+                Reason = $"name similarity {row.Sim:0.00}; within {radiusM}m or geo unknown",
+            });
+        }
+
+        await db.SaveChangesAsync(ct);
+        return rows.Count;
+    }
+
+    /// <summary>
     /// Approves a candidate: SOURCE becomes a redirect to TARGET. Producer
     /// merges repoint the source's drinks to the target producer; a drink that
     /// would collide with the target's canonical identity stays on the merged
@@ -147,8 +205,10 @@ public sealed class MergeService(AppDbContext db, ISettingsService settings, ILo
 
             if (candidate.EntityType == MergeEntityType.Producer)
                 await ApproveProducerMergeAsync(candidate, ct);
-            else
+            else if (candidate.EntityType == MergeEntityType.Drink)
                 await ApproveDrinkMergeAsync(candidate, ct);
+            else
+                await ApproveVenueMergeAsync(candidate, ct);
 
             candidate.Status = MergeStatus.Approved;
             candidate.DecidedAt = DateTimeOffset.UtcNow;
@@ -263,18 +323,76 @@ public sealed class MergeService(AppDbContext db, ISettingsService settings, ILo
         source.UpdatedAt = DateTimeOffset.UtcNow;
     }
 
+    /// <summary>
+    /// Venue merge (Sprint 5 spec: "merge preserves menus"): menu items move
+    /// to the survivor unless it already lists the drink (its own row wins);
+    /// check-ins and venue-tagged ratings repoint so history follows the one
+    /// real-world place; the source becomes a redirect.
+    /// </summary>
+    private async Task ApproveVenueMergeAsync(MergeCandidate candidate, CancellationToken ct)
+    {
+        var source = await db.Venues.FirstAsync(v => v.Id == candidate.SourceVenueId, ct);
+        var target = await db.Venues.FirstAsync(v => v.Id == candidate.TargetVenueId, ct);
+        EnsureActive(source, target);
+
+        var targetDrinkIds = await db.VenueMenuItems
+            .Where(mi => mi.VenueId == target.Id)
+            .Select(mi => mi.DrinkId)
+            .ToListAsync(ct);
+        var taken = targetDrinkIds.ToHashSet();
+
+        var sourceItems = await db.VenueMenuItems
+            .Where(mi => mi.VenueId == source.Id)
+            .ToListAsync(ct);
+        foreach (var item in sourceItems)
+        {
+            if (taken.Add(item.DrinkId))
+            {
+                item.VenueId = target.Id;
+                item.UpdatedAt = DateTimeOffset.UtcNow;
+            }
+            else
+            {
+                db.VenueMenuItems.Remove(item); // duplicate listing; survivor's row wins
+            }
+        }
+
+        // The survivor keeps its own fields; it only absorbs what it lacks.
+        // Geo moves as a pair (ck_venues_geo_pairing).
+        if (target.Latitude is null && source.Latitude is not null)
+        {
+            target.Latitude = source.Latitude;
+            target.Longitude = source.Longitude;
+        }
+        target.Address ??= source.Address;
+        target.Hours ??= source.Hours;
+
+        await db.Checkins
+            .Where(c => c.VenueId == source.Id)
+            .ExecuteUpdateAsync(s => s.SetProperty(c => c.VenueId, target.Id), ct);
+        await db.Ratings
+            .Where(r => r.VenueId == source.Id)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.VenueId, target.Id), ct);
+
+        source.Status = EntityStatus.Merged;
+        source.MergedIntoVenueId = target.Id;
+    }
+
     private async Task SupersedePendingForMergedSourceAsync(
         MergeCandidate approved, string actor, CancellationToken ct)
     {
         var mergedProducerId = approved.SourceProducerId;
         var mergedDrinkId = approved.SourceDrinkId;
+        var mergedVenueId = approved.SourceVenueId;
 
         var stale = await db.MergeQueue.Where(m =>
                 m.Id != approved.Id
                 && m.Status == MergeStatus.Pending
                 && (mergedProducerId != null
                         ? (m.SourceProducerId == mergedProducerId || m.TargetProducerId == mergedProducerId)
-                        : (m.SourceDrinkId == mergedDrinkId || m.TargetDrinkId == mergedDrinkId)))
+                        : mergedDrinkId != null
+                            ? (m.SourceDrinkId == mergedDrinkId || m.TargetDrinkId == mergedDrinkId)
+                            : (m.SourceVenueId == mergedVenueId || m.TargetVenueId == mergedVenueId)))
             .ToListAsync(ct);
 
         foreach (var candidate in stale)
@@ -293,12 +411,14 @@ public sealed class MergeService(AppDbContext db, ISettingsService settings, ILo
         {
             Producer p => p.Status,
             Drink d => d.Status,
+            Venue v => v.Status,
             _ => throw new InvalidOperationException("Unexpected entity."),
         };
         var targetStatus = target switch
         {
             Producer p => p.Status,
             Drink d => d.Status,
+            Venue v => v.Status,
             _ => throw new InvalidOperationException("Unexpected entity."),
         };
         if (sourceStatus != EntityStatus.Active || targetStatus != EntityStatus.Active)

@@ -827,6 +827,154 @@ code {
 /* Social proof: surfaced by palate matches → intelligence, teal. */
 .bb-rec-card__social { color: var(--bb-synapse); font-size: 11px; line-height: 15px; }
 
+/* --- Venues (design-ref Screen 5) ------------------------------------------------ */
+.bb-venue-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.bb-venue-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bb-surface);
+  border-radius: var(--bb-radius);
+  padding: 12px 14px;
+  color: var(--bb-coaster);
+  text-decoration: none;
+  min-height: 44px;
+}
+.bb-venue-card:hover { text-decoration: none; filter: brightness(1.08); }
+.bb-venue-card__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--bb-pour-tint); /* the place serves beverages → amber tint */
+  color: var(--bb-pour);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+.bb-venue-card__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.bb-venue-card__name { font-weight: var(--bb-fw-medium); font-size: 15px; }
+.bb-venue-card__meta {
+  color: var(--bb-text-muted);
+  font-size: 11px;
+  line-height: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.bb-venue-card__distance {
+  font-family: var(--bb-font-display);
+  font-size: 12px;
+  color: var(--bb-text-muted);
+  flex: 0 0 auto;
+}
+/* Verified = trust signal from US (intelligence) → teal. */
+.bb-badge-verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--bb-synapse-tint);
+  color: var(--bb-synapse);
+  font-size: 10px;
+  line-height: 15px;
+  font-weight: var(--bb-fw-medium);
+}
+
+.bb-venue-header { display: flex; align-items: center; gap: 10px; }
+.bb-venue-header h1 { margin: 0; }
+.bb-venue-info { display: flex; gap: 12px; margin: 12px 0; align-items: flex-start; }
+.bb-venue-info p { margin: 0 0 2px; }
+.bb-venue-info__meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; }
+.bb-venue-info__wiki { color: var(--bb-text-muted); font-style: italic; font-size: 11px; }
+
+/* Pre-check-in teaser: unlocking INTELLIGENCE → dashed teal (design ref). */
+.bb-checkin-teaser {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  border: 1.5px dashed var(--bb-synapse);
+  border-radius: var(--bb-radius);
+  padding: 18px 16px;
+  margin: 14px 0;
+  color: var(--bb-coaster);
+}
+.bb-checkin-teaser > span { color: var(--bb-synapse); }
+.bb-checkin-teaser p { margin: 0; }
+
+/* Checked-in banner: the engine is now working for you → teal gradient. */
+.bb-checkin-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: var(--bb-radius);
+  background: linear-gradient(135deg, var(--bb-synapse-tint), rgba(70, 192, 176, 0.04));
+  border: 1px solid var(--bb-synapse-tint);
+  padding: 12px 14px;
+  margin: 14px 0;
+}
+.bb-checkin-banner__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bb-synapse);
+  color: var(--bb-ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+/* Price is a fact about the beverage listing, not intelligence — plain text. */
+.bb-venue-price {
+  font-family: var(--bb-font-display);
+  font-size: 12px;
+  color: var(--bb-coaster);
+  flex: 0 0 auto;
+}
+
+.bb-menu-picker { list-style: none; margin: 4px 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.bb-menu-picker__item {
+  width: 100%;
+  text-align: left;
+  background: var(--bb-surface);
+  border: 1px solid var(--bb-hairline);
+  border-radius: 8px;
+  color: var(--bb-coaster);
+  padding: 10px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  min-height: 44px;
+}
+.bb-menu-picker__item.is-active { border-color: var(--bb-synapse); }
+
+.bb-venue-activity { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.bb-venue-activity li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--bb-surface);
+  border-radius: var(--bb-radius);
+  padding: 10px 14px;
+  font-size: 12px;
+}
+.bb-venue-activity__value { color: var(--bb-pour); font-family: var(--bb-font-display); }
+
+.bb-venue-add { margin-top: 16px; }
+.bb-menu-add { margin-top: 16px; }
+.bb-qr-prompt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+.bb-qr-prompt > span { color: var(--bb-text-muted); flex: 0 0 auto; }
+.bb-qr-prompt p { margin: 0; }
+
 /* --- Matches ------------------------------------------------------------------ */
 .bb-match-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .bb-match-early { color: var(--bb-text-muted); font-size: 10px; line-height: 14px; }

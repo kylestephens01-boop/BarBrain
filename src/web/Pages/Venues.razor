@@ -1,9 +1,184 @@
 @page "/venues"
+@using BarBrain.Web.Components
+@using BarBrain.Web.Services
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject UserState User
 
-<PageTitle>Venues — BarBrain</PageTitle>
+<PageTitle>Venues nearby — BarBrain</PageTitle>
 
-<h1>Venues</h1>
-<div class="bb-card">
-    <p>Venue check-ins and menus sorted for your palate arrive in Sprint 5.</p>
-    <p class="bb-muted">For now, ratings can be tagged to your private Home Bar.</p>
+<h1>Venues nearby</h1>
+<p class="bb-muted">
+    @(_hasGeo ? "Sorted by distance." : "Name order — allow location for distance sorting.")
+</p>
+
+<div class="bb-search-bar">
+    <Icon Name="search" Size="18" Class="bb-search-bar__icon" />
+    <label for="venue-filter" class="visually-hidden">Filter venues</label>
+    <input id="venue-filter" type="search" placeholder="Filter venues"
+           @bind="_filter" @bind:event="oninput" data-testid="venue-filter" />
 </div>
+
+@if (_venues is null)
+{
+    <p class="bb-muted">Loading…</p>
+}
+else if (Filtered.Count == 0)
+{
+    <p class="bb-muted" data-testid="venue-empty">
+        @(_venues.Count == 0 ? "No venues yet — add the first one below." : "Nothing matches that filter.")
+    </p>
+}
+else
+{
+    <ul class="bb-venue-list" data-testid="venue-list">
+        @foreach (var venue in Filtered)
+        {
+            <li>
+                <a class="bb-venue-card" href="/venues/@venue.Id" data-testid="venue-card">
+                    @* The place serves BEVERAGES → amber icon box (grammar). *@
+                    <span class="bb-venue-card__icon" aria-hidden="true"><Icon Name="beer" Size="20" /></span>
+                    <span class="bb-venue-card__body">
+                        <span class="bb-venue-card__name">@venue.Name</span>
+                        <span class="bb-venue-card__meta">
+                            @(venue.MenuCount == 1 ? "1 drink listed" : $"{venue.MenuCount} drinks listed")
+                            @if (venue.Tier == "verified")
+                            {
+                                <span class="bb-badge-verified" data-testid="venue-verified">
+                                    <Icon Name="circle-check" Size="12" /> Verified menu
+                                </span>
+                            }
+                        </span>
+                    </span>
+                    @if (venue.DistanceKm is { } km)
+                    {
+                        <span class="bb-venue-card__distance" data-testid="venue-distance">@km.ToString("0.#") km</span>
+                    }
+                </a>
+            </li>
+        }
+    </ul>
+}
+
+@if (User.IsSignedIn)
+{
+    <div class="bb-card bb-venue-add" data-testid="venue-add">
+        @if (!_adding)
+        {
+            <p>Somewhere missing? Venues are community-added.</p>
+            <button type="button" class="bb-btn" data-testid="venue-add-open"
+                    @onclick="() => _adding = true">Add a venue</button>
+        }
+        else
+        {
+            <h2>Add a venue</h2>
+            <form class="bb-form" @onsubmit="AddVenueAsync" @onsubmit:preventDefault>
+                <label for="venue-name">Name</label>
+                <input id="venue-name" @bind="_newName" required minlength="2" maxlength="128"
+                       data-testid="venue-add-name" />
+
+                <label for="venue-address">Address (optional)</label>
+                <input id="venue-address" @bind="_newAddress" maxlength="256"
+                       data-testid="venue-add-address" />
+
+                <label for="venue-hours">Hours (optional, e.g. "Tue–Sat 4pm–close")</label>
+                <input id="venue-hours" @bind="_newHours" maxlength="256" />
+
+                <p class="bb-muted">
+                    @(_hasGeo ? "Your current location will be attached." : "No location attached — the venue still lists, just without distance.")
+                </p>
+                @if (_addError is not null)
+                {
+                    <p class="bb-form__error" role="alert" data-testid="venue-add-error">@_addError</p>
+                }
+                <button type="submit" class="bb-btn bb-btn--primary" disabled="@_busy"
+                        data-testid="venue-add-submit">Add venue</button>
+                <button type="button" class="bb-btn" @onclick="() => _adding = false">Cancel</button>
+            </form>
+        }
+    </div>
+}
+
+<div class="bb-card bb-qr-prompt">
+    <span aria-hidden="true"><Icon Name="qrcode" Size="28" /></span>
+    <p class="bb-muted">See a BarBrain code on the bar? Scan it to open that venue's menu, sorted to your taste once you check in.</p>
+</div>
+
+@code {
+    private List<NearbyVenueDto>? _venues;
+    private bool _hasGeo;
+    private string _filter = "";
+    private bool _adding;
+    private bool _busy;
+    private string _newName = "";
+    private string _newAddress = "";
+    private string _newHours = "";
+    private string? _addError;
+    private double? _lat;
+    private double? _lng;
+
+    private List<NearbyVenueDto> Filtered =>
+        _venues is null ? [] :
+        string.IsNullOrWhiteSpace(_filter)
+            ? _venues
+            : _venues.Where(v => v.Name.Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await User.EnsureLoadedAsync();
+        try
+        {
+            var geo = await JS.InvokeAsync<GeoPoint?>("bbGetLocation");
+            if (geo is not null) { _lat = geo.Lat; _lng = geo.Lng; _hasGeo = true; }
+        }
+        catch { /* geo is assist-only; the list works without it */ }
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var query = _hasGeo ? $"?lat={_lat!.Value:0.######}&lng={_lng!.Value:0.######}" : "";
+        try
+        {
+            _venues = await Http.GetFromJsonAsync<List<NearbyVenueDto>>($"api/venues/nearby{query}");
+        }
+        catch
+        {
+            _venues = [];
+        }
+    }
+
+    private async Task AddVenueAsync()
+    {
+        _addError = null;
+        _busy = true;
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/venues", new VenueCreateRequest(
+                _newName, _lat, _lng,
+                string.IsNullOrWhiteSpace(_newAddress) ? null : _newAddress,
+                string.IsNullOrWhiteSpace(_newHours) ? null : _newHours));
+            if (response.IsSuccessStatusCode)
+            {
+                var venue = await response.Content.ReadFromJsonAsync<VenueDto>();
+                Nav.NavigateTo($"/venues/{venue!.Id}");
+            }
+            else
+            {
+                var error = await ApiErrors.ReadAsync(response);
+                _addError = error?.Message ?? "Something went wrong — try again.";
+            }
+        }
+        catch
+        {
+            _addError = "Something went wrong — try again.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private sealed record GeoPoint(double Lat, double Lng);
+}
