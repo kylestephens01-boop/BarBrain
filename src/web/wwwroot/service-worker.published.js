@@ -44,12 +44,37 @@ async function onActivate(event) {
 // of following the provider redirect).
 const serverOwnedPaths = [ /^\/api\//, /^\/health$/, /^\/version$/ ];
 
+// Sprint 6 offline shell: catalog BROWSE keeps working offline. Read-only,
+// non-personal catalog GETs are cached network-first (fresh when online,
+// cached when not). Nothing personal or auth-scoped is ever cached here.
+const catalogCacheName = 'catalog-cache-v1';
+const catalogCachePaths = [ /^\/api\/catalog\//, /^\/api\/config\// ];
+
+async function networkFirst(request) {
+    const cache = await caches.open(catalogCacheName);
+    try {
+        const response = await fetch(request);
+        if (response.ok) cache.put(request, response.clone());
+        return response;
+    } catch {
+        const cached = await cache.match(request);
+        if (cached) return cached;
+        throw new Error('offline and not cached');
+    }
+}
+
 async function onFetch(event) {
     let cachedResponse = null;
     if (event.request.method === 'GET') {
         // For all navigation requests, try to serve index.html from cache,
         // unless that request is for an offline resource or a server-owned URL.
         const requestPath = new URL(event.request.url).pathname;
+
+        if (event.request.mode !== 'navigate'
+            && catalogCachePaths.some(pattern => pattern.test(requestPath))) {
+            return networkFirst(event.request);
+        }
+
         const shouldServeIndexHtml = event.request.mode === 'navigate'
             && !manifestUrlList.some(url => url === event.request.url)
             && !serverOwnedPaths.some(pattern => pattern.test(requestPath));
