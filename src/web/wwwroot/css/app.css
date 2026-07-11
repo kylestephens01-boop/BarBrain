@@ -1062,7 +1062,7 @@ code {
   align-items: center;
   justify-content: center;
   background: var(--bb-surface);
-  color: #4A5568; /* locked state per design ref */
+  color: var(--bb-stroke); /* locked state per design ref */
   flex: 0 0 auto;
 }
 .bb-badge-icon--earned { background: var(--bb-pour-tint); color: var(--bb-pour); }

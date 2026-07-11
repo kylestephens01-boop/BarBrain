@@ -16,8 +16,8 @@ public static class StreakMath
     public static int ConsecutiveWeeks(IEnumerable<DateTimeOffset> ratingTimes, DateTimeOffset now)
     {
         var weeksWithActivity = ratingTimes
+            .Where(t => t <= now) // int-truncation would land small futures in bucket 0
             .Select(t => (int)((now - t).TotalDays / 7))
-            .Where(w => w >= 0)
             .ToHashSet();
         var weeks = 0;
         while (weeksWithActivity.Contains(weeks)) weeks++;
