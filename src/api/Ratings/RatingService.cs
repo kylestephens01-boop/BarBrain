@@ -16,10 +16,20 @@ public sealed class RatingService(
     AppDbContext db,
     TimeProvider clock,
     Palate.PalateProfileService palateProfiles,
-    Venues.CheckinService checkins)
+    Venues.CheckinService checkins,
+    Badges.BadgeService badges,
+    Moderation.RateLimitService limits,
+    Settings.ISettingsService settings)
 {
     public sealed record Failure(int Status, ApiError Error);
     private const int MergeHopLimit = 10;
+
+    // Provenance weighting (Sprint 6): public aggregates + CF only count
+    // ratings from accounts past BOTH thresholds. Own profile unaffected.
+    public const string PublicMinAccountAgeDaysFlag = "ratings.public_min_account_age_days";
+    public const string PublicMinRatingCountFlag = "ratings.public_min_rating_count";
+    public const int DefaultPublicMinAccountAgeDays = 7;
+    public const int DefaultPublicMinRatingCount = 5;
 
     public static bool IsValidValue(decimal value)
         => value is >= 1.0m and <= 5.0m && (value * 2) % 1 == 0;
@@ -40,16 +50,26 @@ public sealed class RatingService(
         if (request.Note is { Length: > 500 })
             return Fail(400, "note_too_long", "Notes max out at 500 characters.");
 
+        // Write-abuse control (Sprint 6 hardening; flag-driven, generous —
+        // this is bot defense, never consumption limiting).
+        if (await limits.CheckRatingsAsync(userId, ct) is { } limited)
+            return Fail(429, "rate_limited", limited);
+
         var origin = request.Origin ?? RatingOrigin.User;
         if (origin is not (RatingOrigin.User or RatingOrigin.Quiz))
             return Fail(400, "invalid_origin", "Origin is 'user' or 'quiz'.");
+
+        // Feed-section provenance (Sprint 6 exploration badges). The value is
+        // the feed's own section key; anything else is a client bug.
+        if (request.RecSection is not null && !RecSection.IsValid(request.RecSection))
+            return Fail(400, "invalid_rec_section", "Unknown feed section.");
 
         // Resolve the drink, following merge redirects to the canonical row.
         var drink = await db.Drinks.AsNoTracking()
             .FirstOrDefaultAsync(d => d.Id == request.DrinkId, ct);
         for (var hops = 0; drink is { Status: EntityStatus.Merged, MergedIntoDrinkId: { } targetId } && hops < MergeHopLimit; hops++)
             drink = await db.Drinks.AsNoTracking().FirstOrDefaultAsync(d => d.Id == targetId, ct);
-        if (drink is null || drink.Status != EntityStatus.Active)
+        if (drink is null || drink.Status != EntityStatus.Active || drink.HiddenAt is not null)
             return Fail(404, "drink_not_found", "That drink isn't in the catalog.");
         // A private (user-submitted) drink is only ratable by its owner.
         if (drink.Visibility == Visibility.Private && drink.CreatedByUserId != userId)
@@ -82,6 +102,7 @@ public sealed class RatingService(
             LocationContext = locationContext,
             VenueId = venueId.VenueId,
             Origin = origin,
+            RecSection = request.RecSection,
             IsLatest = true,
             CreatedAt = now,
             UpdatedAt = now,
@@ -116,6 +137,10 @@ public sealed class RatingService(
         // feed reflects the rating immediately (Sprint 3 spec: on-demand
         // recompute after rating; cheap at this scale).
         await palateProfiles.RecomputeAsync(userId, drink.Category, ct);
+
+        // Instant badge awards (Sprint 6): rating-affected metrics only.
+        // EvaluateAsync never throws into this path — a badge can't break a rating.
+        await badges.EvaluateAsync(userId, Badges.BadgeService.RatingMetrics, ct);
 
         var dto = await OwnRatingDtoAsync(userId, rating.Id, ct);
         return (dto, null);
@@ -231,19 +256,38 @@ public sealed class RatingService(
     public async Task<DrinkRatingsResponse> PublicForDrinkAsync(
         Guid drinkId, int recentLimit, CancellationToken ct = default)
     {
+        // Moderation (Sprint 6): hidden rows and shadow-limited/banned
+        // accounts leave EVERY public surface — list and aggregate alike.
         var latestPublic = db.Ratings.AsNoTracking()
-            .Where(r => r.DrinkId == drinkId && r.IsLatest && r.Visibility == Visibility.Public);
+            .Where(r => r.DrinkId == drinkId && r.IsLatest && r.Visibility == Visibility.Public
+                && r.HiddenAt == null
+                && r.CreatedBy.ShadowLimitedAt == null && r.CreatedBy.BannedAt == null);
 
-        var count = await latestPublic.CountAsync(ct);
+        // Provenance weighting (Sprint 6): the AGGREGATE only counts accounts
+        // ≥N days old with ≥M latest ratings. Both read-time filters, so
+        // graduation is automatic — no recompute job (noted in the PR). The
+        // recent LIST stays unfiltered by provenance: it's attributed social
+        // content, not an aggregate.
+        var minAgeDays = await settings.GetIntAsync(
+            PublicMinAccountAgeDaysFlag, DefaultPublicMinAccountAgeDays, ct);
+        var minRatings = await settings.GetIntAsync(
+            PublicMinRatingCountFlag, DefaultPublicMinRatingCount, ct);
+        var cutoff = clock.GetUtcNow().AddDays(-minAgeDays);
+
+        var eligible = latestPublic.Where(r =>
+            r.CreatedBy.CreatedAt <= cutoff
+            && db.Ratings.Count(o => o.CreatedByUserId == r.CreatedByUserId && o.IsLatest) >= minRatings);
+
+        var count = await eligible.CountAsync(ct);
         var average = count == 0
             ? (decimal?)null
-            : Math.Round(await latestPublic.AverageAsync(r => r.Value, ct), 2);
+            : Math.Round(await eligible.AverageAsync(r => r.Value, ct), 2);
 
         var recent = await latestPublic
             .OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id)
             .Take(recentLimit)
             .Select(r => new PublicRatingDto(
-                r.CreatedBy.UserName!, r.Value, r.Note, r.CreatedAt))
+                r.Id, r.CreatedBy.UserName!, r.Value, r.Note, r.CreatedAt))
             .ToListAsync(ct);
 
         return new DrinkRatingsResponse(count, average, recent);
@@ -276,7 +320,7 @@ public sealed class RatingService(
                         "Tag a venue or rate at your Home Bar.")));
                 var venue = await db.Venues.AsNoTracking()
                     .FirstOrDefaultAsync(v => v.Id == requestedVenueId, ct);
-                if (venue is null || venue.VenueType != VenueType.Venue
+                if (venue is null || venue.VenueType != VenueType.Venue || venue.HiddenAt is not null
                     || (venue.Visibility == Visibility.Private && venue.OwnerUserId != userId))
                     return (null, new Failure(404, new ApiError("venue_not_found", "That venue doesn't exist.")));
                 return (venue.Id, null);

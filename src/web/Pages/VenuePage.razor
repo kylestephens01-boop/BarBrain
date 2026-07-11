@@ -4,6 +4,7 @@
 @inject HttpClient Http
 @inject NavigationManager Nav
 @inject UserState User
+@inject BadgeNotifier Badges
 
 <PageTitle>@(_page?.Venue.Name ?? "Venue") — BarBrain</PageTitle>
 
@@ -25,6 +26,7 @@ else
     <header class="bb-venue-header">
         <a class="bb-back" href="/venues" aria-label="Back to venues"><Icon Name="arrow-left" Size="20" /></a>
         <h1 data-testid="venue-name">@venue.Name</h1>
+        <ReportButton EntityType="venue" EntityId="@venue.Id" Label="this venue" />
     </header>
 
     <div class="bb-venue-info">
@@ -334,6 +336,7 @@ else
             if (response.IsSuccessStatusCode)
             {
                 await LoadAsync();
+                await Badges.CheckAsync(); // venue-variety award toast, if earned
             }
             else
             {

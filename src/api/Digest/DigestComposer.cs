@@ -53,14 +53,11 @@ public sealed class DigestComposer(
 
             if (streakOn)
             {
-                // Consecutive weekly buckets containing ≥1 rating (ADR-016:
-                // weekly streak only — never a per-serving or per-day count).
-                var weeksWithActivity = history
-                    .Select(r => (int)((now - r.CreatedAt).TotalDays / 7))
-                    .Where(w => w >= 0)
-                    .ToHashSet();
-                var weeks = 0;
-                while (weeksWithActivity.Contains(weeks)) weeks++;
+                // THE weekly streak (ADR-016: weekly only — never per-serving
+                // or per-day). Shared with the streak badges via StreakMath so
+                // the digest and the gallery can never disagree (Sprint 6).
+                var weeks = Badges.StreakMath.ConsecutiveWeeks(
+                    history.Select(r => r.CreatedAt), now);
                 if (weeks >= 2)
                     streak = new DigestStreak(
                         weeks, thisWeek.Select(r => r.DrinkId).Distinct().Count());

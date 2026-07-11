@@ -18,7 +18,8 @@ public static class RatingEndpoints
 {
     public static IEndpointRouteBuilder MapRatingEndpoints(this IEndpointRouteBuilder app)
     {
-        var ratings = app.MapGroup("/api/ratings").WithTags("Ratings").RequireAuthorization();
+        var ratings = app.MapGroup("/api/ratings").WithTags("Ratings").RequireAuthorization()
+            .AddEndpointFilter(ModerationGuards.NotBannedFilter); // Sprint 6: banned accounts can't write
 
         ratings.MapPost("/", async (
             RateRequest request,

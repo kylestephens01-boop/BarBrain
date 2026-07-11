@@ -1,0 +1,55 @@
+@using BarBrain.Shared.Contracts
+@using BarBrain.Web.Services
+@implements IDisposable
+@inject BadgeNotifier Notifier
+
+@* Award toasts (Sprint 6). Badges commemorate drinks/venues explored →
+   BEVERAGE-tier amber per DESIGN-REFERENCE.md Screen 7 (founder-confirmed
+   2026-07-10). aria-live so screen readers announce the award. *@
+
+@if (_queue.Count > 0)
+{
+    <div class="bb-toasts" aria-live="polite">
+        @foreach (var badge in _queue)
+        {
+            <div class="bb-toast" data-testid="badge-toast" role="status"
+                 @onclick="() => Dismiss(badge)">
+                <span class="bb-badge-icon bb-badge-icon--earned" aria-hidden="true">
+                    <Icon Name="@badge.Icon" Size="20" />
+                </span>
+                <span class="bb-toast__copy">
+                    <span class="bb-toast__title">Badge earned: @badge.Name</span>
+                    <span class="bb-toast__detail">@badge.Description</span>
+                </span>
+                <button type="button" class="bb-icon-btn" aria-label="Dismiss"
+                        @onclick:stopPropagation="true" @onclick="() => Dismiss(badge)">
+                    <Icon Name="x" Size="14" />
+                </button>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private readonly List<BadgeDto> _queue = [];
+
+    protected override void OnInitialized() => Notifier.OnAwards += Enqueue;
+
+    private void Enqueue(IReadOnlyList<BadgeDto> badges)
+    {
+        _queue.AddRange(badges.Where(b => _queue.All(q => q.Slug != b.Slug)));
+        InvokeAsync(StateHasChanged);
+        _ = AutoDismissAsync(badges);
+    }
+
+    private async Task AutoDismissAsync(IReadOnlyList<BadgeDto> badges)
+    {
+        await Task.Delay(8000);
+        foreach (var badge in badges) _queue.RemoveAll(q => q.Slug == badge.Slug);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void Dismiss(BadgeDto badge) => _queue.RemoveAll(q => q.Slug == badge.Slug);
+
+    public void Dispose() => Notifier.OnAwards -= Enqueue;
+}

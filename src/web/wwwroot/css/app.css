@@ -1033,3 +1033,119 @@ code {
 .bb-settings__row { align-items: flex-start; }
 .bb-settings__copy { display: flex; flex-direction: column; gap: 2px; }
 .bb-settings__name { color: var(--bb-coaster); font-size: 14px; font-weight: var(--bb-fw-medium); }
+
+/* --- Badges (Sprint 6, design-ref Screen 7: badges are POUR amber) ------------- */
+.bb-streak-card { display: flex; align-items: center; gap: 14px; }
+.bb-streak-card__flame { color: var(--bb-pour); flex: 0 0 auto; }
+.bb-streak-card__number {
+  font-family: var(--bb-font-display);
+  font-weight: var(--bb-fw-medium);
+  font-size: 28px;
+  line-height: 32px;
+  color: var(--bb-pour);
+}
+.bb-streak-card__unit { color: var(--bb-text-muted); font-size: 13px; margin-left: 4px; }
+.bb-streak-card p { margin: 2px 0 0; font-size: 12px; }
+
+.bb-badge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 12px 8px;
+  margin-top: 10px;
+}
+.bb-badge { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+.bb-badge-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bb-surface);
+  color: var(--bb-stroke); /* locked state per design ref */
+  flex: 0 0 auto;
+}
+.bb-badge-icon--earned { background: var(--bb-pour-tint); color: var(--bb-pour); }
+.bb-badge__label { color: var(--bb-text-muted); font-size: 10px; line-height: 13px; }
+.bb-badge--locked .bb-badge__label { opacity: 0.7; }
+
+/* Award toasts: fixed above the nav bar; amber like the badges they announce. */
+.bb-toasts {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 72px; /* clears the nav bar */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 40;
+  pointer-events: none;
+}
+.bb-toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bb-surface);
+  border: 1px solid var(--bb-pour);
+  border-radius: var(--bb-radius);
+  padding: 10px 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  pointer-events: auto;
+  cursor: pointer;
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+}
+.bb-toast__copy { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+.bb-toast__title { font-weight: var(--bb-fw-medium); font-size: 13px; color: var(--bb-pour); }
+.bb-toast__detail { color: var(--bb-text-muted); font-size: 11px; line-height: 15px; }
+
+/* --- Reports (Sprint 6): neutral chrome, quiet until opened -------------------- */
+.bb-report__open { color: var(--bb-text-muted); }
+.bb-report__open:hover { color: var(--bb-coaster); }
+.bb-report__done {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--bb-text-muted);
+  font-size: 11px;
+}
+.bb-report__form { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; }
+.bb-report__form select,
+.bb-report__form input {
+  background: var(--bb-surface);
+  border: 1px solid var(--bb-hairline);
+  border-radius: 8px;
+  color: var(--bb-coaster);
+  font-size: 12px;
+  padding: 6px 8px;
+  min-height: 32px;
+}
+.bb-report__form input { flex: 1; min-width: 140px; }
+
+/* --- PWA chrome (Sprint 6): install prompt + offline strip --------------------- */
+.bb-install {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bb-surface);
+  border: 1px solid var(--bb-hairline);
+  border-radius: var(--bb-radius);
+  padding: 10px 12px;
+  margin: 10px 0;
+  color: var(--bb-coaster);
+  font-size: 12px;
+}
+.bb-install > .bb-icon { color: var(--bb-text-muted); flex: 0 0 auto; }
+.bb-install__copy { flex: 1; min-width: 0; line-height: 16px; }
+.bb-offline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--bb-surface);
+  border-bottom: 1px solid var(--bb-hairline);
+  color: var(--bb-text-muted);
+  font-size: 12px;
+  padding: 6px 12px;
+}

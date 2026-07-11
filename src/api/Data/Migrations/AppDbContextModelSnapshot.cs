@@ -26,6 +26,62 @@ namespace BarBrain.Api.Data.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "vector");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("BarBrain.Api.Data.Entities.AnomalyFlag", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DecidedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Evidence")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<double>("Score")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status", "Score");
+
+                    b.HasIndex("UserId", "Kind")
+                        .IsUnique()
+                        .HasDatabaseName("ux_anomaly_flags_open_per_user_kind")
+                        .HasFilter("\"Status\" = 'open'");
+
+                    b.ToTable("anomaly_flags", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_anomaly_flags_decision", "(\"Status\" = 'open') = (\"DecidedAt\" IS NULL)");
+
+                            t.HasCheckConstraint("ck_anomaly_flags_kind", "\"Kind\" IN ('rating_zscore_outlier','rapid_fire')");
+
+                            t.HasCheckConstraint("ck_anomaly_flags_status", "\"Status\" IN ('open','cleared','actioned')");
+                        });
+                });
+
             modelBuilder.Entity("BarBrain.Api.Data.Entities.AttributeDefinition", b =>
                 {
                     b.Property<string>("Key")
@@ -68,6 +124,64 @@ namespace BarBrain.Api.Data.Migrations
                             t.HasCheckConstraint("ck_attribute_definitions_category", "\"Category\" IN ('beer','whiskey','wine')");
 
                             t.HasCheckConstraint("ck_attribute_definitions_dim_index", "\"DimIndex\" >= 0 AND \"DimIndex\" < 8");
+                        });
+                });
+
+            modelBuilder.Entity("BarBrain.Api.Data.Entities.BadgeDefinition", b =>
+                {
+                    b.Property<string>("Slug")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("DisplayGroup")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Icon")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Metric")
+                        .IsRequired()
+                        .HasMaxLength(48)
+                        .HasColumnType("character varying(48)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Threshold")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Slug");
+
+                    b.ToTable("badge_definitions", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_badge_definitions_group", "\"DisplayGroup\" IN ('breadth','exploration','venues','contribution','streak')");
+
+                            t.HasCheckConstraint("ck_badge_definitions_metric", "\"Metric\" IN ('distinct_styles_rated','distinct_categories_rated','wildcard_distinct_drinks','distinct_venues_checked_in','wiki_contributions','menu_confirms','accepted_merge_contributions','weekly_streak_weeks')");
+
+                            t.HasCheckConstraint("ck_badge_definitions_threshold", "\"Threshold\" >= 1");
                         });
                 });
 
@@ -136,6 +250,13 @@ namespace BarBrain.Api.Data.Migrations
 
                     b.Property<Guid?>("CreatedByUserId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("HiddenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("HiddenBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.Property<Guid?>("MergedIntoDrinkId")
                         .HasColumnType("uuid");
@@ -220,6 +341,8 @@ namespace BarBrain.Api.Data.Migrations
                             t.HasCheckConstraint("ck_drinks_abv", "\"Abv\" IS NULL OR (\"Abv\" >= 0 AND \"Abv\" <= 100)");
 
                             t.HasCheckConstraint("ck_drinks_category", "\"Category\" IN ('beer','whiskey','wine')");
+
+                            t.HasCheckConstraint("ck_drinks_hidden_pairing", "(\"HiddenAt\" IS NULL) = (\"HiddenBy\" IS NULL)");
 
                             t.HasCheckConstraint("ck_drinks_merge_pairing", "(\"Status\" = 'merged') = (\"MergedIntoDrinkId\" IS NOT NULL)");
 
@@ -386,6 +509,49 @@ namespace BarBrain.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("BarBrain.Api.Data.Entities.ModerationAction", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Actor")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Dictionary<string, string>>("Details")
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid?>("EntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EntityType")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("EntityType", "EntityId");
+
+                    b.ToTable("moderation_actions", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_moderation_actions_action", "\"Action\" IN ('merge_approved','merge_rejected','report_actioned','report_dismissed','content_hidden','content_unhidden','shadow_limited','shadow_cleared','banned','unbanned','anomaly_cleared')");
+                        });
+                });
+
             modelBuilder.Entity("BarBrain.Api.Data.Entities.Producer", b =>
                 {
                     b.Property<Guid>("Id")
@@ -496,6 +662,13 @@ namespace BarBrain.Api.Data.Migrations
                     b.Property<Guid>("DrinkId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset?>("HiddenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("HiddenBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<bool>("IsLatest")
                         .HasColumnType("boolean");
 
@@ -512,6 +685,10 @@ namespace BarBrain.Api.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
+
+                    b.Property<string>("RecSection")
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -544,15 +721,95 @@ namespace BarBrain.Api.Data.Migrations
 
                     b.ToTable("ratings", null, t =>
                         {
+                            t.HasCheckConstraint("ck_ratings_hidden_pairing", "(\"HiddenAt\" IS NULL) = (\"HiddenBy\" IS NULL)");
+
                             t.HasCheckConstraint("ck_ratings_location_context", "\"LocationContext\" IN ('home_bar','venue','untagged')");
 
                             t.HasCheckConstraint("ck_ratings_origin", "\"Origin\" IN ('user','quiz')");
+
+                            t.HasCheckConstraint("ck_ratings_rec_section", "\"RecSection\" IS NULL OR \"RecSection\" IN ('up_your_alley','stretch_a_little','wildcard','loved_by_your_matches')");
 
                             t.HasCheckConstraint("ck_ratings_value", "\"Value\" >= 1.0 AND \"Value\" <= 5.0 AND (\"Value\" * 2) = floor(\"Value\" * 2)");
 
                             t.HasCheckConstraint("ck_ratings_venue_pairing", "(\"LocationContext\" = 'untagged') = (\"VenueId\" IS NULL)");
 
                             t.HasCheckConstraint("ck_ratings_visibility", "\"Visibility\" IN ('public','private')");
+                        });
+                });
+
+            modelBuilder.Entity("BarBrain.Api.Data.Entities.Report", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DecidedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid?>("DrinkId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("RatingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<Guid>("ReporterUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<Guid?>("VenueId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DrinkId");
+
+                    b.HasIndex("RatingId");
+
+                    b.HasIndex("VenueId");
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.HasIndex("ReporterUserId", "RatingId", "VenueId", "DrinkId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_reports_open_per_reporter_target")
+                        .HasFilter("\"Status\" = 'open'");
+
+                    b.ToTable("reports", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_reports_decision", "(\"Status\" = 'open') = (\"DecidedAt\" IS NULL)");
+
+                            t.HasCheckConstraint("ck_reports_entity_type", "\"EntityType\" IN ('rating','venue','drink')");
+
+                            t.HasCheckConstraint("ck_reports_reason", "\"Reason\" IN ('inaccurate','spam','offensive','other')");
+
+                            t.HasCheckConstraint("ck_reports_status", "\"Status\" IN ('open','actioned','dismissed')");
+
+                            t.HasCheckConstraint("ck_reports_typed_target", "(\"EntityType\" = 'rating' AND \"RatingId\" IS NOT NULL AND \"VenueId\" IS NULL AND \"DrinkId\" IS NULL) OR (\"EntityType\" = 'venue' AND \"VenueId\" IS NOT NULL AND \"RatingId\" IS NULL AND \"DrinkId\" IS NULL) OR (\"EntityType\" = 'drink' AND \"DrinkId\" IS NOT NULL AND \"RatingId\" IS NULL AND \"VenueId\" IS NULL)");
                         });
                 });
 
@@ -724,6 +981,9 @@ namespace BarBrain.Api.Data.Migrations
                     b.Property<DateTimeOffset?>("AttestedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTimeOffset?>("BannedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int?>("BirthYear")
                         .HasColumnType("integer");
 
@@ -759,6 +1019,10 @@ namespace BarBrain.Api.Data.Migrations
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("ModerationNote")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
@@ -772,6 +1036,9 @@ namespace BarBrain.Api.Data.Migrations
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("ShadowLimitedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("UserName")
                         .HasMaxLength(32)
@@ -805,6 +1072,41 @@ namespace BarBrain.Api.Data.Migrations
 
                             t.HasCheckConstraint("ck_users_handle_lowercase", "\"Handle\" IS NULL OR \"Handle\" = lower(\"Handle\")");
                         });
+                });
+
+            modelBuilder.Entity("BarBrain.Api.Data.Entities.UserBadge", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("AwardedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("BadgeSlug")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset?>("SeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BadgeSlug");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_user_badges_unseen")
+                        .HasFilter("\"SeenAt\" IS NULL");
+
+                    b.HasIndex("UserId", "BadgeSlug")
+                        .IsUnique()
+                        .HasDatabaseName("ux_user_badges_user_badge");
+
+                    b.ToTable("user_badges", (string)null);
                 });
 
             modelBuilder.Entity("BarBrain.Api.Data.Entities.UserCategoryInterest", b =>
@@ -926,6 +1228,13 @@ namespace BarBrain.Api.Data.Migrations
                     b.Property<Guid?>("CreatedByUserId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset?>("HiddenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("HiddenBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<string>("Hours")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
@@ -994,6 +1303,8 @@ namespace BarBrain.Api.Data.Migrations
                             t.HasCheckConstraint("ck_venues_geo_pairing", "(\"Latitude\" IS NULL) = (\"Longitude\" IS NULL)");
 
                             t.HasCheckConstraint("ck_venues_geo_range", "(\"Latitude\" IS NULL OR (\"Latitude\" >= -90 AND \"Latitude\" <= 90)) AND (\"Longitude\" IS NULL OR (\"Longitude\" >= -180 AND \"Longitude\" <= 180))");
+
+                            t.HasCheckConstraint("ck_venues_hidden_pairing", "(\"HiddenAt\" IS NULL) = (\"HiddenBy\" IS NULL)");
 
                             t.HasCheckConstraint("ck_venues_home_bar_never_merged", "\"VenueType\" <> 'home_bar' OR \"Status\" = 'active'");
 
@@ -1144,6 +1455,17 @@ namespace BarBrain.Api.Data.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("user_tokens", (string)null);
+                });
+
+            modelBuilder.Entity("BarBrain.Api.Data.Entities.AnomalyFlag", b =>
+                {
+                    b.HasOne("BarBrain.Api.Data.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("BarBrain.Api.Data.Entities.Checkin", b =>
@@ -1306,6 +1628,38 @@ namespace BarBrain.Api.Data.Migrations
                     b.Navigation("Venue");
                 });
 
+            modelBuilder.Entity("BarBrain.Api.Data.Entities.Report", b =>
+                {
+                    b.HasOne("BarBrain.Api.Data.Entities.Drink", "Drink")
+                        .WithMany()
+                        .HasForeignKey("DrinkId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("BarBrain.Api.Data.Entities.Rating", "Rating")
+                        .WithMany()
+                        .HasForeignKey("RatingId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("BarBrain.Api.Data.Entities.User", "Reporter")
+                        .WithMany()
+                        .HasForeignKey("ReporterUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BarBrain.Api.Data.Entities.Venue", "Venue")
+                        .WithMany()
+                        .HasForeignKey("VenueId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Drink");
+
+                    b.Navigation("Rating");
+
+                    b.Navigation("Reporter");
+
+                    b.Navigation("Venue");
+                });
+
             modelBuilder.Entity("BarBrain.Api.Data.Entities.Style", b =>
                 {
                     b.HasOne("BarBrain.Api.Data.Entities.Style", "Parent")
@@ -1333,6 +1687,25 @@ namespace BarBrain.Api.Data.Migrations
                     b.Navigation("Attribute");
 
                     b.Navigation("Style");
+                });
+
+            modelBuilder.Entity("BarBrain.Api.Data.Entities.UserBadge", b =>
+                {
+                    b.HasOne("BarBrain.Api.Data.Entities.BadgeDefinition", "Badge")
+                        .WithMany()
+                        .HasForeignKey("BadgeSlug")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BarBrain.Api.Data.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Badge");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("BarBrain.Api.Data.Entities.UserCategoryInterest", b =>

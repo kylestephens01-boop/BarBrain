@@ -135,9 +135,14 @@ public sealed class MatchService(AppDbContext db, ISettingsService settings)
         var p = await LoadBlendParamsAsync(ct);
         var topK = await settings.GetIntAsync(TopKFlag, DefaultTopK, ct);
 
+        // Moderation (Sprint 6): shadow-limited/banned accounts leave the
+        // match graph entirely — their content is off every public surface.
         var activated = await db.Users.AsNoTracking()
-            .Where(u => u.ActivatedAt != null).Select(u => u.Id).ToListAsync(ct);
-        var activatedSet = activated.ToHashSet();
+            .Where(u => u.ActivatedAt != null
+                && u.BannedAt == null && u.ShadowLimitedAt == null)
+            .Select(u => new { u.Id, u.CreatedAt })
+            .ToListAsync(ct);
+        var activatedSet = activated.Select(u => u.Id).ToHashSet();
 
         var profileRows = await db.UserPalateProfiles.AsNoTracking()
             .Where(p => p.PreferenceVector != null)
@@ -149,9 +154,30 @@ public sealed class MatchService(AppDbContext db, ISettingsService settings)
             .Select(r => new { r.CreatedByUserId, r.DrinkId, r.Drink.Category, r.Value })
             .ToListAsync(ct);
 
-        // (user, category) → drinkId → rating value.
+        // Provenance weighting (Sprint 6): the CO-RATING data feeding CF only
+        // counts accounts ≥N days old with ≥M latest ratings (config). Young
+        // accounts STAY in the graph — they still get attribute-similarity
+        // matches; their ratings just carry no CF weight until they graduate
+        // (next nightly run — automatic, no recompute job).
+        var minAgeDays = await settings.GetIntAsync(
+            Ratings.RatingService.PublicMinAccountAgeDaysFlag,
+            Ratings.RatingService.DefaultPublicMinAccountAgeDays, ct);
+        var minRatings = await settings.GetIntAsync(
+            Ratings.RatingService.PublicMinRatingCountFlag,
+            Ratings.RatingService.DefaultPublicMinRatingCount, ct);
+        var cutoff = DateTimeOffset.UtcNow.AddDays(-minAgeDays);
+
+        var latestCounts = ratingRows
+            .GroupBy(r => r.CreatedByUserId)
+            .ToDictionary(g => g.Key, g => g.Count());
+        var cfEligible = activated
+            .Where(u => u.CreatedAt <= cutoff && latestCounts.GetValueOrDefault(u.Id) >= minRatings)
+            .Select(u => u.Id)
+            .ToHashSet();
+
+        // (user, category) → drinkId → rating value. CF-eligible users only.
         var ratingsByUserCat = ratingRows
-            .Where(r => activatedSet.Contains(r.CreatedByUserId))
+            .Where(r => cfEligible.Contains(r.CreatedByUserId))
             .GroupBy(r => (r.CreatedByUserId, r.Category))
             .ToDictionary(g => g.Key, g => g.ToDictionary(r => r.DrinkId, r => (double)r.Value));
 
@@ -248,7 +274,10 @@ public sealed class MatchService(AppDbContext db, ISettingsService settings)
         // Per-category edges to non-hidden neighbors, aggregated to one row per
         // neighbor. Hide-me, their side: exclude neighbors who opted out.
         var rows = await db.UserMatchNeighbors.AsNoTracking()
-            .Where(m => m.UserId == userId && !m.Neighbor.HideFromMatches)
+            .Where(m => m.UserId == userId && !m.Neighbor.HideFromMatches
+                // Moderation (Sprint 6): enforced on read like hide-me, so a
+                // shadow-limit/ban takes effect before the nightly rebuild.
+                && m.Neighbor.ShadowLimitedAt == null && m.Neighbor.BannedAt == null)
             .Select(m => new
             {
                 m.NeighborUserId,
@@ -310,7 +339,8 @@ public sealed class MatchService(AppDbContext db, ISettingsService settings)
 
         var raw = await db.Ratings.AsNoTracking()
             .Where(r => neighborIds.Contains(r.CreatedByUserId)
-                && r.IsLatest && r.Visibility == Visibility.Public && r.Value >= likeMin)
+                && r.IsLatest && r.Visibility == Visibility.Public && r.Value >= likeMin
+                && r.HiddenAt == null && r.Drink.HiddenAt == null)
             .OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id)
             .Select(r => new
             {
@@ -347,7 +377,8 @@ public sealed class MatchService(AppDbContext db, ISettingsService settings)
 
         // Strongest neighbors (aggregate across categories), non-hidden.
         var neighborRows = await db.UserMatchNeighbors.AsNoTracking()
-            .Where(m => m.UserId == userId && !m.Neighbor.HideFromMatches)
+            .Where(m => m.UserId == userId && !m.Neighbor.HideFromMatches
+                && m.Neighbor.ShadowLimitedAt == null && m.Neighbor.BannedAt == null)
             .Select(m => new { m.NeighborUserId, Handle = m.Neighbor.UserName!, m.BlendedScore, m.CoRatedCount })
             .ToListAsync(ct);
 
@@ -372,6 +403,7 @@ public sealed class MatchService(AppDbContext db, ISettingsService settings)
         var loves = await db.Ratings.AsNoTracking()
             .Where(r => neighborIds.Contains(r.CreatedByUserId)
                 && r.IsLatest && r.Visibility == Visibility.Public && r.Value >= likeMin
+                && r.HiddenAt == null && r.Drink.HiddenAt == null
                 && !db.Ratings.Any(mine => mine.CreatedByUserId == userId && mine.DrinkId == r.DrinkId))
             .Select(r => new { r.DrinkId, r.CreatedByUserId })
             .ToListAsync(ct);

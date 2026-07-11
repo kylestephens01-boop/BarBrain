@@ -4,6 +4,7 @@
 @inject HttpClient Http
 @inject NavigationManager Nav
 @inject UserState User
+@inject BadgeNotifier Badges
 
 <PageTitle>Rapid rate — BarBrain</PageTitle>
 
@@ -237,6 +238,7 @@ else
                 var saved = await response.Content.ReadFromJsonAsync<RatingDto>();
                 state.LastRatingId = saved?.Id;
                 state.Saved = true;
+                await Badges.CheckAsync(); // award toast, if this rating earned one
             }
             else
             {

@@ -11,3 +11,6 @@ namespace BarBrain.Shared.Contracts;
 /// typed (bool) flag end-to-end alongside the string flag.
 /// </param>
 public sealed record HomeConfig(string BannerText, bool ShowStatus);
+
+/// <summary>PWA behavior flags (Sprint 6; pwa.install_prompt_enabled).</summary>
+public sealed record PwaConfig(bool InstallPromptEnabled);

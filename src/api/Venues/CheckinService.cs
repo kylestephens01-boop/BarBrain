@@ -16,7 +16,8 @@ namespace BarBrain.Api.Venues;
 public sealed class CheckinService(
     AppDbContext db,
     ISettingsService settings,
-    TimeProvider clock)
+    TimeProvider clock,
+    Badges.BadgeService badges)
 {
     public sealed record Failure(int Status, ApiError Error);
 
@@ -32,7 +33,8 @@ public sealed class CheckinService(
             v.Id == venueId
             && v.VenueType == VenueType.Venue
             && v.Status == EntityStatus.Active
-            && v.Visibility == Visibility.Public, ct);
+            && v.Visibility == Visibility.Public
+            && v.HiddenAt == null, ct);
         if (venue is null)
             return (null, new Failure(404, new ApiError("venue_not_found", "That venue doesn't exist.")));
 
@@ -73,6 +75,9 @@ public sealed class CheckinService(
             await db.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
         });
+
+        // Instant badge awards (Sprint 6): venue-variety metric only.
+        await badges.EvaluateAsync(userId, Badges.BadgeService.CheckinMetrics, ct);
 
         return (new CheckinDto(checkin.Id, venue.Id, venue.Name, checkin.CreatedAt, checkin.ExpiresAt), null);
     }

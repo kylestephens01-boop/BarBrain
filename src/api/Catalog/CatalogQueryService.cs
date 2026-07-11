@@ -67,7 +67,7 @@ public sealed class CatalogQueryService(AppDbContext db)
         string? category, Guid? styleId, int page, int pageSize, CancellationToken ct = default)
     {
         var query = db.Drinks.AsNoTracking()
-            .Where(d => d.Status == EntityStatus.Active && d.Visibility == Visibility.Public);
+            .Where(d => d.Status == EntityStatus.Active && d.Visibility == Visibility.Public && d.HiddenAt == null);
         if (!string.IsNullOrWhiteSpace(category))
             query = query.Where(d => d.Category == category);
         if (styleId is { } sid)

@@ -36,7 +36,7 @@ public sealed class RapidRateQueryService(AppDbContext db, ISettingsService sett
         page = Math.Max(1, page);
 
         var query = db.Drinks.AsNoTracking()
-            .Where(d => d.Status == EntityStatus.Active && d.Visibility == Visibility.Public);
+            .Where(d => d.Status == EntityStatus.Active && d.Visibility == Visibility.Public && d.HiddenAt == null);
         if (!string.IsNullOrWhiteSpace(category))
             query = query.Where(d => d.Category == category);
         if (unratedOnly)

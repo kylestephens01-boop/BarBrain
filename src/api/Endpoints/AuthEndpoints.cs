@@ -81,6 +81,13 @@ public static class AuthEndpoints
             if (!check.Succeeded)
                 return InvalidCredentials();
 
+            // Moderation ban (Sprint 6): sign-in refused. Deliberately checked
+            // AFTER the password so the response never confirms an email exists.
+            if (user.BannedAt is not null)
+                return Results.Json(new ApiError("account_disabled",
+                    "This account has been disabled. Contact support if you think that's a mistake."),
+                    statusCode: StatusCodes.Status403Forbidden);
+
             await signIn.SignInAsync(user, isPersistent: true);
             return Results.Ok(await BuildMeAsync(user, settings, clock, ct));
 
@@ -241,6 +248,12 @@ public static class AuthEndpoints
             var existing = await users.FindByLoginAsync(info.LoginProvider, info.ProviderKey);
             if (existing is not null)
             {
+                // Moderation ban (Sprint 6): every sign-in path refuses.
+                if (existing.BannedAt is not null)
+                {
+                    await http.SignOutAsync(IdentityConstants.ExternalScheme);
+                    return Results.Redirect("/login?error=disabled");
+                }
                 await signIn.SignInAsync(existing, isPersistent: true);
                 await http.SignOutAsync(IdentityConstants.ExternalScheme);
                 return Results.Redirect(SafeLocal(returnUrl));

@@ -48,6 +48,15 @@ builder.Services.AddScoped<BarBrain.Api.Venues.CheckinService>();
 builder.Services.AddScoped<BarBrain.Api.Venues.PersonalizedMenuService>();
 builder.Services.AddScoped<BarBrain.Api.Venues.VenueKitService>();
 
+// --- Badges + moderation + hardening (Sprint 6, ADR-016/017) ----------------
+builder.Services.AddScoped<BarBrain.Api.Badges.BadgeService>();
+builder.Services.AddHostedService<BarBrain.Api.Badges.BadgeNightlyService>();
+builder.Services.AddScoped<BarBrain.Api.Moderation.ModerationService>();
+builder.Services.AddScoped<BarBrain.Api.Moderation.ReportService>();
+builder.Services.AddScoped<BarBrain.Api.Moderation.RateLimitService>();
+builder.Services.AddScoped<BarBrain.Api.Moderation.AnomalyScanService>();
+builder.Services.AddHostedService<BarBrain.Api.Moderation.AnomalyNightlyService>();
+
 // --- Matching + weekly digest (Sprint 4, ADR-014/007/019) -------------------
 builder.Services.AddScoped<BarBrain.Api.Palate.MatchService>();
 builder.Services.AddHostedService<BarBrain.Api.Palate.MatchNightlyService>();
@@ -100,6 +109,7 @@ if (app.Configuration.GetValue("Database:MigrateOnStartup", true))
 
     await db.Database.MigrateAsync();
     await SettingsSeeder.SeedAsync(db, app.Environment.ContentRootPath, logger);
+    await BarBrain.Api.Badges.BadgeSeeder.SeedAsync(db, app.Environment.ContentRootPath, logger);
 }
 
 // --- Endpoints ---------------------------------------------------------------
@@ -115,6 +125,9 @@ app.MapPalateEndpoints();
 app.MapMatchEndpoints();
 app.MapRapidRateEndpoints();
 app.MapVenueEndpoints();
+app.MapBadgeEndpoints();
+app.MapReportEndpoints();
+app.MapAdminModerationEndpoints();
 
 app.Run();
 return 0;

@@ -288,5 +288,70 @@
     "key": "menu.new_for_you_share_pct",
     "value": "50",
     "description": "Of unrated, unfamiliar menu drinks ranked by palate similarity, the closest X percent shelve as New for You; the rest as Adventurous."
+  },
+  {
+    "key": "badges.nightly_enabled",
+    "value": "true",
+    "description": "Nightly full badge evaluation (Sprint 6). Inline hooks award instantly; the nightly heals misses and catches streak thresholds crossing without a write."
+  },
+  {
+    "key": "badges.nightly_hour_utc",
+    "value": "8",
+    "description": "UTC hour the nightly badge evaluation runs."
+  },
+  {
+    "key": "ratings.public_min_account_age_days",
+    "value": "7",
+    "description": "Provenance weighting (Sprint 6): public aggregates + CF only count ratings from accounts at least this many days old. Own profile unaffected."
+  },
+  {
+    "key": "ratings.public_min_rating_count",
+    "value": "5",
+    "description": "Provenance weighting (Sprint 6): public aggregates + CF only count ratings from accounts with at least this many latest ratings. Own profile unaffected."
+  },
+  {
+    "key": "limits.ratings_per_hour",
+    "value": "120",
+    "description": "Write-abuse limit: rating writes one account may make per rolling hour (Sprint 6 hardening; bot defense, never consumption limiting). 0 disables."
+  },
+  {
+    "key": "limits.reports_per_day",
+    "value": "20",
+    "description": "Write-abuse limit: reports one account may file per rolling 24h (Sprint 6). 0 disables."
+  },
+  {
+    "key": "anomaly.nightly_enabled",
+    "value": "true",
+    "description": "Nightly anomaly scan (Sprint 6): flags z-score rating outliers and rapid-fire write bursts for HUMAN review. Detection only — never an automatic action."
+  },
+  {
+    "key": "anomaly.nightly_hour_utc",
+    "value": "7",
+    "description": "UTC hour the nightly anomaly scan runs."
+  },
+  {
+    "key": "anomaly.zscore_threshold",
+    "value": "3.0",
+    "description": "Absolute z-score of a user's mean deviation from drink averages at which an outlier flag opens."
+  },
+  {
+    "key": "anomaly.zscore_min_ratings",
+    "value": "8",
+    "description": "Minimum latest public ratings a user needs before the z-score detector considers them (small samples are noise)."
+  },
+  {
+    "key": "anomaly.rapid_fire_window_minutes",
+    "value": "10",
+    "description": "Sliding-window size for the rapid-fire detector."
+  },
+  {
+    "key": "anomaly.rapid_fire_count",
+    "value": "25",
+    "description": "Rating writes within the window that open a rapid-fire flag (bot/script patterns; last 24h scanned)."
+  },
+  {
+    "key": "pwa.install_prompt_enabled",
+    "value": "true",
+    "description": "Show the custom PWA install prompt (Android/desktop beforeinstallprompt UI + iOS add-to-home-screen hint; Sprint 6)."
   }
 ]

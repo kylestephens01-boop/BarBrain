@@ -52,6 +52,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # Sprint 6 icon pipeline — DORMANT until the SVG masters land
+      # (HUMAN-CHECKLIST 14): with no docs/brand/mark.svg it logs and no-ops,
+      # so placeholder icons ship unchanged.
+      - name: Generate PWA icons from SVG masters (dormant until assets land)
+        run: |
+          if [ -f docs/brand/mark.svg ]; then
+            npm install --no-save sharp
+            node infra/generate-icons.mjs
+          else
+            echo "SVG masters not in repo yet (HUMAN-CHECKLIST 14) — keeping placeholder icons."
+          fi
+
       - name: Start the stack
         run: |
           cp infra/.env.example infra/.env
@@ -81,10 +97,6 @@ jobs:
           docker compose -f infra/docker-compose.yml exec -T api dotnet BarBrain.Api.dll import products --file seed/beer-national.json
           docker compose -f infra/docker-compose.yml exec -T api dotnet BarBrain.Api.dll import demo-dupes
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
       - name: Run Playwright
         working-directory: tests/e2e
         env:
@@ -93,6 +105,30 @@ jobs:
           npm install
           npx playwright install --with-deps chromium
           npm run e2e
+
+      # Sprint 6 acceptance: Lighthouse PWA >= 90, artifact in CI. Pinned to
+      # Lighthouse 11 deliberately — v12 removed the PWA category outright;
+      # 11.x carries the installability/SW/manifest audits this gate needs.
+      - name: Lighthouse PWA audit
+        run: |
+          npx --yes lighthouse@11.7.1 http://localhost:5000 \
+            --only-categories=pwa \
+            --chrome-flags="--headless --no-sandbox" \
+            --output=json --output=html \
+            --output-path=./lighthouse
+          SCORE=$(jq '.categories.pwa.score' lighthouse.report.json)
+          echo "Lighthouse PWA score: $SCORE"
+          jq -e '.categories.pwa.score >= 0.9' lighthouse.report.json > /dev/null \
+            || { echo "::error::Lighthouse PWA score $SCORE is below 0.9"; exit 1; }
+
+      - name: Upload Lighthouse report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: |
+            lighthouse.report.html
+            lighthouse.report.json
 
       - name: Seed verification report (Sprint 1 acceptance artifact)
         if: always()

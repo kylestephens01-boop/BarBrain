@@ -44,6 +44,13 @@ public class Drink
     public Guid? MergedIntoDrinkId { get; set; }
     public Drink? MergedInto { get; set; }
 
+    /// <summary>
+    /// Moderation-owned hide (Sprint 6): a hidden drink leaves search, browse,
+    /// and recs — reversible, orthogonal to Status/Visibility.
+    /// </summary>
+    public DateTimeOffset? HiddenAt { get; set; }
+    public string? HiddenBy { get; set; }
+
     // --- Derived vectors (synced from drink_attributes; ADR-025) ------------
     // Relational drink_attributes is the auditable source of truth; these
     // columns exist for HNSW cosine similarity and are recomputed by

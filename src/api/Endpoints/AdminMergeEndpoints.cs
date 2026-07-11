@@ -45,9 +45,21 @@ public static class AdminMergeEndpoints
         admin.MapPost("/{id:guid}/approve", async (
             Guid id,
             MergeService merges,
+            Moderation.ModerationService moderation,
+            Badges.BadgeService badges,
+            AppDbContext db,
             CancellationToken ct) =>
         {
             var outcome = await merges.ApproveAsync(id, actor: "admin-token", ct);
+            if (outcome == MergeDecisionOutcome.Done)
+            {
+                // Audit + contribution badges live at the endpoint (the only
+                // moderator path) so MergeService stays CLI-pure (Sprint 6).
+                await moderation.AuditNowAsync("admin-token",
+                    ModerationActionKind.MergeApproved, "merge", id, ct);
+                foreach (var contributor in await ContributorsAsync(db, id, ct))
+                    await badges.EvaluateAsync(contributor, Badges.BadgeService.MergeMetrics, ct);
+            }
             return ToResult(outcome);
         })
         .WithName("ApproveMergeCandidate");
@@ -55,14 +67,39 @@ public static class AdminMergeEndpoints
         admin.MapPost("/{id:guid}/reject", async (
             Guid id,
             MergeService merges,
+            Moderation.ModerationService moderation,
             CancellationToken ct) =>
         {
             var outcome = await merges.RejectAsync(id, actor: "admin-token", ct);
+            if (outcome == MergeDecisionOutcome.Done)
+                await moderation.AuditNowAsync("admin-token",
+                    ModerationActionKind.MergeRejected, "merge", id, ct);
             return ToResult(outcome);
         })
         .WithName("RejectMergeCandidate");
 
         return app;
+    }
+
+    /// <summary>Distinct wiki contributors of a candidate's entities (Clean Catalog badge).</summary>
+    private static async Task<List<Guid>> ContributorsAsync(AppDbContext db, Guid candidateId, CancellationToken ct)
+    {
+        var c = await db.MergeQueue.AsNoTracking()
+            .Where(m => m.Id == candidateId)
+            .Select(m => new
+            {
+                A = m.SourceProducer != null ? m.SourceProducer.CreatedByUserId : null,
+                B = m.TargetProducer != null ? m.TargetProducer.CreatedByUserId : null,
+                C = m.SourceDrink != null ? m.SourceDrink.CreatedByUserId : null,
+                D = m.TargetDrink != null ? m.TargetDrink.CreatedByUserId : null,
+                E = m.SourceVenue != null ? m.SourceVenue.CreatedByUserId : null,
+                F = m.TargetVenue != null ? m.TargetVenue.CreatedByUserId : null,
+            })
+            .FirstOrDefaultAsync(ct);
+        return c is null
+            ? []
+            : new[] { c.A, c.B, c.C, c.D, c.E, c.F }
+                .Where(id => id is not null).Select(id => id!.Value).Distinct().ToList();
     }
 
     private static IResult ToResult(MergeDecisionOutcome outcome) => outcome switch

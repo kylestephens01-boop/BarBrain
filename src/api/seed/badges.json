@@ -1,0 +1,152 @@
+[
+  {
+    "slug": "first-taste",
+    "name": "First Taste",
+    "description": "You logged your first rating — your palate profile starts here.",
+    "icon": "star",
+    "displayGroup": "breadth",
+    "metric": "distinct_categories_rated",
+    "threshold": 1,
+    "sortOrder": 10
+  },
+  {
+    "slug": "style-sampler",
+    "name": "Style Sampler",
+    "description": "Rated drinks across 5 different styles.",
+    "icon": "layout-grid",
+    "displayGroup": "breadth",
+    "metric": "distinct_styles_rated",
+    "threshold": 5,
+    "sortOrder": 20
+  },
+  {
+    "slug": "style-scholar",
+    "name": "Style Scholar",
+    "description": "Rated drinks across 15 different styles.",
+    "icon": "layout-grid",
+    "displayGroup": "breadth",
+    "metric": "distinct_styles_rated",
+    "threshold": 15,
+    "sortOrder": 30
+  },
+  {
+    "slug": "full-spectrum",
+    "name": "Full Spectrum",
+    "description": "Explored all three categories — beer, whiskey, and wine.",
+    "icon": "sparkles",
+    "displayGroup": "breadth",
+    "metric": "distinct_categories_rated",
+    "threshold": 3,
+    "sortOrder": 40
+  },
+  {
+    "slug": "wild-card",
+    "name": "Wild Card",
+    "description": "Tried your first Wildcard pick — a step past the familiar.",
+    "icon": "wand",
+    "displayGroup": "exploration",
+    "metric": "wildcard_distinct_drinks",
+    "threshold": 1,
+    "sortOrder": 50
+  },
+  {
+    "slug": "open-mind",
+    "name": "Open Mind",
+    "description": "Tried 5 different Wildcard picks.",
+    "icon": "wand",
+    "displayGroup": "exploration",
+    "metric": "wildcard_distinct_drinks",
+    "threshold": 5,
+    "sortOrder": 60
+  },
+  {
+    "slug": "fearless-palate",
+    "name": "Fearless Palate",
+    "description": "Tried 15 different Wildcard picks.",
+    "icon": "wand",
+    "displayGroup": "exploration",
+    "metric": "wildcard_distinct_drinks",
+    "threshold": 15,
+    "sortOrder": 70
+  },
+  {
+    "slug": "out-and-about",
+    "name": "Out and About",
+    "description": "Checked in at 3 different venues.",
+    "icon": "map-pin",
+    "displayGroup": "venues",
+    "metric": "distinct_venues_checked_in",
+    "threshold": 3,
+    "sortOrder": 80
+  },
+  {
+    "slug": "corridor-cartographer",
+    "name": "Corridor Cartographer",
+    "description": "Checked in at 10 different venues.",
+    "icon": "building-store",
+    "displayGroup": "venues",
+    "metric": "distinct_venues_checked_in",
+    "threshold": 10,
+    "sortOrder": 90
+  },
+  {
+    "slug": "pioneer",
+    "name": "Pioneer",
+    "description": "Made your first wiki contribution — a venue or a menu listing.",
+    "icon": "pencil",
+    "displayGroup": "contribution",
+    "metric": "wiki_contributions",
+    "threshold": 1,
+    "sortOrder": 100
+  },
+  {
+    "slug": "menu-keeper",
+    "name": "Menu Keeper",
+    "description": "Confirmed 5 menu listings, keeping venue menus trustworthy.",
+    "icon": "circle-check",
+    "displayGroup": "contribution",
+    "metric": "menu_confirms",
+    "threshold": 5,
+    "sortOrder": 110
+  },
+  {
+    "slug": "clean-catalog",
+    "name": "Clean Catalog",
+    "description": "A contribution of yours survived its first duplicate review.",
+    "icon": "git-merge",
+    "displayGroup": "contribution",
+    "metric": "accepted_merge_contributions",
+    "threshold": 1,
+    "sortOrder": 120
+  },
+  {
+    "slug": "two-week-wanderer",
+    "name": "Two-Week Wanderer",
+    "description": "Discovered something new each week, 2 weeks running.",
+    "icon": "flame",
+    "displayGroup": "streak",
+    "metric": "weekly_streak_weeks",
+    "threshold": 2,
+    "sortOrder": 130
+  },
+  {
+    "slug": "steady-explorer",
+    "name": "Steady Explorer",
+    "description": "Discovered something new each week, 5 weeks running.",
+    "icon": "flame",
+    "displayGroup": "streak",
+    "metric": "weekly_streak_weeks",
+    "threshold": 5,
+    "sortOrder": 140
+  },
+  {
+    "slug": "season-of-discovery",
+    "name": "Season of Discovery",
+    "description": "Discovered something new each week, 10 weeks running.",
+    "icon": "flame",
+    "displayGroup": "streak",
+    "metric": "weekly_streak_weeks",
+    "threshold": 10,
+    "sortOrder": 150
+  }
+]
