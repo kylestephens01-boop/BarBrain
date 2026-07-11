@@ -1,0 +1,94 @@
+@using System.Net.Http.Json
+@using BarBrain.Shared.Contracts
+@using BarBrain.Web.Services
+@inject HttpClient Http
+@inject UserState User
+
+@* Report flow entry point (Sprint 6): a quiet flag that expands into a
+   reason picker. Signed-out users don't see it. Neutral styling — reporting
+   is chrome, not beverage or intelligence. *@
+
+@if (User.IsSignedIn)
+{
+    @if (_done)
+    {
+        <span class="bb-report__done" data-testid="report-done">
+            <Icon Name="check" Size="14" /> Reported
+        </span>
+    }
+    else if (_open)
+    {
+        <form class="bb-report__form" data-testid="report-form"
+              @onsubmit="SubmitAsync" @onsubmit:preventDefault>
+            <label class="visually-hidden" for="report-reason-@EntityId">Reason</label>
+            <select id="report-reason-@EntityId" @bind="_reason" data-testid="report-reason">
+                <option value="inaccurate">Inaccurate</option>
+                <option value="spam">Spam</option>
+                <option value="offensive">Offensive</option>
+                <option value="other">Other</option>
+            </select>
+            <input type="text" maxlength="500" placeholder="Anything else? (optional)"
+                   @bind="_note" data-testid="report-note" />
+            <button type="submit" class="bb-btn" disabled="@_busy" data-testid="report-submit">
+                @(_busy ? "Sending…" : "Send report")
+            </button>
+            <button type="button" class="bb-btn bb-btn--quiet" @onclick="() => _open = false">Cancel</button>
+            @if (_error is not null)
+            {
+                <span class="bb-form__error" role="alert">@_error</span>
+            }
+        </form>
+    }
+    else
+    {
+        <button type="button" class="bb-icon-btn bb-report__open" aria-label="Report @Label"
+                title="Report @Label" data-testid="report-open"
+                @onclick="() => _open = true">
+            <Icon Name="flag" Size="14" />
+        </button>
+    }
+}
+
+@code {
+    /// <summary>rating | venue | drink.</summary>
+    [Parameter, EditorRequired] public string EntityType { get; set; } = "";
+    [Parameter, EditorRequired] public Guid EntityId { get; set; }
+    /// <summary>Accessible label, e.g. "this venue".</summary>
+    [Parameter] public string Label { get; set; } = "this";
+
+    private bool _open;
+    private bool _busy;
+    private bool _done;
+    private string _reason = "inaccurate";
+    private string _note = "";
+    private string? _error;
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            using var response = await Http.PostAsJsonAsync("api/reports",
+                new ReportCreateRequest(EntityType, EntityId, _reason,
+                    string.IsNullOrWhiteSpace(_note) ? null : _note.Trim()));
+            if (response.IsSuccessStatusCode
+                || response.StatusCode == System.Net.HttpStatusCode.Conflict) // already reported
+            {
+                _done = true;
+                _open = false;
+                return;
+            }
+            var error = await ApiErrors.ReadAsync(response);
+            _error = error?.Message ?? "That didn't send — try again.";
+        }
+        catch
+        {
+            _error = "Couldn't reach the server.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

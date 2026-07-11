@@ -287,7 +287,7 @@ public sealed class RatingService(
             .OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id)
             .Take(recentLimit)
             .Select(r => new PublicRatingDto(
-                r.CreatedBy.UserName!, r.Value, r.Note, r.CreatedAt))
+                r.Id, r.CreatedBy.UserName!, r.Value, r.Note, r.CreatedAt))
             .ToListAsync(ct);
 
         return new DrinkRatingsResponse(count, average, recent);

@@ -20,6 +20,7 @@ else
             <p class="bb-muted" data-testid="profile-stats">
                 @(_journal?.Total ?? 0) rating@((_journal?.Total ?? 0) == 1 ? "" : "s")
                 @(_categoryCount > 0 ? $" · {_categoryCount} categor{(_categoryCount == 1 ? "y" : "ies")}" : "")
+                @(_earnedCount > 0 ? $" · {_earnedCount} badge{(_earnedCount == 1 ? "" : "s")}" : "")
             </p>
         </div>
         <button type="button" class="bb-btn bb-btn--quiet" @onclick="SignOutAsync" data-testid="sign-out">Sign out</button>
@@ -33,10 +34,58 @@ else
                 class="bb-tab @(_tab == "palate" ? "is-active" : "")"
                 data-testid="palate-tab"
                 @onclick="OpenPalateAsync">Palate</button>
-        <button type="button" role="tab" aria-selected="false" class="bb-tab" disabled title="Arrives with Sprint 6">Badges</button>
+        <button type="button" role="tab" aria-selected="@(_tab == "badges")"
+                class="bb-tab @(_tab == "badges" ? "is-active" : "")"
+                data-testid="badges-tab"
+                @onclick="OpenBadgesAsync">Badges</button>
     </div>
 
-    @if (_tab == "palate")
+    @if (_tab == "badges")
+    {
+        @* Badges commemorate drinks/venues EXPLORED → beverage-tier amber per
+           DESIGN-REFERENCE.md Screen 7 (founder-confirmed 2026-07-10).
+           Streaks are weekly discovery only — never volume (ADR-016). *@
+        @if (_badges is null)
+        {
+            <p class="bb-muted">Loading badges…</p>
+        }
+        else
+        {
+            <section class="bb-card bb-streak-card" data-testid="streak-card">
+                <span class="bb-streak-card__flame" aria-hidden="true"><Icon Name="flame" Size="28" /></span>
+                <div>
+                    <span class="bb-streak-card__number" data-testid="streak-weeks">@_badges.StreakWeeks</span>
+                    <span class="bb-streak-card__unit">week@(_badges.StreakWeeks == 1 ? "" : "s")</span>
+                    <p class="bb-muted">
+                        @(_badges.StreakWeeks >= 2
+                            ? $"of discovering something new every week — {_badges.DistinctDrinksThisWeek} new this week."
+                            : "Rate something new each week to build a discovery streak.")
+                    </p>
+                </div>
+            </section>
+
+            @foreach (var group in _badges.Badges.GroupBy(b => b.DisplayGroup))
+            {
+                <section class="bb-card" data-testid="badge-group-@group.Key">
+                    <span class="bb-label">@GroupLabel(group.Key)</span>
+                    <div class="bb-badge-grid">
+                        @foreach (var badge in group)
+                        {
+                            <div class="bb-badge @(badge.Earned ? "" : "bb-badge--locked")"
+                                 data-testid="@(badge.Earned ? "badge-earned" : "badge-locked")"
+                                 title="@BadgeTitle(badge)">
+                                <span class="bb-badge-icon @(badge.Earned ? "bb-badge-icon--earned" : "")" aria-hidden="true">
+                                    <Icon Name="@badge.Icon" Size="20" />
+                                </span>
+                                <span class="bb-badge__label">@badge.Name</span>
+                            </div>
+                        }
+                    </div>
+                </section>
+            }
+        }
+    }
+    else if (_tab == "palate")
     {
         @if (_palate is null)
         {
@@ -203,6 +252,8 @@ else
     private Guid? _confirmDelete;
     private string _tab = "journal";
     private PalateResponse? _palate;
+    private BadgeGalleryResponse? _badges;
+    private int _earnedCount;
     private MatchSettingsResponse? _settings;
     private bool _hideFromMatches;
     private bool _digestSubscribed;
@@ -216,6 +267,37 @@ else
         catch { _palate = new PalateResponse([]); }
     }
 
+    private async Task OpenBadgesAsync()
+    {
+        _tab = "badges";
+        await LoadBadgesAsync();
+    }
+
+    private async Task LoadBadgesAsync()
+    {
+        try
+        {
+            _badges = await Http.GetFromJsonAsync<BadgeGalleryResponse>("api/badges");
+            _earnedCount = _badges?.Badges.Count(b => b.Earned) ?? 0;
+        }
+        catch { _badges = new BadgeGalleryResponse([], 0, 0); }
+    }
+
+    private static string BadgeTitle(BadgeDto badge)
+        => badge.Earned && badge.AwardedAt is { } at
+            ? $"{badge.Description} — earned {at:MMM d, yyyy}"
+            : badge.Description;
+
+    private static string GroupLabel(string group) => group switch
+    {
+        "breadth" => "Breadth",
+        "exploration" => "Exploration",
+        "venues" => "Venues",
+        "contribution" => "Contribution",
+        "streak" => "Streaks",
+        _ => group,
+    };
+
     protected override async Task OnInitializedAsync()
     {
         await User.EnsureLoadedAsync();
@@ -226,6 +308,7 @@ else
         }
         await LoadAsync();
         await LoadSettingsAsync();
+        await LoadBadgesAsync(); // header stat line counts earned badges
     }
 
     private async Task LoadSettingsAsync()

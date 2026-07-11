@@ -84,8 +84,10 @@ else
                    amber; the THINKING (match %, reason, tags) is teal. Wildcard
                    cards flip the border amber per the design reference. *@
                 <li>
+                    @* ?from= carries the section key so a rating made from this
+                       card records its rec provenance (Sprint 6 badges). *@
                     <a class="bb-rec-card @(active.Key == "wildcard" ? "bb-rec-card--pour" : "")"
-                       href="/drinks/@rec.DrinkId" data-testid="feed-rec">
+                       href="/drinks/@rec.DrinkId?from=@active.Key" data-testid="feed-rec">
                         <span class="bb-rec-card__top">
                             <span class="bb-rec-card__name">@rec.Name</span>
                             @if (rec.MatchPct is { } pct)

@@ -1,0 +1,36 @@
+@inject IJSRuntime Js
+
+@* Offline indicator (Sprint 6 PWA polish): the app shell keeps working from
+   the service-worker cache; this strip just says why writes won't land. *@
+
+@if (!_online)
+{
+    <div class="bb-offline" role="status" data-testid="offline-banner">
+        <Icon Name="wifi-off" Size="16" />
+        You're offline — browsing works, saving needs a connection.
+    </div>
+}
+
+@code {
+    private bool _online = true;
+    private DotNetObjectReference<OfflineBanner>? _selfRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            _selfRef = DotNetObjectReference.Create(this);
+            _online = await Js.InvokeAsync<bool>("bbPwa.watchOnline", _selfRef);
+            StateHasChanged();
+        }
+        catch { /* stay optimistic */ }
+    }
+
+    [JSInvokable]
+    public void OnOnlineChanged(bool online)
+    {
+        _online = online;
+        StateHasChanged();
+    }
+}

@@ -1,0 +1,91 @@
+@using System.Net.Http.Json
+@using BarBrain.Shared.Contracts
+@inject IJSRuntime Js
+@inject HttpClient Http
+
+@* PWA install prompt (Sprint 6): custom UI over beforeinstallprompt on
+   Android/desktop, an add-to-home-screen hint on iOS (which has no prompt
+   API). Flag-gated (pwa.install_prompt_enabled), dismissible once, and never
+   shown inside an installed app. Neutral styling — installing is chrome, not
+   beverage or intelligence. *@
+
+@if (_show)
+{
+    <aside class="bb-install" data-testid="install-prompt">
+        <Icon Name="download" Size="20" />
+        <span class="bb-install__copy">
+            @if (_ios)
+            {
+                <span>Add BarBrain to your home screen: tap Share, then "Add to Home Screen".</span>
+            }
+            else
+            {
+                <span>Install BarBrain for the full-screen app experience.</span>
+            }
+        </span>
+        @if (!_ios)
+        {
+            <button type="button" class="bb-btn bb-btn--primary" data-testid="install-btn"
+                    @onclick="InstallAsync">Install</button>
+        }
+        <button type="button" class="bb-icon-btn" aria-label="Dismiss install prompt"
+                @onclick="DismissAsync">
+            <Icon Name="x" Size="14" />
+        </button>
+    </aside>
+}
+
+@code {
+    private bool _show;
+    private bool _ios;
+    private bool _enabled;
+    private DotNetObjectReference<InstallPrompt>? _selfRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            var config = await Http.GetFromJsonAsync<PwaConfig>("api/config/pwa");
+            _enabled = config?.InstallPromptEnabled ?? false;
+            if (!_enabled) return;
+
+            if (await Js.InvokeAsync<bool>("bbPwa.isStandalone")
+                || await Js.InvokeAsync<bool>("bbPwa.installDismissed"))
+                return;
+
+            _ios = await Js.InvokeAsync<bool>("bbPwa.isIos");
+            if (_ios || await Js.InvokeAsync<bool>("bbPwa.isInstallable"))
+            {
+                _show = true;
+                StateHasChanged();
+            }
+            else
+            {
+                _selfRef = DotNetObjectReference.Create(this);
+                await Js.InvokeVoidAsync("bbPwa.onInstallable", _selfRef);
+            }
+        }
+        catch { /* the prompt is a nicety; never break the shell */ }
+    }
+
+    [JSInvokable]
+    public void OnInstallable()
+    {
+        if (!_enabled) return;
+        _show = true;
+        StateHasChanged();
+    }
+
+    private async Task InstallAsync()
+    {
+        try { await Js.InvokeAsync<bool>("bbPwa.promptInstall"); } catch { }
+        _show = false;
+    }
+
+    private async Task DismissAsync()
+    {
+        try { await Js.InvokeVoidAsync("bbPwa.dismissInstall"); } catch { }
+        _show = false;
+    }
+}

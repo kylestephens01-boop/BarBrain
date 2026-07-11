@@ -1,24 +1,22 @@
+@page "/admin"
 @page "/admin/merge-queue"
 @using BarBrain.Shared.Contracts
 @using System.Net.Http.Json
 @inject HttpClient Http
 
-<PageTitle>BarBrain — Merge queue</PageTitle>
+<PageTitle>BarBrain — Moderation</PageTitle>
 
-@* Admin stub (Sprint 1 scope: "UI beyond admin queue stub" is out of scope).
-   Reviews suspected duplicate producers/drinks. Amber = beverage objects per
-   the two-temperature grammar; controls stay neutral. Auth is the Sprint 0
-   token stub: the token field sets the X-Admin-Token header. *@
+@* The unified moderation surface (Sprint 6): one reviewer experience over
+   merges (all three entity types, Sprint 1/5 machinery), reports, anomaly
+   flags, and the audit log. Amber only where beverage names render; controls
+   stay neutral. Auth is still the admin-token stub — the token field sets
+   X-Admin-Token on every call. The /admin/merge-queue route survives from
+   Sprint 1 (bookmarks, e2e) and lands on the Merges tab. *@
 
 <main class="merge-admin">
-    <h1>Merge queue</h1>
-    <p class="merge-admin__hint">
-        Suspected duplicates from entity resolution. Approving redirects the
-        source entry into the target; rejecting remembers the pair and never
-        proposes it again.
-    </p>
+    <h1>Moderation</h1>
 
-    <form class="merge-admin__controls" @onsubmit="LoadAsync" @onsubmit:preventDefault>
+    <form class="merge-admin__controls" @onsubmit="LoadActiveTabAsync" @onsubmit:preventDefault>
         <label for="admin-token">Admin token</label>
         <input id="admin-token" data-testid="admin-token-input" type="password"
                @bind="_token" autocomplete="off"
@@ -28,86 +26,305 @@
         </button>
     </form>
 
+    <div class="bb-tab-row" role="tablist" aria-label="Moderation queues">
+        <button type="button" role="tab" aria-selected="@(_tab == "merges")"
+                class="bb-tab @(_tab == "merges" ? "is-active" : "")"
+                data-testid="admin-tab-merges" @onclick='() => SwitchTabAsync("merges")'>
+            Merges
+            @if (_candidates is { Count: > 0 }) { <span class="bb-tab__count">@_candidates.Count</span> }
+        </button>
+        <button type="button" role="tab" aria-selected="@(_tab == "reports")"
+                class="bb-tab @(_tab == "reports" ? "is-active" : "")"
+                data-testid="admin-tab-reports" @onclick='() => SwitchTabAsync("reports")'>
+            Reports
+            @if (_reports is { Count: > 0 }) { <span class="bb-tab__count">@_reports.Count</span> }
+        </button>
+        <button type="button" role="tab" aria-selected="@(_tab == "anomalies")"
+                class="bb-tab @(_tab == "anomalies" ? "is-active" : "")"
+                data-testid="admin-tab-anomalies" @onclick='() => SwitchTabAsync("anomalies")'>
+            Anomalies
+            @if (_anomalies is { Count: > 0 }) { <span class="bb-tab__count">@_anomalies.Count</span> }
+        </button>
+        <button type="button" role="tab" aria-selected="@(_tab == "audit")"
+                class="bb-tab @(_tab == "audit" ? "is-active" : "")"
+                data-testid="admin-tab-audit" @onclick='() => SwitchTabAsync("audit")'>
+            Audit log
+        </button>
+    </div>
+
     @if (_error is not null)
     {
         <p class="merge-admin__error" role="alert" data-testid="merge-error">@_error</p>
     }
 
-    @if (_candidates is { Count: 0 })
+    @if (_tab == "merges")
     {
-        <p data-testid="merge-empty">No pending candidates. The queue is clear.</p>
-    }
-    else if (_candidates is not null)
-    {
-        <table class="merge-admin__table" data-testid="merge-table">
-            <caption>Pending merge candidates (highest similarity first)</caption>
-            <thead>
-                <tr>
-                    <th scope="col">Type</th>
-                    <th scope="col">Source (merges away)</th>
-                    <th scope="col">Target (survives)</th>
-                    <th scope="col">Similarity</th>
-                    <th scope="col">Evidence</th>
-                    <th scope="col"><span class="visually-hidden">Actions</span></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var candidate in _candidates)
-                {
-                    <tr data-testid="merge-row">
-                        <td>@candidate.EntityType</td>
-                        <td>
-                            <span class="merge-admin__name">@candidate.Source.Name</span>
-                            <span class="merge-admin__detail">@candidate.Source.Detail</span>
-                        </td>
-                        <td>
-                            <span class="merge-admin__name">@candidate.Target.Name</span>
-                            <span class="merge-admin__detail">@candidate.Target.Detail</span>
-                        </td>
-                        <td>@candidate.Similarity.ToString("0.00")</td>
-                        <td>@candidate.Reason</td>
-                        <td class="merge-admin__actions">
-                            <button data-testid="approve-btn" disabled="@_loading"
-                                    @onclick="() => DecideAsync(candidate.Id, approve: true)">
-                                Approve
-                            </button>
-                            <button data-testid="reject-btn" class="merge-admin__reject" disabled="@_loading"
-                                    @onclick="() => DecideAsync(candidate.Id, approve: false)">
-                                Reject
-                            </button>
-                        </td>
+        <h2>Merge queue</h2>
+        <p class="merge-admin__hint">
+            Suspected duplicates from entity resolution. Approving redirects the
+            source entry into the target; rejecting remembers the pair and never
+            proposes it again.
+        </p>
+
+        @if (_candidates is { Count: 0 })
+        {
+            <p data-testid="merge-empty">No pending candidates. The queue is clear.</p>
+        }
+        else if (_candidates is not null)
+        {
+            <table class="merge-admin__table" data-testid="merge-table">
+                <caption>Pending merge candidates (highest similarity first)</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Type</th>
+                        <th scope="col">Source (merges away)</th>
+                        <th scope="col">Target (survives)</th>
+                        <th scope="col">Similarity</th>
+                        <th scope="col">Evidence</th>
+                        <th scope="col"><span class="visually-hidden">Actions</span></th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach (var candidate in _candidates)
+                    {
+                        <tr data-testid="merge-row">
+                            <td>@candidate.EntityType</td>
+                            <td>
+                                <span class="merge-admin__name">@candidate.Source.Name</span>
+                                <span class="merge-admin__detail">@candidate.Source.Detail</span>
+                            </td>
+                            <td>
+                                <span class="merge-admin__name">@candidate.Target.Name</span>
+                                <span class="merge-admin__detail">@candidate.Target.Detail</span>
+                            </td>
+                            <td>@candidate.Similarity.ToString("0.00")</td>
+                            <td>@candidate.Reason</td>
+                            <td class="merge-admin__actions">
+                                <button data-testid="approve-btn" disabled="@_loading"
+                                        @onclick="() => DecideMergeAsync(candidate.Id, approve: true)">
+                                    Approve
+                                </button>
+                                <button data-testid="reject-btn" class="merge-admin__reject" disabled="@_loading"
+                                        @onclick="() => DecideMergeAsync(candidate.Id, approve: false)">
+                                    Reject
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    }
+    else if (_tab == "reports")
+    {
+        <h2>Reports</h2>
+        <p class="merge-admin__hint">
+            User reports against public content. Hide takes the target off every
+            public surface immediately (reversible); dismiss closes the report.
+        </p>
+
+        @if (_reports is { Count: 0 })
+        {
+            <p data-testid="reports-empty">No open reports. All quiet.</p>
+        }
+        else if (_reports is not null)
+        {
+            <table class="merge-admin__table" data-testid="reports-table">
+                <caption>Open reports (oldest first)</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Type</th>
+                        <th scope="col">Content</th>
+                        <th scope="col">Reason</th>
+                        <th scope="col">Reporter</th>
+                        <th scope="col"><span class="visually-hidden">Actions</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var report in _reports)
+                    {
+                        <tr data-testid="report-row">
+                            <td>@report.EntityType</td>
+                            <td>
+                                <span class="merge-admin__name">@report.EntityLabel</span>
+                                <span class="merge-admin__detail">@report.EntityDetail</span>
+                            </td>
+                            <td>
+                                @report.Reason
+                                @if (report.Note is not null)
+                                {
+                                    <span class="merge-admin__detail">@report.Note</span>
+                                }
+                            </td>
+                            <td>@report.ReporterHandle</td>
+                            <td class="merge-admin__actions">
+                                <button data-testid="report-hide-btn" disabled="@_loading"
+                                        @onclick="() => DecideReportAsync(report.Id, action: true)">
+                                    Hide content
+                                </button>
+                                <button data-testid="report-dismiss-btn" class="merge-admin__reject" disabled="@_loading"
+                                        @onclick="() => DecideReportAsync(report.Id, action: false)">
+                                    Dismiss
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    }
+    else if (_tab == "anomalies")
+    {
+        <h2>Anomaly flags</h2>
+        <p class="merge-admin__hint">
+            Statistical evidence from the nightly scan — a flag is a reason to
+            look, never an automatic action. Shadow-limit silently removes the
+            account's content from public surfaces; ban refuses sign-in.
+        </p>
+
+        @if (_anomalies is { Count: 0 })
+        {
+            <p data-testid="anomalies-empty">No open flags. Data looks healthy.</p>
+        }
+        else if (_anomalies is not null)
+        {
+            <table class="merge-admin__table" data-testid="anomalies-table">
+                <caption>Open anomaly flags (highest severity first)</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Account</th>
+                        <th scope="col">Kind</th>
+                        <th scope="col">Evidence</th>
+                        <th scope="col"><span class="visually-hidden">Actions</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var flag in _anomalies)
+                    {
+                        <tr data-testid="anomaly-row">
+                            <td>
+                                <span class="merge-admin__name">@flag.UserHandle</span>
+                                @if (flag.UserShadowLimited)
+                                {
+                                    <span class="merge-admin__detail">shadow-limited</span>
+                                }
+                            </td>
+                            <td>@(flag.Kind == "rapid_fire" ? "Rapid-fire writes" : "Rating outlier")</td>
+                            <td>@flag.Evidence</td>
+                            <td class="merge-admin__actions">
+                                <button data-testid="anomaly-shadow-btn" disabled="@(_loading || flag.UserShadowLimited)"
+                                        @onclick="() => ShadowLimitAsync(flag)">
+                                    Shadow-limit
+                                </button>
+                                <button data-testid="anomaly-ban-btn" class="merge-admin__reject" disabled="@_loading"
+                                        @onclick="() => BanAsync(flag)">
+                                    Ban
+                                </button>
+                                <button data-testid="anomaly-clear-btn" disabled="@_loading"
+                                        @onclick="() => ClearAnomalyAsync(flag.Id)">
+                                    Clear
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    }
+    else if (_tab == "audit")
+    {
+        <h2>Audit log</h2>
+        <p class="merge-admin__hint">Every moderation decision, newest first. Append-only.</p>
+
+        @if (_audit is { Count: 0 })
+        {
+            <p data-testid="audit-empty">No actions logged yet.</p>
+        }
+        else if (_audit is not null)
+        {
+            <table class="merge-admin__table" data-testid="audit-table">
+                <caption>Moderation actions</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">When (UTC)</th>
+                        <th scope="col">Actor</th>
+                        <th scope="col">Action</th>
+                        <th scope="col">Target</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var entry in _audit)
+                    {
+                        <tr data-testid="audit-row">
+                            <td>@entry.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>@entry.Actor</td>
+                            <td>@entry.Action.Replace('_', ' ')</td>
+                            <td>
+                                @entry.EntityType
+                                @if (entry.Details is { Count: > 0 })
+                                {
+                                    <span class="merge-admin__detail">
+                                        @string.Join(" · ", entry.Details.Select(d => $"{d.Key}: {d.Value}"))
+                                    </span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
     }
 </main>
 
 @code {
-    private List<MergeCandidateDto>? _candidates;
+    private string _tab = "merges";
     private string _token = "";
     private string? _error;
     private bool _loading;
 
-    private async Task LoadAsync()
+    private List<MergeCandidateDto>? _candidates;
+    private List<ReportDto>? _reports;
+    private List<AnomalyFlagDto>? _anomalies;
+    private List<ModerationActionDto>? _audit;
+
+    private async Task SwitchTabAsync(string tab)
+    {
+        _tab = tab;
+        _error = null;
+        await LoadActiveTabAsync();
+    }
+
+    private async Task LoadActiveTabAsync()
+    {
+        switch (_tab)
+        {
+            case "merges": _candidates = await LoadAsync<MergeCandidateDto>("api/admin/merge-queue/?status=pending") ?? _candidates; break;
+            case "reports": _reports = await LoadAsync<ReportDto>("api/admin/moderation/reports?status=open") ?? _reports; break;
+            case "anomalies": _anomalies = await LoadAsync<AnomalyFlagDto>("api/admin/moderation/anomalies?status=open") ?? _anomalies; break;
+            case "audit": _audit = await LoadAsync<ModerationActionDto>("api/admin/moderation/audit") ?? _audit; break;
+        }
+    }
+
+    private async Task<List<T>?> LoadAsync<T>(string url)
     {
         _loading = true;
         _error = null;
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, "api/admin/merge-queue/?status=pending");
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
             AddToken(request);
             using var response = await Http.SendAsync(request);
             if (!response.IsSuccessStatusCode)
             {
                 _error = $"Load failed: {(int)response.StatusCode} {response.ReasonPhrase}";
-                return;
+                return null;
             }
-            _candidates = await response.Content.ReadFromJsonAsync<List<MergeCandidateDto>>();
+            return await response.Content.ReadFromJsonAsync<List<T>>();
         }
         catch (Exception ex)
         {
             _error = $"Load failed: {ex.Message}";
+            return null;
         }
         finally
         {
@@ -115,26 +332,45 @@
         }
     }
 
-    private async Task DecideAsync(Guid id, bool approve)
+    private Task DecideMergeAsync(Guid id, bool approve)
+        => PostAsync($"api/admin/merge-queue/{id}/{(approve ? "approve" : "reject")}",
+            () => _candidates?.RemoveAll(c => c.Id == id));
+
+    private Task DecideReportAsync(Guid id, bool action)
+        => PostAsync($"api/admin/moderation/reports/{id}/{(action ? "action" : "dismiss")}",
+            () => _reports?.RemoveAll(r => r.Id == id));
+
+    private Task ClearAnomalyAsync(Guid id)
+        => PostAsync($"api/admin/moderation/anomalies/{id}/clear",
+            () => _anomalies?.RemoveAll(a => a.Id == id));
+
+    private Task ShadowLimitAsync(AnomalyFlagDto flag)
+        => PostAsync($"api/admin/moderation/users/{flag.UserId}/shadow-limit?flagId={flag.Id}",
+            () => _anomalies?.RemoveAll(a => a.Id == flag.Id));
+
+    private Task BanAsync(AnomalyFlagDto flag)
+        => PostAsync($"api/admin/moderation/users/{flag.UserId}/ban?flagId={flag.Id}",
+            () => _anomalies?.RemoveAll(a => a.Id == flag.Id));
+
+    private async Task PostAsync(string url, Action onSuccess)
     {
         _loading = true;
         _error = null;
         try
         {
-            var action = approve ? "approve" : "reject";
-            using var request = new HttpRequestMessage(HttpMethod.Post, $"api/admin/merge-queue/{id}/{action}");
+            using var request = new HttpRequestMessage(HttpMethod.Post, url);
             AddToken(request);
             using var response = await Http.SendAsync(request);
             if (!response.IsSuccessStatusCode)
             {
-                _error = $"{action} failed: {(int)response.StatusCode} {response.ReasonPhrase}";
+                _error = $"Action failed: {(int)response.StatusCode} {response.ReasonPhrase}";
                 return;
             }
-            _candidates?.RemoveAll(c => c.Id == id);
+            onSuccess();
         }
         catch (Exception ex)
         {
-            _error = $"Decision failed: {ex.Message}";
+            _error = $"Action failed: {ex.Message}";
         }
         finally
         {

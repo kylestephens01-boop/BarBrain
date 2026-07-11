@@ -36,8 +36,10 @@ public record RatingDto(
     DateTimeOffset CreatedAt,
     string Origin = "user");
 
-/// <summary>A rating as strangers see it: pseudonymous handle, no location.</summary>
+/// <summary>A rating as strangers see it: pseudonymous handle, no location.
+/// Id exists so the row can be REPORTED (Sprint 6) — it exposes nothing new.</summary>
 public record PublicRatingDto(
+    Guid Id,
     string Handle,
     decimal Value,
     string? Note,
