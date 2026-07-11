@@ -39,6 +39,11 @@ public sealed class AuthzTests(PostgresFixture fixture) : IAsyncLifetime
         await _harness.SignupAsync(_alice, "authz_alice");
         await _harness.SignupAsync(_mallory, "authz_mallory");
 
+        // This suite attacks OWNERSHIP/VISIBILITY, not provenance weighting —
+        // disable the Sprint 6 eligibility floors so fresh personas count in
+        // aggregates (ProvenanceWeightingTests owns eligibility behavior).
+        await _harness.SetProvenanceFlagsAsync(_alice, minAgeDays: 0, minRatings: 0);
+
         _drinkId = await _harness.PlantDrinkAsync("Authz Test Ale");
         var secondDrink = await _harness.PlantDrinkAsync("Authz Test Stout");
 

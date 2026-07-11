@@ -25,6 +25,9 @@ public sealed class ProvenanceWeightingTests(PostgresFixture fixture) : IAsyncLi
         await CleanupAsync();
         _client = _harness.CreateClient();
         await _harness.SignupAsync(_client, "fresh_account");
+        // Pin the defaults explicitly: settings rows persist in the shared DB
+        // and other suites disable these floors — ordering must not matter.
+        await _harness.SetProvenanceFlagsAsync(_client, minAgeDays: 7, minRatings: 5);
     }
 
     public async Task DisposeAsync()

@@ -25,6 +25,11 @@ public sealed class RatingRulesTests(PostgresFixture fixture) : IAsyncLifetime
         _client = _harness.CreateClient();
         await _harness.SignupAsync(_client, "rules_user");
         _drinkId = await _harness.PlantDrinkAsync("Rules Pale Ale");
+        // This suite tests AGGREGATE MECHANICS (latest drives the average),
+        // not provenance weighting — disable the Sprint 6 eligibility floors
+        // so the fresh test account counts (ProvenanceWeightingTests owns the
+        // eligibility behavior).
+        await _harness.SetProvenanceFlagsAsync(_client, minAgeDays: 0, minRatings: 0);
     }
 
     public async Task DisposeAsync()

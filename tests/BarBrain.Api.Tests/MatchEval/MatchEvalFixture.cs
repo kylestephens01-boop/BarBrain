@@ -74,6 +74,7 @@ public sealed class MatchEvalFixture : IAsyncLifetime
         {
             await using (var db = Integration.PostgresFixture.CreateContext(ConnectionString))
                 await db.Database.MigrateAsync();
+            await DisableProvenanceWeightingAsync(ConnectionString);
 
             await SeedAttributeDefinitionsAsync(ConnectionString);
             await SeedCatalogAsync(ConnectionString, Catalog);
@@ -111,6 +112,23 @@ public sealed class MatchEvalFixture : IAsyncLifetime
     }
 
     public MatchService MatchService(AppDbContext db) => new(db, Settings(db));
+
+    /// <summary>
+    /// The eval measures CF MATH in isolation. Sprint 6's provenance weighting
+    /// (only accounts ≥N days with ≥M ratings feed CF) would silently zero the
+    /// synthetic co-rating matrix — the twins are minted moments before the
+    /// batch runs, and the sparsity sim deliberately includes 4-rating users.
+    /// Provenance behavior has its own suite (ProvenanceWeightingTests).
+    /// </summary>
+    private async Task DisableProvenanceWeightingAsync(string cs)
+    {
+        await using var db = Db(cs);
+        var now = DateTimeOffset.UtcNow;
+        db.Settings.AddRange(
+            new Setting { Key = "ratings.public_min_account_age_days", Value = "0", UpdatedAt = now },
+            new Setting { Key = "ratings.public_min_rating_count", Value = "0", UpdatedAt = now });
+        await db.SaveChangesAsync();
+    }
 
     // --- world building ---------------------------------------------------------
 
@@ -277,6 +295,7 @@ public sealed class MatchEvalFixture : IAsyncLifetime
         var cs = await CreateDatabaseAsync(dbName);
         await using (var db = Integration.PostgresFixture.CreateContext(cs))
             await db.Database.MigrateAsync();
+        await DisableProvenanceWeightingAsync(cs);
 
         await SeedAttributeDefinitionsAsync(cs);
         var catalog = new List<SynDrink>();

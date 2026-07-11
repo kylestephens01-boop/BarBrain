@@ -40,8 +40,8 @@ public sealed class MigrationFromSprint5Tests(PostgresFixture fixture)
             """
             INSERT INTO users ("Id", "Handle", "NormalizedUserName", "BirthYear", "AttestedAt", "ActivatedAt", "CreatedAt", "DigestUnsubscribeToken")
             VALUES ('00000000-0000-0000-0000-000000000001', 'oldster', 'OLDSTER', 1988, now(), now(), now(), gen_random_uuid());
-            INSERT INTO producers ("Id", "Name", "NormalizedName", "Source", "Visibility", "Status", "CreatedAt")
-            VALUES ('00000000-0000-0000-0000-00000000000b', 'Old Brewing', 'old brewing', 'test', 'public', 'active', now());
+            INSERT INTO producers ("Id", "Name", "NormalizedName", "Source", "Visibility", "Status", "CreatedAt", "UpdatedAt")
+            VALUES ('00000000-0000-0000-0000-00000000000b', 'Old Brewing', 'old brewing', 'test', 'public', 'active', now(), now());
             INSERT INTO drinks ("Id", "ProducerId", "Name", "NormalizedName", "Category", "Source", "Visibility", "Status", "CreatedAt", "UpdatedAt")
             VALUES ('00000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-00000000000b', 'Old Ale', 'old ale', 'beer', 'test', 'public', 'active', now(), now());
             INSERT INTO ratings ("Id", "CreatedByUserId", "DrinkId", "Value", "Visibility", "LocationContext", "Origin", "IsLatest", "CreatedAt", "UpdatedAt")

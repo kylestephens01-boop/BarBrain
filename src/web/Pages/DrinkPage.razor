@@ -125,13 +125,19 @@ else
     @* ---- Recent public ratings ------------------------------------------- *@
     <section class="bb-card" aria-label="Recent ratings" data-testid="public-ratings">
         <span class="bb-label">Recent ratings</span>
-        @if (_public is null || _public.PublicCount == 0)
+        @* The list and the AGGREGATE are decoupled (Sprint 6 provenance
+           weighting): recent public ratings show as social content even while
+           their accounts are too new to move the average. *@
+        @if (_public is null || _public.Recent.Count == 0)
         {
             <p class="bb-muted" data-testid="no-public-ratings">No public ratings yet.</p>
         }
         else
         {
-            <p class="bb-muted">@_public.Average?.ToString("0.0") average · @_public.PublicCount rating@(_public.PublicCount == 1 ? "" : "s")</p>
+            @if (_public.PublicCount > 0)
+            {
+                <p class="bb-muted">@_public.Average?.ToString("0.0") average · @_public.PublicCount rating@(_public.PublicCount == 1 ? "" : "s")</p>
+            }
             <ul class="bb-public-ratings">
                 @foreach (var rating in _public.Recent)
                 {

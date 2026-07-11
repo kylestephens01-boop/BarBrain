@@ -78,12 +78,36 @@ public sealed class IdentityTestHarness : IAsyncDisposable
     public async Task CleanupIdentityDataAsync()
     {
         // Order matters (FKs). Catalog tables are left alone — other suites own them.
+        // Sprint 6: check-ins RESTRICT venue deletes, so they go first — a
+        // previous suite's leftover check-ins otherwise break THIS suite's
+        // cleanup (CI caught it; ordering had been lucky before). Badges/
+        // reports/flags would cascade, but explicit deletes keep suites
+        // deterministic regardless of what ran before.
         await using var db = CreateDb();
+        await db.Checkins.ExecuteDeleteAsync();
+        await db.VenueMenuItems.ExecuteDeleteAsync();
+        await db.UserBadges.ExecuteDeleteAsync();
+        await db.Reports.ExecuteDeleteAsync();
+        await db.AnomalyFlags.ExecuteDeleteAsync();
         await db.Ratings.ExecuteDeleteAsync();
         await db.Venues.ExecuteDeleteAsync();
         await db.Database.ExecuteSqlRawAsync("DELETE FROM user_logins; DELETE FROM user_tokens; DELETE FROM user_claims;");
         await db.Users.ExecuteDeleteAsync();
         await db.Events.ExecuteDeleteAsync();
+    }
+
+    /// <summary>
+    /// Pin the Sprint 6 provenance-weighting flags for this suite (settings
+    /// rows persist in the shared DB across suites — every suite that asserts
+    /// aggregates pins what it needs, so ordering can't matter). Uses the
+    /// admin API so THIS factory's settings cache is invalidated too.
+    /// </summary>
+    public async Task SetProvenanceFlagsAsync(HttpClient client, int minAgeDays, int minRatings)
+    {
+        (await client.PutAsJsonAsync("/api/admin/settings/ratings.public_min_account_age_days",
+            new SettingUpdateRequest(minAgeDays.ToString()))).EnsureSuccessStatusCode();
+        (await client.PutAsJsonAsync("/api/admin/settings/ratings.public_min_rating_count",
+            new SettingUpdateRequest(minRatings.ToString()))).EnsureSuccessStatusCode();
     }
 
     public async ValueTask DisposeAsync() => await Factory.DisposeAsync();
