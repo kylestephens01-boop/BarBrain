@@ -41,10 +41,8 @@ add the prod overlay `-f` on the VPS):
 curl -L -o /tmp/obdb.csv https://raw.githubusercontent.com/openbrewerydb/openbrewerydb/master/breweries.csv
 … import openbrewerydb --file /tmp/obdb.csv
 
-# beer.db (github.com/openbeer — public domain; NOT openbeerdb.com/ODbL).
-# License-cleared but 2012–2013 vintage; founder judgment call (DATA-SOURCES.md).
-git clone --depth 1 https://github.com/openbeer/us-united-states /tmp/openbeer-us
-… import beerdb --dir /tmp/openbeer-us
+# beer.db: REJECTED (founder, 2026-07-10 — stale data fails the quality bar;
+# see DATA-SOURCES.md "Rejected sources"). Do NOT run `import beerdb`.
 
 # TTB COLA sample batch (public domain). Full extraction is deferred background work.
 … import ttb-sample --file <sample.csv>

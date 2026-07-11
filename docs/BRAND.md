@@ -35,6 +35,8 @@ No volume/quantity framing ("crush," "binge," "power hour"). No intoxication
 references or jokes, including euphemisms. No consumption-count badge names
 ("Explorer," never "Power Drinker"). No "drink more" CTAs or implied urgency
 around alcohol. No health/wellness claims about alcohol.
+No proof/ABV-as-potency framing — ABV and proof are data fields, never
+selling points or intensity brags ("rocket fuel", "hits harder").
 
 ## Taglines
 PRIMARY: "Know what you'll love." (store subtitle, landing hero, lockups)

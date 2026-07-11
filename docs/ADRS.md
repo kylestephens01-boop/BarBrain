@@ -119,9 +119,13 @@ proof. Sequence: M1–4 maximize data machinery; M4–8 founder hours to venues.
 Data-asset metrics dashboarded beside retention. Untappd cross-category launch
 triggers RE-EVALUATION, not auto-fold, if venue renewals or dataset depth hold
 value. Home Bar library deliberately remains distant backlog (founder, 2026-06-11).
-*Note: a moat REFRAME (operational corridor moat primary, dataset supporting)
-is PROPOSED in docs/project-charter.md and awaits founder review; this ADR is
-unchanged until that is adjudicated.*
+*Amended (founder-signed, 2026-07-10, per charter P2): primary defensibility
+is the corridor operational moat — venue density in the Cedar Rapids–Iowa City
+corridor plus the founder's repeatable venue-onboarding playbook. The
+cross-category attribute dataset is the supporting, compounding asset — it
+deepens switching costs and powers the product, but it is not the sole moat.
+Supersedes this ADR's first sentence ("the only compounding asset").
+Sequencing (M1–4 data machinery → M4–8 venue push) unchanged.*
 
 **ADR-023 — Licensing-safe style modeling (founder decision, July 2026).**
 No BJCP (or other) guideline prose is ingested or stored — copyright-

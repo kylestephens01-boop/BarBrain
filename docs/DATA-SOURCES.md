@@ -40,21 +40,6 @@ Verification quotes below were captured live on 2026-07-06.
 - **Provenance tags:** `source = "seed:barbrain-styles"` (the seed file is our
   own authored data; BJCP is a factual reference only).
 
-### beer.db — the openbeer / geraldb project (LICENSE OK; QUALITY CAVEAT)
-- **Upstream:** https://github.com/openbeer — specifically
-  https://github.com/openbeer/us-united-states
-- **License:** Public domain by author declaration. Org description: "Open
-  Public Domain Beer, Brewery n Brewpub Data". Repo README: "Free open public
-  domain beer, brewery n brewpub data for the United States of America."
-  No formal CC0 LICENSE file was found, but the PD declaration is explicit and
-  consistent; no ODbL terms anywhere. Verified 2026-07-06.
-- **DATA QUALITY FLAG (founder attention):** the US dataset appears frozen at
-  ~2012–2013. License-safe but very stale — most corridor-relevant products
-  won't exist in it. Ingesting is *permitted*; whether it is *worth it* is a
-  founder call. The importer exists and is fixture-tested; it only runs when
-  invoked explicitly with a local checkout path.
-- **Provenance tags:** `source = "seed:beerdb"`, `source_ref` = upstream key.
-
 ### Corridor priority list — founder/BarBrain-authored
 - **Upstream:** none (first-party). `src/api/seed/corridor-priority.json`.
 - **License:** our own data. Producer/product names and ABVs are facts entered
@@ -93,6 +78,27 @@ Verification quotes below were captured live on 2026-07-06.
 - **Provenance tags:** `source = "seed:beer-national"`, `source_ref` = seed
   ref. Drinks the corridor seed already carries are not re-listed; producer
   overlap across sources resolves via the merge queue.
+
+## Rejected sources (kept for the record — do not import)
+
+### beer.db — the openbeer / geraldb project — REJECTED 2026-07-10 (quality, not license)
+- **Ruling (founder, 2026-07-10):** REJECTED. The US dataset's drink data is
+  frozen at ~2012–2013 and fails the catalog quality bar; producer breadth is
+  already covered by Open Brewery DB (producers-only, MIT). Do not run
+  `import beerdb`. Re-attempting requires a new founder ruling recorded here.
+- **License (for the record):** public domain by author declaration — the
+  rejection is a QUALITY call, not a license problem. Upstream:
+  https://github.com/openbeer (specifically openbeer/us-united-states).
+  Verified 2026-07-06.
+- **Provenance tags (for the record):** `source = "seed:beerdb"`,
+  `source_ref` = upstream key.
+- **⚠ Enforcement gap (agents note):** this rejection is NOT machine-enforced.
+  The ADR-024/028 gate matches the quoted tag anywhere in this file, so the
+  tag above still satisfies the products-import gate, and `import beerdb
+  --dir` does not consult the registry at all. The quoted tag is deliberately
+  retained (a build test pins it in the embedded registry); making rejection
+  fail-closed needs a code change. Until then this entry IS the gate: treat
+  running any beer.db import as a Hard-Rule-level stop.
 
 ## Prohibited sources (named explicitly to prevent confusion)
 
