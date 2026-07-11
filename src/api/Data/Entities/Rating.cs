@@ -44,6 +44,23 @@ public class Rating
     public Guid? VenueId { get; set; }
     public Venue? Venue { get; set; }
 
+    /// <summary>
+    /// Which feed rec section surfaced the drink, when the rating originated
+    /// from a rec card (alley | stretch | wildcard | matches; Sprint 6). Null
+    /// for organic ratings. Powers the exploration badges; set going forward
+    /// only — founder ruling 2026-07-10: no retroactive credit.
+    /// </summary>
+    public string? RecSection { get; set; }
+
+    /// <summary>
+    /// Moderation-owned hide (Sprint 6): set by an admin actioning a report.
+    /// Deliberately distinct from user-chosen <see cref="Visibility"/> so
+    /// moderator action and user intent never collide. Hidden rows leave every
+    /// public surface; the owner still sees their own row.
+    /// </summary>
+    public DateTimeOffset? HiddenAt { get; set; }
+    public string? HiddenBy { get; set; }
+
     /// <summary>True on exactly one row per (user, drink) — the one the engine uses.</summary>
     public bool IsLatest { get; set; } = true;
 

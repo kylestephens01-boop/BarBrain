@@ -58,5 +58,19 @@ public class User : IdentityUser<Guid>
     /// </summary>
     public Guid DigestUnsubscribeToken { get; set; } = Guid.CreateVersion7();
 
+    // --- Moderation (Sprint 6) ------------------------------------------------
+    /// <summary>
+    /// Shadow-limit: the user's content silently leaves public surfaces and
+    /// aggregates. They see their own content normally — no notification, no
+    /// visible change to them (standard abuse-control posture).
+    /// </summary>
+    public DateTimeOffset? ShadowLimitedAt { get; set; }
+
+    /// <summary>Ban: sign-in refused, existing sessions invalidated.</summary>
+    public DateTimeOffset? BannedAt { get; set; }
+
+    /// <summary>Internal moderator note for the above. Never shown to users.</summary>
+    public string? ModerationNote { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }

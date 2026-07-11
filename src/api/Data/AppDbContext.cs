@@ -38,6 +38,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Drink> Drinks => Set<Drink>();
     public DbSet<DrinkAttributeValue> DrinkAttributes => Set<DrinkAttributeValue>();
     public DbSet<MergeCandidate> MergeQueue => Set<MergeCandidate>();
+    public DbSet<BadgeDefinition> BadgeDefinitions => Set<BadgeDefinition>();
+    public DbSet<UserBadge> UserBadges => Set<UserBadge>();
+    public DbSet<Report> Reports => Set<Report>();
+    public DbSet<AnomalyFlag> AnomalyFlags => Set<AnomalyFlag>();
+    public DbSet<ModerationAction> ModerationActions => Set<ModerationAction>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -107,6 +112,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Ignore(u => u.PhoneNumber);
             e.Ignore(u => u.PhoneNumberConfirmed);
             e.Ignore(u => u.TwoFactorEnabled);
+            e.Property(u => u.ModerationNote).HasMaxLength(256);
         });
 
         // Identity link tables, renamed to match the schema's naming style.
@@ -153,6 +159,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                     "\"MergedIntoVenueId\" IS NULL OR \"MergedIntoVenueId\" <> \"Id\"");
                 t.HasCheckConstraint("ck_venues_home_bar_never_merged",
                     "\"VenueType\" <> 'home_bar' OR \"Status\" = 'active'");
+                t.HasCheckConstraint("ck_venues_hidden_pairing",
+                    "(\"HiddenAt\" IS NULL) = (\"HiddenBy\" IS NULL)");
             });
             e.HasKey(v => v.Id);
             e.Property(v => v.Name).HasMaxLength(128).IsRequired();
@@ -163,6 +171,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(v => v.Hours).HasMaxLength(256);
             e.Property(v => v.Visibility).HasMaxLength(16);
             e.Property(v => v.Status).HasMaxLength(16);
+            e.Property(v => v.HiddenBy).HasMaxLength(64);
             e.HasOne(v => v.Owner).WithMany()
                 .HasForeignKey(v => v.OwnerUserId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(v => v.CreatedBy).WithMany()
@@ -252,6 +261,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 // Quiz ratings are real ratings with provenance (Sprint 3).
                 t.HasCheckConstraint("ck_ratings_origin",
                     "\"Origin\" IN ('user','quiz')");
+                // Feed-section provenance for exploration badges (Sprint 6).
+                // Values = the feed's own section keys (one vocabulary).
+                t.HasCheckConstraint("ck_ratings_rec_section",
+                    "\"RecSection\" IS NULL OR \"RecSection\" IN ('up_your_alley','stretch_a_little','wildcard','loved_by_your_matches')");
+                // Moderation hide comes as a pair (Sprint 6).
+                t.HasCheckConstraint("ck_ratings_hidden_pairing",
+                    "(\"HiddenAt\" IS NULL) = (\"HiddenBy\" IS NULL)");
             });
             e.HasKey(r => r.Id);
             e.Property(r => r.Value).HasPrecision(2, 1);
@@ -259,6 +275,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(r => r.Visibility).HasMaxLength(16);
             e.Property(r => r.LocationContext).HasMaxLength(16).IsRequired();
             e.Property(r => r.Origin).HasMaxLength(16);
+            e.Property(r => r.RecSection).HasMaxLength(24);
+            e.Property(r => r.HiddenBy).HasMaxLength(64);
             e.HasOne(r => r.CreatedBy).WithMany()
                 .HasForeignKey(r => r.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(r => r.Drink).WithMany()
@@ -474,6 +492,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                     "\"MergedIntoDrinkId\" IS NULL OR \"MergedIntoDrinkId\" <> \"Id\"");
                 t.HasCheckConstraint("ck_drinks_abv",
                     "\"Abv\" IS NULL OR (\"Abv\" >= 0 AND \"Abv\" <= 100)");
+                t.HasCheckConstraint("ck_drinks_hidden_pairing",
+                    "(\"HiddenAt\" IS NULL) = (\"HiddenBy\" IS NULL)");
             });
             e.HasKey(d => d.Id);
             e.Property(d => d.Name).HasMaxLength(256).IsRequired();
@@ -484,6 +504,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(d => d.SourceRef).HasMaxLength(128);
             e.Property(d => d.Visibility).HasMaxLength(16);
             e.Property(d => d.Status).HasMaxLength(16);
+            e.Property(d => d.HiddenBy).HasMaxLength(64);
             e.Property(d => d.CategoryVector).HasColumnType("vector(8)");
             e.Property(d => d.BridgeVector).HasColumnType("vector(6)");
 
@@ -592,6 +613,134 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .IsUnique()
                 .HasFilter("\"Status\" = 'pending'")
                 .HasDatabaseName("ux_merge_queue_pending_pair");
+        });
+
+        modelBuilder.Entity<BadgeDefinition>(e =>
+        {
+            e.ToTable("badge_definitions", t =>
+            {
+                t.HasCheckConstraint("ck_badge_definitions_group",
+                    "\"DisplayGroup\" IN ('breadth','exploration','venues','contribution','streak')");
+                // Every metric is a distinct-entity or weekly-streak count —
+                // the vocabulary itself is the ADR-016 guardrail: there is no
+                // way to express a volume/frequency criterion.
+                t.HasCheckConstraint("ck_badge_definitions_metric",
+                    "\"Metric\" IN ('distinct_styles_rated','distinct_categories_rated','wildcard_distinct_drinks','distinct_venues_checked_in','wiki_contributions','menu_confirms','accepted_merge_contributions','weekly_streak_weeks')");
+                t.HasCheckConstraint("ck_badge_definitions_threshold",
+                    "\"Threshold\" >= 1");
+            });
+            e.HasKey(b => b.Slug);
+            e.Property(b => b.Slug).HasMaxLength(64);
+            e.Property(b => b.Name).HasMaxLength(64).IsRequired();
+            e.Property(b => b.Description).HasMaxLength(256).IsRequired();
+            e.Property(b => b.Icon).HasMaxLength(32).IsRequired();
+            e.Property(b => b.DisplayGroup).HasMaxLength(16).IsRequired();
+            e.Property(b => b.Metric).HasMaxLength(48).IsRequired();
+        });
+
+        modelBuilder.Entity<UserBadge>(e =>
+        {
+            e.ToTable("user_badges");
+            e.HasKey(ub => ub.Id);
+            e.Property(ub => ub.BadgeSlug).HasMaxLength(64);
+            e.HasOne(ub => ub.User).WithMany()
+                .HasForeignKey(ub => ub.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(ub => ub.Badge).WithMany()
+                .HasForeignKey(ub => ub.BadgeSlug).OnDelete(DeleteBehavior.Restrict);
+            // Permanent, never duplicated — the evaluator can re-run freely.
+            e.HasIndex(ub => new { ub.UserId, ub.BadgeSlug }).IsUnique()
+                .HasDatabaseName("ux_user_badges_user_badge");
+            // Toast polling: the unseen slice per user.
+            e.HasIndex(ub => ub.UserId)
+                .HasFilter("\"SeenAt\" IS NULL")
+                .HasDatabaseName("ix_user_badges_unseen");
+        });
+
+        modelBuilder.Entity<Report>(e =>
+        {
+            e.ToTable("reports", t =>
+            {
+                t.HasCheckConstraint("ck_reports_entity_type",
+                    "\"EntityType\" IN ('rating','venue','drink')");
+                t.HasCheckConstraint("ck_reports_reason",
+                    "\"Reason\" IN ('inaccurate','spam','offensive','other')");
+                t.HasCheckConstraint("ck_reports_status",
+                    "\"Status\" IN ('open','actioned','dismissed')");
+                // Exactly the FK matching EntityType is populated (merge_queue pattern).
+                t.HasCheckConstraint("ck_reports_typed_target",
+                    "(\"EntityType\" = 'rating' AND \"RatingId\" IS NOT NULL AND \"VenueId\" IS NULL AND \"DrinkId\" IS NULL)" +
+                    " OR (\"EntityType\" = 'venue' AND \"VenueId\" IS NOT NULL AND \"RatingId\" IS NULL AND \"DrinkId\" IS NULL)" +
+                    " OR (\"EntityType\" = 'drink' AND \"DrinkId\" IS NOT NULL AND \"RatingId\" IS NULL AND \"VenueId\" IS NULL)");
+                t.HasCheckConstraint("ck_reports_decision",
+                    "(\"Status\" = 'open') = (\"DecidedAt\" IS NULL)");
+            });
+            e.HasKey(r => r.Id);
+            e.Property(r => r.EntityType).HasMaxLength(16).IsRequired();
+            e.Property(r => r.Reason).HasMaxLength(16).IsRequired();
+            e.Property(r => r.Note).HasMaxLength(500);
+            e.Property(r => r.Status).HasMaxLength(16);
+            e.Property(r => r.DecidedBy).HasMaxLength(64);
+            // Reports die with their target (the merge_queue convention);
+            // the audit log is what survives deletion.
+            e.HasOne(r => r.Rating).WithMany()
+                .HasForeignKey(r => r.RatingId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.Venue).WithMany()
+                .HasForeignKey(r => r.VenueId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.Drink).WithMany()
+                .HasForeignKey(r => r.DrinkId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.Reporter).WithMany()
+                .HasForeignKey(r => r.ReporterUserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(r => new { r.Status, r.CreatedAt });
+            // One OPEN report per (reporter, target) — the report button can't
+            // be hammered into queue noise.
+            e.HasIndex(r => new { r.ReporterUserId, r.RatingId, r.VenueId, r.DrinkId })
+                .IsUnique()
+                .HasFilter("\"Status\" = 'open'")
+                .HasDatabaseName("ux_reports_open_per_reporter_target");
+        });
+
+        modelBuilder.Entity<AnomalyFlag>(e =>
+        {
+            e.ToTable("anomaly_flags", t =>
+            {
+                t.HasCheckConstraint("ck_anomaly_flags_kind",
+                    "\"Kind\" IN ('rating_zscore_outlier','rapid_fire')");
+                t.HasCheckConstraint("ck_anomaly_flags_status",
+                    "\"Status\" IN ('open','cleared','actioned')");
+                t.HasCheckConstraint("ck_anomaly_flags_decision",
+                    "(\"Status\" = 'open') = (\"DecidedAt\" IS NULL)");
+            });
+            e.HasKey(a => a.Id);
+            e.Property(a => a.Kind).HasMaxLength(32).IsRequired();
+            e.Property(a => a.Evidence).HasMaxLength(512).IsRequired();
+            e.Property(a => a.Status).HasMaxLength(16);
+            e.Property(a => a.DecidedBy).HasMaxLength(64);
+            e.HasOne(a => a.User).WithMany()
+                .HasForeignKey(a => a.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(a => new { a.Status, a.Score });
+            // One OPEN flag per (user, kind): nightly re-scans refresh evidence
+            // in place instead of stacking duplicates.
+            e.HasIndex(a => new { a.UserId, a.Kind }).IsUnique()
+                .HasFilter("\"Status\" = 'open'")
+                .HasDatabaseName("ux_anomaly_flags_open_per_user_kind");
+        });
+
+        modelBuilder.Entity<ModerationAction>(e =>
+        {
+            e.ToTable("moderation_actions", t =>
+            {
+                t.HasCheckConstraint("ck_moderation_actions_action",
+                    "\"Action\" IN ('merge_approved','merge_rejected','report_actioned','report_dismissed','content_hidden','content_unhidden','shadow_limited','shadow_cleared','banned','unbanned','anomaly_cleared')");
+            });
+            e.HasKey(a => a.Id);
+            e.Property(a => a.Actor).HasMaxLength(64).IsRequired();
+            e.Property(a => a.Action).HasMaxLength(32).IsRequired();
+            e.Property(a => a.EntityType).HasMaxLength(16);
+            e.Property(a => a.Details).HasColumnType("jsonb");
+            // Audit rows deliberately have NO FK — they must survive whatever
+            // they describe. Queried newest-first and by target.
+            e.HasIndex(a => a.CreatedAt);
+            e.HasIndex(a => new { a.EntityType, a.EntityId });
         });
     }
 }

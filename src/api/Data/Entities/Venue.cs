@@ -53,5 +53,12 @@ public class Venue
     public Guid? MergedIntoVenueId { get; set; }
     public Venue? MergedInto { get; set; }
 
+    /// <summary>
+    /// Moderation-owned hide (Sprint 6): a hidden venue leaves discovery and
+    /// menus without being merged — reversible, orthogonal to Status/Visibility.
+    /// </summary>
+    public DateTimeOffset? HiddenAt { get; set; }
+    public string? HiddenBy { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }
