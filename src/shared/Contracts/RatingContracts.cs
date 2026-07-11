@@ -14,7 +14,8 @@ public record RateRequest(
     string? Visibility,
     string LocationContext,
     Guid? VenueId = null,
-    string? Origin = null); // user (default) | quiz — quiz ratings are real ratings (Sprint 3)
+    string? Origin = null,     // user (default) | quiz — quiz ratings are real ratings (Sprint 3)
+    string? RecSection = null); // the FeedSection.Key when rating from a rec card (Sprint 6 badges)
 
 /// <summary>In-place edit of note/visibility. A changed VALUE is a new rating.</summary>
 public record RatingUpdateRequest(string? Note, string? Visibility);

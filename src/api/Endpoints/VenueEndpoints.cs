@@ -85,7 +85,8 @@ public static class VenueEndpoints
 
         // --- Wiki writes (authed) ---------------------------------------------
 
-        var authed = app.MapGroup("/api/venues").WithTags("Venues").RequireAuthorization();
+        var authed = app.MapGroup("/api/venues").WithTags("Venues").RequireAuthorization()
+            .AddEndpointFilter(ModerationGuards.NotBannedFilter); // Sprint 6: banned accounts can't write
 
         authed.MapPost("/", async (
             VenueCreateRequest request,
@@ -187,7 +188,8 @@ public static class VenueEndpoints
 
         // --- Check-in (authed; one tap, no GPS gate) -----------------------------
 
-        var checkinGroup = app.MapGroup("/api/checkins").WithTags("Venues").RequireAuthorization();
+        var checkinGroup = app.MapGroup("/api/checkins").WithTags("Venues").RequireAuthorization()
+            .AddEndpointFilter(ModerationGuards.NotBannedFilter);
 
         checkinGroup.MapPost("/", async (
             CheckinRequest request,

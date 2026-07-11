@@ -217,7 +217,7 @@ public sealed class RecommendationService(
         var rows = await db.Drinks.AsNoTracking()
             .Where(d => d.Category == category
                 && d.Status == EntityStatus.Active
-                && d.Visibility == Visibility.Public
+                && d.Visibility == Visibility.Public && d.HiddenAt == null
                 && d.CategoryVector != null
                 && !db.Ratings.Any(r => r.CreatedByUserId == userId && r.DrinkId == d.Id))
             .OrderBy(d => d.CategoryVector!.CosineDistance(preference))
@@ -249,7 +249,7 @@ public sealed class RecommendationService(
         var rows = await db.Drinks.AsNoTracking()
             .Where(d => d.Category == category
                 && d.Status == EntityStatus.Active
-                && d.Visibility == Visibility.Public
+                && d.Visibility == Visibility.Public && d.HiddenAt == null
                 && d.CategoryVector != null
                 && !db.Ratings.Any(r => r.CreatedByUserId == userId && r.DrinkId == d.Id))
             .OrderBy(d => d.Id) // deterministic; popularity sorts below
@@ -284,7 +284,7 @@ public sealed class RecommendationService(
                 var rows = await db.Drinks.AsNoTracking()
                     .Where(d => d.Category == target
                         && d.Status == EntityStatus.Active
-                        && d.Visibility == Visibility.Public
+                        && d.Visibility == Visibility.Public && d.HiddenAt == null
                         && d.BridgeVector != null
                         && !db.Ratings.Any(r => r.CreatedByUserId == userId && r.DrinkId == d.Id))
                     .OrderBy(d => d.BridgeVector!.CosineDistance(source.BridgeVector!))
@@ -367,8 +367,11 @@ public sealed class RecommendationService(
     {
         // Smoothed count of latest PUBLIC ratings → [0,1). Fine at MVP scale;
         // becomes a materialized rollup when it shows up in a profile trace.
+        // Public aggregate → the Sprint 6 moderation filters apply.
         var counts = await db.Ratings.AsNoTracking()
-            .Where(r => r.IsLatest && r.Visibility == Visibility.Public)
+            .Where(r => r.IsLatest && r.Visibility == Visibility.Public
+                && r.HiddenAt == null
+                && r.CreatedBy.ShadowLimitedAt == null && r.CreatedBy.BannedAt == null)
             .GroupBy(r => r.DrinkId)
             .Select(g => new { g.Key, Count = g.Count() })
             .ToListAsync(ct);

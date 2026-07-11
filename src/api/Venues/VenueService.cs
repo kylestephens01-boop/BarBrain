@@ -19,7 +19,8 @@ public sealed class VenueService(
     AppDbContext db,
     MergeService merges,
     ISettingsService settings,
-    TimeProvider clock)
+    TimeProvider clock,
+    Badges.BadgeService badges)
 {
     public sealed record Failure(int Status, ApiError Error);
 
@@ -72,6 +73,9 @@ public sealed class VenueService(
         // the venue itself always lands — never auto-merged.
         await merges.GenerateVenueCandidatesAsync(venue.Id, ct);
 
+        // Instant badge awards (Sprint 6): contribution metrics.
+        await badges.EvaluateAsync(userId, Badges.BadgeService.ContributionMetrics, ct);
+
         return (await VenueDtoAsync(venue.Id, ct), null);
     }
 
@@ -117,7 +121,7 @@ public sealed class VenueService(
         var venue = await db.Venues.AsNoTracking().FirstOrDefaultAsync(v => v.Id == venueId, ct);
         for (var hops = 0; venue is { Status: EntityStatus.Merged, MergedIntoVenueId: { } next } && hops < MergeHopLimit; hops++)
             venue = await db.Venues.AsNoTracking().FirstOrDefaultAsync(v => v.Id == next, ct);
-        if (venue is null || venue.Status != EntityStatus.Active)
+        if (venue is null || venue.Status != EntityStatus.Active || venue.HiddenAt is not null)
             return (null, Err(404, "venue_not_found", "That venue doesn't exist."));
         if (venue.Visibility == Visibility.Private && venue.OwnerUserId != callerId)
             return (null, Err(404, "venue_not_found", "That venue doesn't exist."));
@@ -138,7 +142,9 @@ public sealed class VenueService(
         // ratings show up — Sprint 5 acceptance criterion).
         var activity = venue.VenueType == VenueType.Venue
             ? await db.Ratings.AsNoTracking()
-                .Where(r => r.VenueId == venue.Id && r.Visibility == Visibility.Public && r.IsLatest)
+                .Where(r => r.VenueId == venue.Id && r.Visibility == Visibility.Public && r.IsLatest
+                    && r.HiddenAt == null
+                    && r.CreatedBy.ShadowLimitedAt == null && r.CreatedBy.BannedAt == null)
                 .OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id)
                 .Take(10)
                 .Select(r => new VenueActivityDto(
@@ -156,7 +162,8 @@ public sealed class VenueService(
         // access on a constructor-bound DTO back to a column (CI e2e caught
         // the 500).
         => await ProjectMenu(db.VenueMenuItems.AsNoTracking()
-                .Where(mi => mi.VenueId == venueId && mi.Drink.Status == EntityStatus.Active)
+                .Where(mi => mi.VenueId == venueId && mi.Drink.Status == EntityStatus.Active
+                    && mi.Drink.HiddenAt == null)
                 .OrderBy(mi => mi.Drink.Name))
             .ToListAsync(ct);
 
@@ -222,7 +229,17 @@ public sealed class VenueService(
         }
         db.Events.Add(NewEvent("menu_item_added", now, userId,
             ("venueId", venueId.ToString()), ("drinkId", drink.Id.ToString()), ("source", source)));
+        // A re-add of a listed drink IS a confirm — record it as one (the
+        // Menu Keeper badge counts distinct confirmed listings from events;
+        // LastConfirmedAt keeps no per-user history).
+        if (existing is not null)
+            db.Events.Add(NewEvent("menu_item_confirmed", now, userId,
+                ("venueId", venueId.ToString()), ("drinkId", drink.Id.ToString())));
         await db.SaveChangesAsync(ct);
+
+        // Instant badge awards (Sprint 6): contribution metrics (wiki users only).
+        if (userId is { } contributor)
+            await badges.EvaluateAsync(contributor, Badges.BadgeService.ContributionMetrics, ct);
 
         var dto = await ProjectMenu(db.VenueMenuItems.AsNoTracking().Where(mi => mi.Id == item.Id))
             .FirstAsync(ct);
@@ -250,7 +267,13 @@ public sealed class VenueService(
 
         db.Events.Add(NewEvent("menu_item_edited", now, userId,
             ("menuItemId", item.Id.ToString()), ("venueId", item.VenueId.ToString())));
+        if (request.Confirm == true)
+            db.Events.Add(NewEvent("menu_item_confirmed", now, userId,
+                ("venueId", item.VenueId.ToString()), ("drinkId", item.DrinkId.ToString())));
         await db.SaveChangesAsync(ct);
+
+        if (request.Confirm == true)
+            await badges.EvaluateAsync(userId, Badges.BadgeService.ContributionMetrics, ct);
 
         var dto = await ProjectMenu(db.VenueMenuItems.AsNoTracking().Where(mi => mi.Id == item.Id))
             .FirstAsync(ct);
@@ -309,7 +332,8 @@ public sealed class VenueService(
         => db.Venues.AsNoTracking().Where(v =>
             v.VenueType == VenueType.Venue
             && v.Status == EntityStatus.Active
-            && v.Visibility == Visibility.Public);
+            && v.Visibility == Visibility.Public
+            && v.HiddenAt == null); // moderation hide (Sprint 6)
 
     private async Task<Failure?> CheckMenuEditLimitAsync(Guid userId, CancellationToken ct)
     {

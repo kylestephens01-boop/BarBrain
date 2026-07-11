@@ -52,7 +52,8 @@ public sealed class PersonalizedMenuService(
         var rows = await db.VenueMenuItems.AsNoTracking()
             .Where(mi => mi.VenueId == venueId && mi.IsAvailable
                 && mi.Drink.Status == EntityStatus.Active
-                && mi.Drink.Visibility == Visibility.Public)
+                && mi.Drink.Visibility == Visibility.Public
+                && mi.Drink.HiddenAt == null)
             .Select(mi => new
             {
                 Item = new MenuItemDto(
@@ -66,7 +67,9 @@ public sealed class PersonalizedMenuService(
                     .Select(r => (decimal?)r.Value)
                     .FirstOrDefault(),
                 PublicRatings = db.Ratings.Count(r =>
-                    r.DrinkId == mi.DrinkId && r.IsLatest && r.Visibility == Visibility.Public),
+                    r.DrinkId == mi.DrinkId && r.IsLatest && r.Visibility == Visibility.Public
+                    && r.HiddenAt == null
+                    && r.CreatedBy.ShadowLimitedAt == null && r.CreatedBy.BannedAt == null),
             })
             .ToListAsync(ct);
 
