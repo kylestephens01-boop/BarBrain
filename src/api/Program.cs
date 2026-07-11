@@ -57,6 +57,11 @@ builder.Services.AddScoped<BarBrain.Api.Moderation.RateLimitService>();
 builder.Services.AddScoped<BarBrain.Api.Moderation.AnomalyScanService>();
 builder.Services.AddHostedService<BarBrain.Api.Moderation.AnomalyNightlyService>();
 
+// --- Privacy self-serve: export + deletion (Sprint 7, ADR-018) ---------------
+builder.Services.AddScoped<BarBrain.Api.Privacy.AccountDataService>();
+builder.Services.AddSingleton<BarBrain.Api.Privacy.IAccountEmailSender, BarBrain.Api.Privacy.LoggingAccountEmailSender>();
+builder.Services.AddHostedService<BarBrain.Api.Privacy.PrivacyNightlyService>();
+
 // --- Matching + weekly digest (Sprint 4, ADR-014/007/019) -------------------
 builder.Services.AddScoped<BarBrain.Api.Palate.MatchService>();
 builder.Services.AddHostedService<BarBrain.Api.Palate.MatchNightlyService>();
@@ -120,6 +125,7 @@ app.MapAdminMergeEndpoints();
 app.MapEventEndpoints();
 app.MapCatalogEndpoints();
 app.MapAuthEndpoints();
+app.MapAccountEndpoints();
 app.MapRatingEndpoints();
 app.MapPalateEndpoints();
 app.MapMatchEndpoints();

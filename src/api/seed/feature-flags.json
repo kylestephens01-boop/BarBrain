@@ -350,6 +350,21 @@
     "description": "Rating writes within the window that open a rapid-fire flag (bot/script patterns; last 24h scanned)."
   },
   {
+    "key": "privacy.deletion_grace_days",
+    "value": "7",
+    "description": "Days between an account-deletion request and execution (Sprint 7, ADR-018). The user's undo window; cancel any time before it ends."
+  },
+  {
+    "key": "privacy.nightly_enabled",
+    "value": "true",
+    "description": "Nightly job that executes account deletions whose grace period has elapsed (Sprint 7, ADR-018)."
+  },
+  {
+    "key": "privacy.nightly_hour_utc",
+    "value": "6",
+    "description": "UTC hour the nightly privacy (deletion execution) job runs."
+  },
+  {
     "key": "pwa.install_prompt_enabled",
     "value": "true",
     "description": "Show the custom PWA install prompt (Android/desktop beforeinstallprompt UI + iOS add-to-home-screen hint; Sprint 6)."

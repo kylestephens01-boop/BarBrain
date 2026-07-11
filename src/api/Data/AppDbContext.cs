@@ -90,6 +90,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 // claimed a handle (ADR-010/011).
                 t.HasCheckConstraint("ck_users_activation_requires_gate",
                     "\"ActivatedAt\" IS NULL OR (\"BirthYear\" IS NOT NULL AND \"AttestedAt\" IS NOT NULL AND \"Handle\" IS NOT NULL)");
+                // Deletion request comes as a pair with a closed mode
+                // vocabulary (Sprint 7, ADR-018).
+                t.HasCheckConstraint("ck_users_deletion_pairing",
+                    "(\"DeletionRequestedAt\" IS NULL) = (\"DeletionMode\" IS NULL)");
+                t.HasCheckConstraint("ck_users_deletion_mode",
+                    "\"DeletionMode\" IS NULL OR \"DeletionMode\" IN ('delete','anonymize')");
             });
             // Identity's UserName IS the pseudonymous handle — mapped onto
             // Sprint 1's Handle column so the extension is purely additive.
@@ -113,6 +119,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Ignore(u => u.PhoneNumberConfirmed);
             e.Ignore(u => u.TwoFactorEnabled);
             e.Property(u => u.ModerationNote).HasMaxLength(256);
+            e.Property(u => u.DeletionMode).HasMaxLength(16);
         });
 
         // Identity link tables, renamed to match the schema's naming style.

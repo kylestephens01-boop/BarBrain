@@ -319,6 +319,9 @@ code {
 .bb-btn--primary:hover:not(:disabled) { border-color: var(--bb-synapse); filter: brightness(1.05); }
 .bb-btn--oauth { width: 100%; }
 .bb-btn--quiet { border-color: transparent; background: transparent; color: var(--bb-text-muted); }
+/* Destructive actions only — semantic bitters (BRAND.md). */
+.bb-btn--danger { border-color: var(--bb-bitters); background: transparent; color: var(--bb-bitters); }
+.bb-btn--danger:hover:not(:disabled) { background: var(--bb-bitters-tint); border-color: var(--bb-bitters); }
 
 .bb-icon-btn {
   display: inline-flex;
