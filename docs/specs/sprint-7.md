@@ -45,7 +45,8 @@
   Precision@10 number.
 
 ## Out of scope
-Marketing site, app stores, payments, anything new — feature freeze.
+Marketing site, app stores, payments, anything new beyond the scoped
+live-catalog eval verb — feature freeze otherwise.
 
 ## Gate E (founder, ~30 min)
 Walk the launch checklist (generated as docs/LAUNCH.md): export your data,

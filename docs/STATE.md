@@ -110,6 +110,10 @@ locally; CI runs them — CI green is the done gate. Verified locally: build
 0 warnings; `dotnet test` 63 passed / 125 skipped.
 
 ## Backlog (unscheduled — revisit on a concrete trigger, not speculatively)
+- beer.db rejection is docs-only; the registry has no rejected-source
+  semantics. Trigger: next time importer code is touched, add a rejected
+  flag to the embedded registry, loud refusal on import, flip the CI test
+  accordingly.
 - Events table has no user_id column (userId lives in jsonb Properties) —
   fine for audit, awkward for per-user analytics; if the Sprint 7 dashboard
   needs per-user event queries, consider an additive indexed column then.
@@ -123,10 +127,10 @@ locally; CI runs them — CI green is the done gate. Verified locally: build
   physical address), 7–9 (OAuth/Turnstile creds); Gate C2 follow-ups.
 
 ## Next session should
-- Watch Sprint 6 PR CI (Testcontainers + Playwright + NEW Lighthouse job run
-  there); fix red if any; then the Gate (founder, phone, ~10 min): earn a
-  badge on a real account, file + action a report in /admin, install the
-  PWA to the home screen. Approve → Sprint 7 (pre-launch hardening).
+- Sprint 6 PR (#13) is MERGED. Next: the Sprint 6 founder Gate (phone,
+  ~10 min): earn a badge on a real account, file + action a report in
+  /admin, install the PWA to the home screen. Approve → Sprint 7 kickoff
+  (pre-launch hardening, spec now includes the live-catalog eval verb).
 - Sprint 7 heads-up: JSON export must include badges (spec says so — the
   badge tables are ready for it); deletion flow interacts with
   moderation_actions' no-FK design (audit survives deletion, by design).
