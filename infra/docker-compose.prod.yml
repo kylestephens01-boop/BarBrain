@@ -37,3 +37,9 @@ services:
     ports:
       - "80:80"
       - "443:443"
+
+  backup:
+    restart: unless-stopped
+    # Prod REQUIRES a real passphrase — the dev default must not survive here.
+    environment:
+      BACKUP_PASSPHRASE: ${BACKUP_PASSPHRASE:?set BACKUP_PASSPHRASE in infra/.env on the VPS}

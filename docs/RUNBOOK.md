@@ -141,9 +141,33 @@ DB-backed (`settings` table, ADR-006). Read/flip via `GET|PUT /api/admin/setting
 A flip takes effect on the next read (cache invalidated on write) — no redeploy.
 Auth is stubbed in Sprint 0; gate with `ADMIN_TOKEN`.
 
-## Backup / restore — TODO (Sprint 7)
-Nightly encrypted `pg_dump` → object storage, 30-day retention. Restore drill is
-a Sprint 7 acceptance criterion; the step-by-step restore goes here then.
+## Backup / restore (Sprint 7)
+The compose `backup` service dumps nightly at `BACKUP_HOUR_UTC` (default 3):
+`pg_dump | gzip | openssl AES-256` (passphrase `BACKUP_PASSPHRASE` — REQUIRED
+in prod, keep a copy OFF the VPS) into the `backups` volume, pruning past
+`BACKUP_RETENTION_DAYS` (30). Off-box copies upload automatically once
+`RCLONE_REMOTE` is set (HUMAN-CHECKLIST 10); until then every nightly log
+notes the backup is on-box only.
+
+```bash
+# Manual dump right now
+docker compose -f infra/docker-compose.yml run --rm backup /backup.sh once
+
+# Restore drill: newest dump → scratch container → smoke checks → teardown.
+# Never touches the live DB. Writes restore-drill.log (CI runs this per PR).
+BACKUP_PASSPHRASE=… ./infra/restore-drill.sh            # newest from volume
+BACKUP_PASSPHRASE=… ./infra/restore-drill.sh <file>     # specific dump
+```
+
+**Real restore (incident):** stop the api, drill-restore the chosen dump to a
+scratch container FIRST to prove it's good, then restore the same SQL into the
+live `postgres` service (`psql -U barbrain -d barbrain < dump.sql`), start the
+api, check `/health` + `/version`.
+
+**External exposure probe** (run from any non-VPS machine; Gate E item):
+```bash
+./infra/probe.sh dev.barbrain.co   # expects 80/443 open; 5432/8080/5000 closed
+```
 
 ## Incident basics
 - Logs: `docker compose logs -f api` (structured JSON via Serilog once added).

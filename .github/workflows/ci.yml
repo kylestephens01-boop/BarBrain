@@ -137,6 +137,22 @@ jobs:
             dotnet BarBrain.Api.dll report --out /tmp/seed-report.md
           docker compose -f infra/docker-compose.yml cp api:/tmp/seed-report.md seed-report.md
 
+      # Sprint 7 acceptance: the live-catalog eval verb runs via the exact
+      # exec pattern the VPS uses, read-only, and prints one number.
+      - name: Live-catalog rec eval (Sprint 7 acceptance artifact)
+        run: |
+          docker compose -f infra/docker-compose.yml exec -T api \
+            dotnet BarBrain.Api.dll eval recs --out /tmp/rec-eval.md
+          docker compose -f infra/docker-compose.yml cp api:/tmp/rec-eval.md rec-eval.md
+          grep "Live Precision@10:" rec-eval.md
+
+      - name: Upload rec-eval report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rec-eval-report
+          path: rec-eval.md
+
       - name: Upload seed report
         if: always()
         uses: actions/upload-artifact@v4
@@ -152,6 +168,56 @@ jobs:
           path: |
             tests/e2e/playwright-report/
             tests/e2e/test-results/
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f infra/docker-compose.yml down -v
+
+  # Sprint 7 acceptance: dump → restore to a scratch container → smoke green,
+  # timed, with the drill log as the PR artifact.
+  backup-drill:
+    name: Backup + restore drill
+    runs-on: ubuntu-latest
+    env:
+      BACKUP_PASSPHRASE: ci-drill-passphrase
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start postgres + api (migrates on boot)
+        run: |
+          cp infra/.env.example infra/.env
+          echo "BACKUP_PASSPHRASE=${BACKUP_PASSPHRASE}" >> infra/.env
+          docker compose -f infra/docker-compose.yml up -d --build postgres api
+
+      - name: Wait for /health
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8080/health > /dev/null; then
+              echo "API healthy"; exit 0
+            fi
+            sleep 3
+          done
+          echo "::error::API never became healthy"
+          docker compose -f infra/docker-compose.yml logs
+          exit 1
+
+      - name: Seed real data to back up
+        run: docker compose -f infra/docker-compose.yml exec -T api dotnet BarBrain.Api.dll import bundled
+
+      - name: Encrypted dump (backup.sh once)
+        run: docker compose -f infra/docker-compose.yml run --rm backup /backup.sh once
+
+      - name: Restore drill (scratch container + smoke)
+        run: |
+          chmod +x infra/restore-drill.sh
+          ./infra/restore-drill.sh
+
+      - name: Upload drill log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: restore-drill-log
+          path: restore-drill.log
 
       - name: Tear down
         if: always()
