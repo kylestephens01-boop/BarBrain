@@ -66,6 +66,13 @@ curl -L -o /tmp/obdb.csv https://raw.githubusercontent.com/openbrewerydb/openbre
 
 # Seed verification report (counts, coverage %, duplicate-rate estimate)
 … report --out seed-report.md
+
+# Live-catalog rec-quality eval (Sprint 7): Precision@10 with synthetic
+# golden-set personas against the LIVE catalog. Strictly read-only — all
+# synthetic rows run inside a rolled-back transaction; there is no commit
+# path. Prints one comparable number (Gate C1 fixture baseline: 0.71 —
+# compare the trend, don't equate; different catalogs).
+… eval recs --out rec-eval.md
 ```
 
 Merge review: `/admin/merge-queue` in the web app (admin token). Thresholds

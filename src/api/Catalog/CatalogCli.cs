@@ -17,13 +17,16 @@ namespace BarBrain.Api.Catalog;
 ///   dotnet BarBrain.Api.dll import beerdb --dir /data/openbeer-us
 ///   dotnet BarBrain.Api.dll import ttb-sample --file seed/ttb-cola-sample.csv
 ///   dotnet BarBrain.Api.dll report --out seed-report.md
+///   dotnet BarBrain.Api.dll eval recs [--out rec-eval.md]
 ///
 /// "bundled" = attributes → styles → corridor (all offline, license-safe seeds).
+/// "eval recs" = live-catalog Precision@10 (Sprint 7) — synthetic personas in
+/// a rolled-back transaction; strictly read-only against production data.
 /// </summary>
 public static class CatalogCli
 {
     public static bool IsCliInvocation(string[] args)
-        => args.Length > 0 && args[0] is "import" or "report";
+        => args.Length > 0 && args[0] is "import" or "report" or "eval";
 
     public static async Task<int> RunAsync(string[] args)
     {
@@ -36,6 +39,13 @@ public static class CatalogCli
         builder.Services.AddMemoryCache();
         builder.Services.AddScoped<ISettingsService, SettingsService>();
         builder.Services.AddCatalogServices();
+
+        // eval recs: the real profile + rec pipeline (Sprint 7).
+        builder.Services.AddSingleton(TimeProvider.System);
+        builder.Services.AddScoped<Palate.PalateProfileService>();
+        builder.Services.AddScoped<Palate.MatchService>();
+        builder.Services.AddScoped<Palate.RecommendationService>();
+        builder.Services.AddScoped<Palate.LiveRecEvalService>();
 
         using var host = builder.Build();
         await using var scope = host.Services.CreateAsyncScope();
@@ -99,13 +109,17 @@ public static class CatalogCli
                     if (FindOption(args, "--out") is { } outPath)
                         await File.WriteAllTextAsync(outPath, report);
                     break;
+                case ["eval", "recs", ..]:
+                    var eval = services.GetRequiredService<Palate.LiveRecEvalService>();
+                    return await eval.RunAsync(FindOption(args, "--out"));
                 default:
                     Console.Error.WriteLine(
                         "Usage: import attributes|styles|corridor|bundled|demo-dupes" +
                         " | import products --file <json>" +
                         " | import products --clear-attribute --source <seed-tag> --drink-ref <ref> --key <attribute-key>" +
                         " | import openbrewerydb --file <csv> | import beerdb --dir <checkout>" +
-                        " | import ttb-sample --file <csv> | report [--out <path>]");
+                        " | import ttb-sample --file <csv> | report [--out <path>]" +
+                        " | eval recs [--out <path>]");
                     return 2;
             }
 
