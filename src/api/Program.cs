@@ -95,6 +95,14 @@ builder.Services.AddCors(options => options.AddPolicy(WebCorsPolicy, policy =>
         policy.SetIsOriginAllowed(_ => true).AllowAnyHeader().AllowAnyMethod();
 }));
 
+// --- Monitoring (Sprint 7): first-party error tracker + spike alerts ---------
+// Structured JSON logs in Production so `docker compose logs api` is grep/
+// ship-able; the default human-readable console stays for dev.
+if (builder.Environment.IsProduction())
+    builder.Logging.AddJsonConsole(options => options.UseUtcTimestamp = true);
+builder.Services.AddExceptionHandler<BarBrain.Api.Monitoring.ErrorTrackingExceptionHandler>();
+builder.Services.AddHostedService<BarBrain.Api.Monitoring.ErrorRateAlertService>();
+
 builder.Services.AddProblemDetails();
 
 var app = builder.Build();
@@ -138,6 +146,7 @@ app.MapBadgeEndpoints();
 app.MapReportEndpoints();
 app.MapAdminModerationEndpoints();
 app.MapAdminAnalyticsEndpoints();
+app.MapDebugEndpoints(app.Configuration, app.Environment);
 
 app.Run();
 return 0;

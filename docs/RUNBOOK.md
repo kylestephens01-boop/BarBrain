@@ -169,7 +169,18 @@ api, check `/health` + `/version`.
 ./infra/probe.sh dev.barbrain.co   # expects 80/443 open; 5432/8080/5000 closed
 ```
 
+## Monitoring (Sprint 7)
+- **Uptime:** external monitor on `/health`, rule "down > 2 min" → founder
+  (HUMAN-CHECKLIST 15 — must live OUTSIDE the box).
+- **Errors:** every unhandled API exception lands as an `error` event
+  (first-party, PII-scrubbed, no userId). `ErrorRateAlertService` checks every
+  `monitoring.check_minutes` (15) and emails the founder at
+  `monitoring.error_spike_threshold` (10) errors/window — throttled to one
+  alert/hour; composed-and-logged until SMTP + `monitoring.alert_email` exist.
+- **Logs:** Production logs are structured JSON on the container console —
+  `docker compose logs api | jq` works.
+
 ## Incident basics
-- Logs: `docker compose logs -f api` (structured JSON via Serilog once added).
+- Logs: `docker compose logs -f api` (structured JSON in Production).
 - DB down but app up: `/health` stays `ok`; API calls touching the DB fail.
 - Roll back to the last known-good SHA (see Rollback) before deep debugging.

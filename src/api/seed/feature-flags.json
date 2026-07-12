@@ -350,6 +350,21 @@
     "description": "Rating writes within the window that open a rapid-fire flag (bot/script patterns; last 24h scanned)."
   },
   {
+    "key": "monitoring.error_spike_threshold",
+    "value": "10",
+    "description": "Unhandled API errors within one check window that raise a founder alert (Sprint 7). Throttled to one alert per hour."
+  },
+  {
+    "key": "monitoring.check_minutes",
+    "value": "15",
+    "description": "Error-rate check interval (minutes)."
+  },
+  {
+    "key": "monitoring.alert_email",
+    "value": "",
+    "description": "Where error-spike alerts go. Empty = composed and LOGGED only (same posture as the digest until SMTP + address exist, HUMAN-CHECKLIST 6/15)."
+  },
+  {
     "key": "analytics.d30_kill_pct",
     "value": "3",
     "description": "PRD kill threshold: D30 retention 'well under' this percent = kill/pivot conversation. Shown on the admin dashboard next to the live number."
