@@ -350,6 +350,16 @@
     "description": "Rating writes within the window that open a rapid-fire flag (bot/script patterns; last 24h scanned)."
   },
   {
+    "key": "analytics.d30_kill_pct",
+    "value": "3",
+    "description": "PRD kill threshold: D30 retention 'well under' this percent = kill/pivot conversation. Shown on the admin dashboard next to the live number."
+  },
+  {
+    "key": "analytics.d30_excellent_pct",
+    "value": "7",
+    "description": "PRD accelerate threshold: D30 retention at/above this percent = excellent. Shown on the admin dashboard."
+  },
+  {
     "key": "privacy.deletion_grace_days",
     "value": "7",
     "description": "Days between an account-deletion request and execution (Sprint 7, ADR-018). The user's undo window; cancel any time before it ends."

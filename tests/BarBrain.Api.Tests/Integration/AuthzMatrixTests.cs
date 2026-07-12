@@ -145,6 +145,7 @@ public sealed class AuthzMatrixTests(PostgresFixture fixture) : IAsyncLifetime
         [("POST", "/api/admin/moderation/users/{id}/ban")] = Access.Admin,
         [("POST", "/api/admin/moderation/users/{id}/unban")] = Access.Admin,
         [("GET", "/api/admin/moderation/audit")] = Access.Admin,
+        [("GET", "/api/admin/analytics")] = Access.Admin,
     };
 
     // -------------------------------------------------------------- discovery

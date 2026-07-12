@@ -1032,6 +1032,10 @@ code {
 .bb-rr-doorway__detail { color: var(--bb-text-muted); font-size: 11px; line-height: 15px; }
 
 /* --- Profile settings (privacy & email) --------------------------------------- */
+/* --- Admin analytics accents (Sprint 7): semantic only ---------------------- */
+.bb-stat--good { color: var(--bb-synapse); font-weight: var(--bb-fw-medium); }
+.bb-stat--bad { color: var(--bb-bitters); font-weight: var(--bb-fw-medium); }
+
 /* --- Footer + legal pages (Sprint 7) --------------------------------------- */
 .bb-footer {
   margin-top: 48px;

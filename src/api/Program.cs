@@ -57,6 +57,9 @@ builder.Services.AddScoped<BarBrain.Api.Moderation.RateLimitService>();
 builder.Services.AddScoped<BarBrain.Api.Moderation.AnomalyScanService>();
 builder.Services.AddHostedService<BarBrain.Api.Moderation.AnomalyNightlyService>();
 
+// --- Admin analytics dashboard (Sprint 7, ADR-017) ---------------------------
+builder.Services.AddScoped<BarBrain.Api.Analytics.AnalyticsService>();
+
 // --- Privacy self-serve: export + deletion (Sprint 7, ADR-018) ---------------
 builder.Services.AddScoped<BarBrain.Api.Privacy.AccountDataService>();
 builder.Services.AddSingleton<BarBrain.Api.Privacy.IAccountEmailSender, BarBrain.Api.Privacy.LoggingAccountEmailSender>();
@@ -134,6 +137,7 @@ app.MapVenueEndpoints();
 app.MapBadgeEndpoints();
 app.MapReportEndpoints();
 app.MapAdminModerationEndpoints();
+app.MapAdminAnalyticsEndpoints();
 
 app.Run();
 return 0;
