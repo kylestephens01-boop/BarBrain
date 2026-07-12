@@ -180,6 +180,16 @@ api, check `/health` + `/version`.
 - **Logs:** Production logs are structured JSON on the container console —
   `docker compose logs api | jq` works.
 
+## Weekly ops (founder, ~10 minutes)
+1. Uptime monitor dashboard: any incidents this week? (HUMAN-CHECKLIST 15)
+2. `/admin/analytics`: signups, WAU, D30 vs the kill/excellent thresholds.
+3. `/admin` moderation tabs: open reports + anomaly flags actioned or cleared.
+4. Backups: `docker compose … run --rm backup ls -lh /backups | tail -5` —
+   nightly files present and recent. Once a month, run the restore drill.
+5. GitHub: Security workflow green (weekly CVE sweep runs Mondays);
+   dependabot PRs reviewed/merged.
+6. `docker compose logs api --since 168h | grep -c '"error"'` sanity glance.
+
 ## Incident basics
 - Logs: `docker compose logs -f api` (structured JSON in Production).
 - DB down but app up: `/health` stays `ok`; API calls touching the DB fail.
