@@ -44,7 +44,7 @@ jobs:
         working-directory: tests/e2e
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "20"
       - run: npm install --package-lock-only --no-audit --no-fund
