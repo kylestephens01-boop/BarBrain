@@ -150,8 +150,9 @@ in prod, keep a copy OFF the VPS) into the `backups` volume, pruning past
 notes the backup is on-box only.
 
 ```bash
-# Manual dump right now
-docker compose -f infra/docker-compose.yml run --rm backup /backup.sh once
+# Manual dump right now (the service entrypoint is already `bash /backup.sh`,
+# so the arg is just `once` — passing `/backup.sh once` would loop-and-sleep)
+docker compose -f infra/docker-compose.yml run --rm backup once
 
 # Restore drill: newest dump → scratch container → smoke checks → teardown.
 # Never touches the live DB. Writes restore-drill.log (CI runs this per PR).
@@ -184,7 +185,7 @@ api, check `/health` + `/version`.
 1. Uptime monitor dashboard: any incidents this week? (HUMAN-CHECKLIST 15)
 2. `/admin/analytics`: signups, WAU, D30 vs the kill/excellent thresholds.
 3. `/admin` moderation tabs: open reports + anomaly flags actioned or cleared.
-4. Backups: `docker compose … run --rm backup ls -lh /backups | tail -5` —
+4. Backups: `docker compose … exec backup ls -lh /backups | tail -5` —
    nightly files present and recent. Once a month, run the restore drill.
 5. GitHub: Security workflow green (weekly CVE sweep runs Mondays);
    dependabot PRs reviewed/merged.

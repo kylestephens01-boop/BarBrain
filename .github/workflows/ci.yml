@@ -178,6 +178,7 @@ jobs:
   backup-drill:
     name: Backup + restore drill
     runs-on: ubuntu-latest
+    timeout-minutes: 20 # a hung drill must fail fast, not burn a 6h runner
     env:
       BACKUP_PASSPHRASE: ci-drill-passphrase
     steps:
@@ -204,8 +205,9 @@ jobs:
       - name: Seed real data to back up
         run: docker compose -f infra/docker-compose.yml exec -T api dotnet BarBrain.Api.dll import bundled
 
+      # The service entrypoint is already `bash /backup.sh`; the arg appends.
       - name: Encrypted dump (backup.sh once)
-        run: docker compose -f infra/docker-compose.yml run --rm backup /backup.sh once
+        run: docker compose -f infra/docker-compose.yml run --rm backup once
 
       - name: Restore drill (scratch container + smoke)
         run: |

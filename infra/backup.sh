@@ -47,6 +47,11 @@ dump_once() {
   fi
 }
 
+# `docker compose run backup …` APPENDS args to the entrypoint, so a caller
+# writing `run backup /backup.sh once` hands us our own path as $1 — shift it
+# off instead of silently falling into loop mode (CI hung 6h on exactly this).
+if [ "${1##*/}" = "backup.sh" ]; then shift; fi
+
 if [ "${1:-loop}" = "once" ]; then
   dump_once
   exit 0

@@ -21,7 +21,7 @@ public sealed class MigrationFromEmptyTests(PostgresFixture fixture)
 
         // A truly empty DB: the full ordered chain is pending.
         var pending = (await db.Database.GetPendingMigrationsAsync()).ToList();
-        Assert.Equal(7, pending.Count);
+        Assert.Equal(8, pending.Count);
         Assert.EndsWith("InitialCreate", pending[0]);
         Assert.EndsWith("Sprint1Catalog", pending[1]);
         Assert.EndsWith("Sprint2Identity", pending[2]);
@@ -29,11 +29,12 @@ public sealed class MigrationFromEmptyTests(PostgresFixture fixture)
         Assert.EndsWith("Sprint4Matching", pending[4]);
         Assert.EndsWith("Sprint5Venues", pending[5]);
         Assert.EndsWith("Sprint6GamificationModeration", pending[6]);
+        Assert.EndsWith("Sprint7Privacy", pending[7]);
 
         await db.Database.MigrateAsync();
 
         var applied = (await db.Database.GetAppliedMigrationsAsync()).ToList();
-        Assert.Equal(7, applied.Count);
+        Assert.Equal(8, applied.Count);
         Assert.Empty(await db.Database.GetPendingMigrationsAsync());
 
         Assert.True(await ScalarBoolAsync(db,
