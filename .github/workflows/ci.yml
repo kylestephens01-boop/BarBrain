@@ -19,7 +19,7 @@ jobs:
     name: Build & test (unit + integration)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
@@ -38,7 +38,7 @@ jobs:
     name: Contrast (WCAG tokens)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
@@ -50,7 +50,7 @@ jobs:
     name: Playwright smoke
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v6
         with:
@@ -182,7 +182,7 @@ jobs:
     env:
       BACKUP_PASSPHRASE: ci-drill-passphrase
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Start postgres + api (migrates on boot)
         run: |
