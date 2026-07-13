@@ -28,7 +28,7 @@ jobs:
       # Testcontainers spins up Postgres+pgvector on the runner's Docker, so the
       # integration tests (incl. migrate-from-empty) run for real here.
       - run: dotnet test BarBrain.slnx -c Release --no-build --logger "trx;LogFileName=test.trx" --results-directory TestResults
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results
@@ -123,7 +123,7 @@ jobs:
 
       - name: Upload Lighthouse report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lighthouse-report
           path: |
@@ -148,20 +148,20 @@ jobs:
 
       - name: Upload rec-eval report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rec-eval-report
           path: rec-eval.md
 
       - name: Upload seed report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: seed-report
           path: seed-report.md
 
       - name: Upload screenshots + report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: playwright-report
@@ -216,7 +216,7 @@ jobs:
 
       - name: Upload drill log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: restore-drill-log
           path: restore-drill.log
