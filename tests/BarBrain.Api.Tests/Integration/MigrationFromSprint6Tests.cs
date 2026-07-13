@@ -47,11 +47,14 @@ public sealed class MigrationFromSprint6Tests(PostgresFixture fixture)
         Assert.Null(user.DeletionMode);
 
         // The pairing CHECK is live: a mode without a timestamp is refused.
-        await Assert.ThrowsAsync<Microsoft.EntityFrameworkCore.DbUpdateException>(async () =>
+        // Raw SQL throws PostgresException directly (DbUpdateException only
+        // wraps the SaveChanges pipeline).
+        var refused = await Assert.ThrowsAsync<Npgsql.PostgresException>(async () =>
         {
             await db.Database.ExecuteSqlRawAsync(
                 """UPDATE users SET "DeletionMode" = 'delete' WHERE "Handle" = 'oldster'""");
         });
+        Assert.Equal("ck_users_deletion_pairing", refused.ConstraintName);
     }
 
     private static async Task<bool> ColumnExistsAsync(DbContext db, string table, string column)
