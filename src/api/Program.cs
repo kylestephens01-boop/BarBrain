@@ -57,6 +57,14 @@ builder.Services.AddScoped<BarBrain.Api.Moderation.RateLimitService>();
 builder.Services.AddScoped<BarBrain.Api.Moderation.AnomalyScanService>();
 builder.Services.AddHostedService<BarBrain.Api.Moderation.AnomalyNightlyService>();
 
+// --- Admin analytics dashboard (Sprint 7, ADR-017) ---------------------------
+builder.Services.AddScoped<BarBrain.Api.Analytics.AnalyticsService>();
+
+// --- Privacy self-serve: export + deletion (Sprint 7, ADR-018) ---------------
+builder.Services.AddScoped<BarBrain.Api.Privacy.AccountDataService>();
+builder.Services.AddSingleton<BarBrain.Api.Privacy.IAccountEmailSender, BarBrain.Api.Privacy.LoggingAccountEmailSender>();
+builder.Services.AddHostedService<BarBrain.Api.Privacy.PrivacyNightlyService>();
+
 // --- Matching + weekly digest (Sprint 4, ADR-014/007/019) -------------------
 builder.Services.AddScoped<BarBrain.Api.Palate.MatchService>();
 builder.Services.AddHostedService<BarBrain.Api.Palate.MatchNightlyService>();
@@ -86,6 +94,14 @@ builder.Services.AddCors(options => options.AddPolicy(WebCorsPolicy, policy =>
     else if (builder.Environment.IsDevelopment())
         policy.SetIsOriginAllowed(_ => true).AllowAnyHeader().AllowAnyMethod();
 }));
+
+// --- Monitoring (Sprint 7): first-party error tracker + spike alerts ---------
+// Structured JSON logs in Production so `docker compose logs api` is grep/
+// ship-able; the default human-readable console stays for dev.
+if (builder.Environment.IsProduction())
+    builder.Logging.AddJsonConsole(options => options.UseUtcTimestamp = true);
+builder.Services.AddExceptionHandler<BarBrain.Api.Monitoring.ErrorTrackingExceptionHandler>();
+builder.Services.AddHostedService<BarBrain.Api.Monitoring.ErrorRateAlertService>();
 
 builder.Services.AddProblemDetails();
 
@@ -120,6 +136,7 @@ app.MapAdminMergeEndpoints();
 app.MapEventEndpoints();
 app.MapCatalogEndpoints();
 app.MapAuthEndpoints();
+app.MapAccountEndpoints();
 app.MapRatingEndpoints();
 app.MapPalateEndpoints();
 app.MapMatchEndpoints();
@@ -128,6 +145,8 @@ app.MapVenueEndpoints();
 app.MapBadgeEndpoints();
 app.MapReportEndpoints();
 app.MapAdminModerationEndpoints();
+app.MapAdminAnalyticsEndpoints();
+app.MapDebugEndpoints(app.Configuration, app.Environment);
 
 app.Run();
 return 0;

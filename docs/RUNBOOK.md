@@ -66,6 +66,13 @@ curl -L -o /tmp/obdb.csv https://raw.githubusercontent.com/openbrewerydb/openbre
 
 # Seed verification report (counts, coverage %, duplicate-rate estimate)
 … report --out seed-report.md
+
+# Live-catalog rec-quality eval (Sprint 7): Precision@10 with synthetic
+# golden-set personas against the LIVE catalog. Strictly read-only — all
+# synthetic rows run inside a rolled-back transaction; there is no commit
+# path. Prints one comparable number (Gate C1 fixture baseline: 0.71 —
+# compare the trend, don't equate; different catalogs).
+… eval recs --out rec-eval.md
 ```
 
 Merge review: `/admin/merge-queue` in the web app (admin token). Thresholds
@@ -134,11 +141,57 @@ DB-backed (`settings` table, ADR-006). Read/flip via `GET|PUT /api/admin/setting
 A flip takes effect on the next read (cache invalidated on write) — no redeploy.
 Auth is stubbed in Sprint 0; gate with `ADMIN_TOKEN`.
 
-## Backup / restore — TODO (Sprint 7)
-Nightly encrypted `pg_dump` → object storage, 30-day retention. Restore drill is
-a Sprint 7 acceptance criterion; the step-by-step restore goes here then.
+## Backup / restore (Sprint 7)
+The compose `backup` service dumps nightly at `BACKUP_HOUR_UTC` (default 3):
+`pg_dump | gzip | openssl AES-256` (passphrase `BACKUP_PASSPHRASE` — REQUIRED
+in prod, keep a copy OFF the VPS) into the `backups` volume, pruning past
+`BACKUP_RETENTION_DAYS` (30). Off-box copies upload automatically once
+`RCLONE_REMOTE` is set (HUMAN-CHECKLIST 10); until then every nightly log
+notes the backup is on-box only.
+
+```bash
+# Manual dump right now (the service entrypoint is already `bash /backup.sh`,
+# so the arg is just `once` — passing `/backup.sh once` would loop-and-sleep)
+docker compose -f infra/docker-compose.yml run --rm backup once
+
+# Restore drill: newest dump → scratch container → smoke checks → teardown.
+# Never touches the live DB. Writes restore-drill.log (CI runs this per PR).
+BACKUP_PASSPHRASE=… ./infra/restore-drill.sh            # newest from volume
+BACKUP_PASSPHRASE=… ./infra/restore-drill.sh <file>     # specific dump
+```
+
+**Real restore (incident):** stop the api, drill-restore the chosen dump to a
+scratch container FIRST to prove it's good, then restore the same SQL into the
+live `postgres` service (`psql -U barbrain -d barbrain < dump.sql`), start the
+api, check `/health` + `/version`.
+
+**External exposure probe** (run from any non-VPS machine; Gate E item):
+```bash
+./infra/probe.sh dev.barbrain.co   # expects 80/443 open; 5432/8080/5000 closed
+```
+
+## Monitoring (Sprint 7)
+- **Uptime:** external monitor on `/health`, rule "down > 2 min" → founder
+  (HUMAN-CHECKLIST 15 — must live OUTSIDE the box).
+- **Errors:** every unhandled API exception lands as an `error` event
+  (first-party, PII-scrubbed, no userId). `ErrorRateAlertService` checks every
+  `monitoring.check_minutes` (15) and emails the founder at
+  `monitoring.error_spike_threshold` (10) errors/window — throttled to one
+  alert/hour; composed-and-logged until SMTP + `monitoring.alert_email` exist.
+- **Logs:** Production logs are structured JSON on the container console —
+  `docker compose logs api | jq` works.
+
+## Weekly ops (founder, ~10 minutes)
+1. Uptime monitor dashboard: any incidents this week? (HUMAN-CHECKLIST 15)
+2. `/admin/analytics`: signups, WAU, D30 vs the kill/excellent thresholds.
+3. `/admin` moderation tabs: open reports + anomaly flags actioned or cleared.
+4. Backups: `docker compose … exec backup ls -lh /backups | tail -5` —
+   nightly files present and recent. Once a month, run the restore drill.
+5. GitHub: Security workflow green (weekly CVE sweep runs Mondays);
+   dependabot PRs reviewed/merged.
+6. `docker compose logs api --since 168h | grep -c '"error"'` sanity glance.
 
 ## Incident basics
-- Logs: `docker compose logs -f api` (structured JSON via Serilog once added).
+- Logs: `docker compose logs -f api` (structured JSON in Production).
 - DB down but app up: `/health` stays `ok`; API calls touching the DB fail.
 - Roll back to the last known-good SHA (see Rollback) before deep debugging.

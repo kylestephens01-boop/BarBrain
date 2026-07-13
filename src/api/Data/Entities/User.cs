@@ -72,5 +72,16 @@ public class User : IdentityUser<Guid>
     /// <summary>Internal moderator note for the above. Never shown to users.</summary>
     public string? ModerationNote { get; set; }
 
+    // --- Privacy deletion (Sprint 7, ADR-018) ---------------------------------
+    /// <summary>
+    /// Set when the user requested account deletion. The flag-driven grace
+    /// period runs from here; the nightly privacy job executes what's due.
+    /// Cleared on cancel.
+    /// </summary>
+    public DateTimeOffset? DeletionRequestedAt { get; set; }
+
+    /// <summary>'delete' | 'anonymize' (ADR-018) — CHECK-paired with the timestamp.</summary>
+    public string? DeletionMode { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }

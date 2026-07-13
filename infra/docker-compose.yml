@@ -66,5 +66,28 @@ services:
     depends_on:
       - api
 
+  # Nightly encrypted pg_dump, 30-day retention (Sprint 7; RUNBOOK topology).
+  # Same image as postgres so pg_dump versions can never skew. `once` mode:
+  #   docker compose -f infra/docker-compose.yml run --rm backup /backup.sh once
+  backup:
+    image: pgvector/pgvector:pg16
+    entrypoint: ["/bin/bash", "/backup.sh"]
+    environment:
+      PGHOST: postgres
+      PGUSER: barbrain
+      PGPASSWORD: ${POSTGRES_PASSWORD:-barbrain}
+      PGDATABASE: barbrain
+      BACKUP_PASSPHRASE: ${BACKUP_PASSPHRASE:-dev-only-not-a-secret}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+      BACKUP_HOUR_UTC: ${BACKUP_HOUR_UTC:-3}
+      RCLONE_REMOTE: ${RCLONE_REMOTE:-}
+    volumes:
+      - ./backup.sh:/backup.sh:ro
+      - backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   pgdata:
+  backups:

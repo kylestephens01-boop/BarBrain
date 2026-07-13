@@ -1,0 +1,119 @@
+@page "/admin/analytics"
+@using BarBrain.Shared.Contracts
+@inject HttpClient Http
+
+<PageTitle>Analytics — BarBrain admin</PageTitle>
+
+<section class="merge-admin" data-testid="admin-analytics">
+    <h1>Retention dashboard</h1>
+    <p class="merge-admin__hint">
+        First-party events only (ADR-017). Aggregate numbers — no per-user drill-down exists.
+        <a href="/admin">← moderation</a>
+    </p>
+
+    <div class="merge-admin__controls">
+        <label>
+            Admin token
+            <input type="password" @bind="_token" data-testid="admin-token-input" />
+        </label>
+        <button type="button" class="bb-btn" @onclick="LoadAsync" data-testid="analytics-load">Load</button>
+    </div>
+
+    @if (_error is not null)
+    {
+        <p class="merge-admin__error" data-testid="analytics-error">@_error</p>
+    }
+
+    @if (_data is not null)
+    {
+        <table class="merge-admin__table" data-testid="analytics-funnel">
+            <caption>Funnel &amp; activity — @_data.GeneratedAt.ToString("yyyy-MM-dd HH:mm") UTC</caption>
+            <thead><tr><th scope="col">Metric</th><th scope="col">Value</th><th scope="col">Notes</th></tr></thead>
+            <tbody>
+                <tr><td>Signups (total)</td><td data-testid="stat-signups">@_data.SignupsTotal</td>
+                    <td class="bb-muted">7d: @_data.Signups7d · 30d: @_data.Signups30d</td></tr>
+                <tr><td>Activation rate</td><td>@_data.ActivationRatePct%</td>
+                    <td class="bb-muted">signup → age gate + handle claimed</td></tr>
+                <tr><td>WAU</td><td data-testid="stat-wau">@_data.Wau</td>
+                    <td class="bb-muted">rated or checked in, last 7 days</td></tr>
+                <tr><td>Ratings / active user</td><td>@_data.RatingsPerActiveUser</td>
+                    <td class="bb-muted">data-asset depth (PRD)</td></tr>
+                <tr><td>Users in 2+ categories</td><td>@_data.MultiCategoryPct%</td>
+                    <td class="bb-muted">cross-category moat metric (PRD)</td></tr>
+            </tbody>
+        </table>
+
+        <table class="merge-admin__table" data-testid="analytics-retention">
+            <caption>Cohort retention — kill &lt; @(_data.D30KillPct)% · excellent ≥ @(_data.D30ExcellentPct)% (D30, PRD)</caption>
+            <thead><tr><th scope="col">Day</th><th scope="col">Eligible</th><th scope="col">Retained</th><th scope="col">%</th></tr></thead>
+            <tbody>
+                <tr><td>D1</td><td>@_data.D1.Eligible</td><td>@_data.D1.Retained</td><td>@_data.D1.Pct%</td></tr>
+                <tr><td>D7</td><td>@_data.D7.Eligible</td><td>@_data.D7.Retained</td><td>@_data.D7.Pct%</td></tr>
+                <tr>
+                    <td>D30</td><td>@_data.D30.Eligible</td><td>@_data.D30.Retained</td>
+                    <td data-testid="stat-d30" class="@(D30Class())">@_data.D30.Pct%</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <table class="merge-admin__table" data-testid="analytics-weekly">
+            <caption>Weekly pace (last 8 ISO weeks)</caption>
+            <thead><tr><th scope="col">Week of</th><th scope="col">Ratings</th><th scope="col">Check-ins</th></tr></thead>
+            <tbody>
+                @foreach (var week in AllWeeks())
+                {
+                    <tr>
+                        <td>@week.ToString("MMM d")</td>
+                        <td>@CountFor(_data.RatingsPerWeek, week)</td>
+                        <td>@CountFor(_data.CheckinsPerWeek, week)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</section>
+
+@code {
+    private string _token = "";
+    private string? _error;
+    private AdminAnalyticsResponse? _data;
+
+    private async Task LoadAsync()
+    {
+        _error = null;
+        try
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, "api/admin/analytics");
+            if (!string.IsNullOrWhiteSpace(_token)) request.Headers.Add("X-Admin-Token", _token);
+            using var response = await Http.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                _error = response.StatusCode == System.Net.HttpStatusCode.Unauthorized
+                    ? "That token wasn't accepted."
+                    : "Couldn't load analytics. Try again.";
+                return;
+            }
+            _data = await response.Content.ReadFromJsonAsync<AdminAnalyticsResponse>();
+        }
+        catch
+        {
+            _error = "Couldn't load analytics. Try again.";
+        }
+    }
+
+    private string D30Class()
+        => _data is null ? ""
+           : _data.D30.Pct >= _data.D30ExcellentPct ? "bb-stat--good"
+           : _data.D30.Pct < _data.D30KillPct ? "bb-stat--bad"
+           : "";
+
+    private IEnumerable<DateTime> AllWeeks()
+        => _data is null
+            ? []
+            : _data.RatingsPerWeek.Select(w => w.WeekStart)
+                .Union(_data.CheckinsPerWeek.Select(w => w.WeekStart))
+                .OrderBy(w => w);
+
+    private static int CountFor(IReadOnlyList<WeeklyCount> series, DateTime week)
+        => series.FirstOrDefault(w => w.WeekStart == week)?.Count ?? 0;
+}

@@ -240,6 +240,88 @@ else
             </label>
         }
     </section>
+
+    <section class="bb-card bb-settings" data-testid="profile-data">
+        <h2 class="bb-label">Your data</h2>
+
+        <div class="bb-settings__row">
+            <span class="bb-settings__copy">
+                <span class="bb-settings__name">Export my data</span>
+                <span class="bb-muted">Everything BarBrain holds about you — profile, rating history, check-ins, badges — as one JSON file.</span>
+            </span>
+            <a class="bb-btn bb-btn--quiet" href="api/account/export" target="_blank"
+               data-testid="export-data">Download</a>
+        </div>
+
+        @if (_deletion is not null)
+        {
+            <div class="bb-settings__row" data-testid="deletion-pending">
+                <span class="bb-settings__copy">
+                    <span class="bb-settings__name">Deletion scheduled</span>
+                    <span class="bb-muted">
+                        Your account will be @(_deletion.Mode == "anonymize" ? "anonymized" : "deleted")
+                        on @_deletion.EffectiveAt.ToString("MMMM d, yyyy"). Changed your mind? Cancel below — nothing happens until then.
+                    </span>
+                </span>
+                <button type="button" class="bb-btn" @onclick="CancelDeletionAsync"
+                        data-testid="cancel-deletion">Keep my account</button>
+            </div>
+        }
+        else if (!_showDeleteForm)
+        {
+            <div class="bb-settings__row">
+                <span class="bb-settings__copy">
+                    <span class="bb-settings__name">Delete account</span>
+                    <span class="bb-muted">Leave for good, with a change-your-mind window before anything happens.</span>
+                </span>
+                <button type="button" class="bb-btn bb-btn--quiet" @onclick="() => _showDeleteForm = true"
+                        data-testid="delete-account">Delete…</button>
+            </div>
+        }
+        else
+        {
+            <form class="bb-form bb-settings__delete" @onsubmit="RequestDeletionAsync" @onsubmit:preventDefault
+                  data-testid="delete-form">
+                <fieldset>
+                    <legend class="bb-settings__name">How should we handle what you've shared?</legend>
+                    <label class="bb-toggle bb-settings__row">
+                        <input type="radio" name="delete-mode" value="anonymize"
+                               checked="@(_deleteMode == "anonymize")"
+                               @onchange="@(() => _deleteMode = "anonymize")" />
+                        <span class="bb-settings__copy">
+                            <span class="bb-settings__name">Anonymize</span>
+                            <span class="bb-muted">Your public ratings and venue additions stay, under an anonymous handle. Everything personal is erased.</span>
+                        </span>
+                    </label>
+                    <label class="bb-toggle bb-settings__row">
+                        <input type="radio" name="delete-mode" value="delete"
+                               checked="@(_deleteMode == "delete")"
+                               @onchange="@(() => _deleteMode = "delete")" />
+                        <span class="bb-settings__copy">
+                            <span class="bb-settings__name">Delete everything</span>
+                            <span class="bb-muted">Ratings, check-ins, and personal data are removed. Shared catalog entries stay, without your name on them.</span>
+                        </span>
+                    </label>
+                </fieldset>
+                <label>
+                    Current password (accounts with a password)
+                    <input type="password" @bind="_deletePassword" data-testid="delete-password"
+                           autocomplete="current-password" />
+                </label>
+                @if (_deleteError is not null)
+                {
+                    <p class="bb-form__error" data-testid="delete-error">@_deleteError</p>
+                }
+                <div class="bb-settings__row">
+                    <button type="submit" class="bb-btn bb-btn--danger" data-testid="confirm-deletion">
+                        Schedule deletion
+                    </button>
+                    <button type="button" class="bb-btn bb-btn--quiet"
+                            @onclick="() => { _showDeleteForm = false; _deleteError = null; }">Never mind</button>
+                </div>
+            </form>
+        }
+    </section>
 }
 
 @code {
@@ -257,6 +339,11 @@ else
     private MatchSettingsResponse? _settings;
     private bool _hideFromMatches;
     private bool _digestSubscribed;
+    private DeletionStatusResponse? _deletion;
+    private bool _showDeleteForm;
+    private string _deleteMode = "anonymize";
+    private string? _deletePassword;
+    private string? _deleteError;
 
     private void ShowJournal() => _tab = "journal";
 
@@ -309,6 +396,54 @@ else
         await LoadAsync();
         await LoadSettingsAsync();
         await LoadBadgesAsync(); // header stat line counts earned badges
+        await LoadDeletionAsync();
+    }
+
+    private async Task LoadDeletionAsync()
+    {
+        try
+        {
+            using var response = await Http.GetAsync("api/account/deletion");
+            _deletion = response.StatusCode == System.Net.HttpStatusCode.OK
+                ? await response.Content.ReadFromJsonAsync<DeletionStatusResponse>()
+                : null;
+        }
+        catch { _deletion = null; }
+    }
+
+    private async Task RequestDeletionAsync()
+    {
+        _deleteError = null;
+        try
+        {
+            using var response = await Http.PostAsJsonAsync(
+                "api/account/delete", new DeletionRequest(_deleteMode, _deletePassword));
+            if (response.IsSuccessStatusCode)
+            {
+                _deletion = await response.Content.ReadFromJsonAsync<DeletionStatusResponse>();
+                _showDeleteForm = false;
+                _deletePassword = null;
+            }
+            else
+            {
+                var error = await ApiErrors.ReadAsync(response);
+                _deleteError = error?.Message ?? "That didn't go through. Try again.";
+            }
+        }
+        catch
+        {
+            _deleteError = "That didn't go through. Try again.";
+        }
+    }
+
+    private async Task CancelDeletionAsync()
+    {
+        try
+        {
+            using var response = await Http.PostAsync("api/account/delete/cancel", null);
+            if (response.IsSuccessStatusCode) _deletion = null;
+        }
+        catch { /* banner stays; user can retry */ }
     }
 
     private async Task LoadSettingsAsync()

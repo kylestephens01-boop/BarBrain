@@ -319,6 +319,9 @@ code {
 .bb-btn--primary:hover:not(:disabled) { border-color: var(--bb-synapse); filter: brightness(1.05); }
 .bb-btn--oauth { width: 100%; }
 .bb-btn--quiet { border-color: transparent; background: transparent; color: var(--bb-text-muted); }
+/* Destructive actions only — semantic bitters (BRAND.md). */
+.bb-btn--danger { border-color: var(--bb-bitters); background: transparent; color: var(--bb-bitters); }
+.bb-btn--danger:hover:not(:disabled) { background: var(--bb-bitters-tint); border-color: var(--bb-bitters); }
 
 .bb-icon-btn {
   display: inline-flex;
@@ -1029,6 +1032,36 @@ code {
 .bb-rr-doorway__detail { color: var(--bb-text-muted); font-size: 11px; line-height: 15px; }
 
 /* --- Profile settings (privacy & email) --------------------------------------- */
+/* --- Admin analytics accents (Sprint 7): semantic only ---------------------- */
+.bb-stat--good { color: var(--bb-synapse); font-weight: var(--bb-fw-medium); }
+.bb-stat--bad { color: var(--bb-bitters); font-weight: var(--bb-fw-medium); }
+
+/* --- Footer + legal pages (Sprint 7) --------------------------------------- */
+.bb-footer {
+  margin-top: 48px;
+  padding: 20px 0 12px;
+  border-top: 1px solid var(--bb-hairline);
+  color: var(--bb-text-muted);
+  font-size: var(--bb-fs-caption, 12px);
+}
+.bb-footer__age { margin: 0 0 8px; }
+.bb-footer__links { display: flex; gap: 16px; flex-wrap: wrap; }
+.bb-footer__links a { color: var(--bb-text-muted); text-decoration: underline; }
+.bb-footer__links a:hover { color: var(--bb-coaster); }
+
+.bb-legal { max-width: 640px; }
+.bb-legal h1 { margin-bottom: 4px; }
+.bb-legal h2 { margin-top: 24px; font-size: 18px; }
+.bb-legal p, .bb-legal li { color: var(--bb-coaster); line-height: 1.6; }
+.bb-legal__draft {
+  border: 1px solid var(--bb-pour);
+  color: var(--bb-pour);
+  border-radius: var(--bb-radius);
+  padding: 8px 12px;
+  font-size: 13px;
+}
+.bb-legal__age { margin-top: 24px; color: var(--bb-text-muted); }
+
 .bb-settings { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; }
 .bb-settings__row { align-items: flex-start; }
 .bb-settings__copy { display: flex; flex-direction: column; gap: 2px; }

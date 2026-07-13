@@ -47,3 +47,11 @@ Est. ~45–60 min total. Items 1–5 block Sprint 0; the rest block later sprint
     (wordmark, mark, single-node) + WOFF2 font files into the repo per
     docs/BRAND.md. Public brand use stays gated on the knockout.
     [Sprint 0 for assets; post-knockout for public use]
+15. Monitoring (Sprint 7): (a) external uptime monitor on
+    `https://dev.barbrain.co/health` — free tier (UptimeRobot /
+    healthchecks.io), alert rule "down > 2 minutes" → founder email/phone.
+    A down box can't email anyone, so this MUST be external. (b) Set flag
+    `monitoring.alert_email` (admin API) so error-spike alerts deliver once
+    SMTP exists (item 6). (c) BACKUP_PASSPHRASE into VPS infra/.env AND a
+    copy somewhere off-box; optional RCLONE_REMOTE once item 10's object
+    storage exists. [before public launch]

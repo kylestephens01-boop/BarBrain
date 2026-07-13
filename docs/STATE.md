@@ -2,135 +2,126 @@
 > Agents: update this at the END of every session. Keep it short and factual.
 
 ## Current sprint
-Sprint 6 — gamification + moderation + PWA polish (branch `sprint-6`, off
-`main` after the Sprint 5 PR merged). Spec: docs/specs/sprint-6.md
-(pre-existing). History: Sprint 5 (venues); data-beer-national (PR #11);
-4.8 CI seed parity (PR #10); 4.7 clear-attribute verb (PR #9); 4.6 importer
-v2 (PR #8); 4.5 rapid-rate (PR #7); 4 (PR #6); 3 (PR #5); 2 (PR #4); 1 (PR #3).
+Sprint 7 — pre-launch hardening (branch `sprint-7`, off `main` after PR #14
+merged the charter adjudication). Spec: docs/specs/sprint-7.md (includes the
+founder-scoped live-catalog eval verb). History: Sprint 6 (PR #13); charter
+adjudication (PR #14); Sprint 5 (PR #12); data-beer-national (PR #11);
+4.8/4.7/4.6/4.5 (PRs #10/9/8/7); 4 (PR #6); 3 (PR #5); 2 (PR #4); 1 (PR #3).
 STILL OUTSTANDING from Sprint 1: the VPS bulk seed run per RUNBOOK.
 
-## Founder adjudications (2026-07-10, recorded in docs/charter-v7-adjudication)
-- Charter proposals **P1–P3 all APPROVED**, merged into charter v7 (founder
-  holds the settled text; docs/project-charter.md now carries the
-  adjudication record). ADR-022 amended founder-signed per P2; BRAND.md
-  prohibited-language gains the proof/ABV-as-potency line.
-- **beer.db REJECTED** (quality, not license) — moved to "Rejected sources"
-  in DATA-SOURCES.md; RUNBOOK import block removed. NOTE: rejection is
-  doc-enforced only — the quoted `"seed:beerdb"` tag stays in the registry
-  (a build test pins it), so the products-import gate would still pass it
-  and `import beerdb` never consulted the registry; fail-closing it for
-  real is a small code+test change, unscheduled.
-- **Live-catalog rec-quality eval verb: assigned to Sprint 7** (launch-gate
-  trigger fired) — scoped in docs/specs/sprint-7.md; removed from Backlog.
+## Done (this session — Sprint 7, code-complete pending CI)
+- **Privacy self-serve (ADR-018)**: GET /api/account/export (profile, full
+  rating history, check-ins, badges as a JSON download); deletion flow with
+  mode choice — FULL DELETE (own rows removed; shared public catalog rows go
+  OWNERLESS, never cascading into other users' ratings) vs ANONYMIZE (public
+  contributions stay under a scrubbed `anonymous_*` handle); PII purged both
+  ways; events jsonb userId scrubbed; moderation_actions untouched (audit
+  survives, Sprint 6 design honored). Grace window is flag
+  `privacy.deletion_grace_days` (7); PrivacyNightlyService executes due
+  deletions; confirmation email via LoggingAccountEmailSender (HC 6 pattern).
+  Migration `Sprint7Privacy` (additive: DeletionRequestedAt/Mode + CHECKs).
+  Profile "Your data" card: export link, mode radio + password confirm,
+  pending banner with cancel. PrivacyFlowTests + privacy.spec.ts.
+- **Live-catalog eval verb (founder-scoped)**: `dotnet BarBrain.Api.dll eval
+  recs [--out]` — archetype personas (fixture parity), REAL profile+rec
+  pipeline, Precision@10 vs top-quartile over unrated eligible drinks, all
+  inside a transaction that ALWAYS rolls back (no commit path exists).
+  Categories <20 drinks are skipped with a note. LiveRecEvalTests pins a
+  parseable number AND zero surviving rows. CI e2e job runs it via the
+  compose exec pattern and uploads rec-eval.md.
+- **Authz matrix (route-level perimeter)**: every endpoint classified
+  Anon/User/Admin in AuthzMatrixTests; completeness fails on unclassified OR
+  stale entries; anon→401 on all User routes; missing/wrong/user-cookie
+  tokens→401 on all Admin routes (Admin:Token pinned — the stub allows-all
+  when empty). Ownership 404-posture stays in AuthzTests.
+- **Headers/CSP**: Caddy header block — CSP (wasm-unsafe-eval; 'unsafe-inline'
+  script-src is a DOCUMENTED COMPROMISE for the build-injected import map —
+  follow-up: hash it at publish; Turnstile origin allowed), HSTS, nosniff,
+  frame DENY, Referrer-Policy, Permissions-Policy (geolocation=self).
+  e2e security-headers.spec.ts asserts headers AND that the app boots with
+  zero CSP violations. ComposeHardeningTests pins ports:[] / loopback / the
+  header block (Hard Rule 8 file guards).
+- **CI security**: security.yml — NuGet vulnerable-package audit (fail on
+  hit), npm audit (high), gitleaks full-history secrets scan; weekly cron.
+  dependabot.yml was an EMPTY-ecosystem no-op — now nuget+npm+actions.
+  infra/probe.sh = external exposure probe (80/443 only).
+- **Age-gate audit**: existing coverage re-verified complete (3 signup paths,
+  under-21 e2e screenshots, NoFullDob schema+whole-DB assertions). NEW:
+  WebCopyLintTests — word-boundary BRAND.md lint over ALL web copy + pins
+  the footer statement (the copy sweep is now a permanent gate).
+- **Legal + footer**: /legal/terms + /legal/privacy (DRAFT, inline
+  attorney [FLAG]s), /legal/contact (report pointer, SAMHSA line, address
+  pending HC 6/13); MainLayout footer: "adults 21 and over. Drink
+  responsibly." + links. legal-footer.spec.ts screenshots.
+- **Analytics dashboard (ADR-017)**: GET /api/admin/analytics — signups,
+  events-funnel activation, D1/D7/D30 cohorts ("active" = rated or checked
+  in, NOT page views), WAU, ratings/checkins per ISO week, PRD data-asset
+  metrics (ratings/active user, % in 2+ categories); kill/excellent
+  thresholds as flags (analytics.d30_kill_pct=3 / d30_excellent_pct=7, PRD).
+  /admin/analytics page (teal semantic accents). SQL documented verbatim in
+  docs/ANALYTICS.md. AnalyticsEndpointTests plants a D1 cohort.
+- **Backups**: compose `backup` service (same pg image) — nightly
+  pg_dump|gzip|AES-256, 30-day prune, tiny-dump guard, optional rclone
+  off-box (HC 10; on-box-only is logged nightly). Prod overlay REFUSES the
+  dev passphrase. infra/restore-drill.sh → scratch container + smoke +
+  timed log. CI backup-drill job runs the full cycle per PR, uploads
+  restore-drill.log.
+- **Monitoring**: ErrorTrackingExceptionHandler → `error` events (PII
+  scrubbed, path-only, NO userId — operational data survives deletion);
+  PiiScrubber (emails, credentials-to-EOL); ErrorRateAlertService (flags
+  monitoring.*, one alert/hour, via IDigestSender — logs until SMTP);
+  Production logs = JSON console. /api/debug/throw test-only endpoint
+  (config-gated, Production-blocked). MonitoringTests prove planted PII is
+  absent from the stored event; alert fires then throttles. HC 15 added
+  (EXTERNAL uptime monitor for down>2min — a down box can't email).
+- **RUNBOOK complete**: backup/restore (+incident restore), monitoring,
+  weekly 10-min founder ops, probe, eval verb. **docs/LAUNCH.md** = Gate E
+  walk + infra/legal gates + the DNS flip.
+- Tests: 79 pass locally (no Docker; 135 skipped = Testcontainers +
+  container-bound suites — CI is the done gate). Build 0 warnings.
 
-## Done (this session)
-- **Founder rulings captured (2026-07-10)**: badges are AMBER per
-  DESIGN-REFERENCE Screen 7 (overriding the teal guess); "first drink added"
-  = first wiki contribution (no user drink-add path exists); "Wildcard tried"
-  via new `ratings.RecSection` (= the feed's own section keys), forward-only,
-  no retroactive credit; streak = the digest's rolling-7-day-bucket
-  definition, badges permanent once earned; venue variety excludes Home Bar
-  (structural — check-ins only target public venues); badge display = profile
-  tab + toast only; hide = distinct moderation-owned state; SVG icon pipeline
-  ships wired-but-dormant on placeholder PNGs (HUMAN-CHECKLIST 14 is a
-  founder to-do, not a blocker). "Corridor Cartographer" name approved.
-- **Schema (`Sprint6GamificationModeration`, fully additive)**:
-  badge_definitions (metric CHECK vocabulary IS the ADR-016 guardrail —
-  only distinct-entity/weekly-streak metrics are expressible) + user_badges
-  (unique per user+badge, SeenAt drives toasts); reports (typed FK trio,
-  one OPEN per reporter+target); anomaly_flags (one OPEN per user+kind);
-  moderation_actions audit log (append-only, deliberately no FKs);
-  HiddenAt/HiddenBy pairs on ratings/venues/drinks; users
-  ShadowLimitedAt/BannedAt/ModerationNote; ratings.RecSection.
-- **Badges**: 15-badge launch set in seed/badges.json (file = source of
-  truth, upserted at startup — new badge on an existing metric = config edit,
-  no deploy); BadgeService evaluator (idempotent, race-safe, never throws
-  into write paths) with inline hooks (rating/check-in/venue add/menu
-  add+confirm/merge approve) + nightly heal; StreakMath extracted from the
-  digest so digest and badges share ONE streak definition (also fixed a
-  future-timestamp truncation quirk the new unit tests surfaced);
-  gallery/unseen/seen API; new `menu_item_confirmed` event (Menu Keeper
-  counts distinct confirmed listings — LastConfirmedAt keeps no per-user
-  history).
-- **Moderation**: report flow (public content only, 404-non-leak for private,
-  rate-limited, dup-refused) → unified admin surface at /admin with tabs
-  Merges (all three entity types — the Sprint 5 deferred restyle) / Reports /
-  Anomalies / Audit; hide enforced across EVERY public read path (catalog
-  search/browse, recs + popularity, venue nearby/page/menus, personalized
-  menu, match loves, drink ratings) and reversible via unhide; shadow-limit
-  and ban enforced on READ + both sign-in paths + a write-guard endpoint
-  filter (ban also rotates the security stamp); nightly anomaly scan
-  (z-score outliers, rapid-fire bursts — evidence for HUMAN review, never
-  auto-action; pure math unit-tested); every decision (incl. merge
-  approve/reject, hooked at the endpoint so MergeService stays CLI-pure)
-  writes moderation_actions.
-- **Provenance weighting**: public drink aggregate + CF co-rating data count
-  only accounts ≥7d AND ≥5 latest ratings (flags
-  `ratings.public_min_account_age_days` / `ratings.public_min_rating_count`).
-  Read-time + nightly ⇒ graduation is AUTOMATIC — the spec's "recompute job"
-  is unnecessary (noted in PR). Young accounts KEEP attribute-similarity
-  matches; only their CF weight is withheld. Recent-ratings list stays
-  visible (social content, not an aggregate) — provenance test pins this.
-- **Rate limits**: flag-driven per-account write limits on ratings
-  (limits.ratings_per_hour=120) + reports (limits.reports_per_day=20);
-  Sprint 5 wiki limits unchanged.
-- **PWA**: manifest completed (description/orientation/scope/maskable);
-  published SW gains a network-first catalog/config API cache (catalog
-  browse works offline; nothing personal cached); flag-gated install prompt
-  (beforeinstallprompt + iOS hint) + offline banner; icon pipeline
-  (infra/generate-icons.mjs + CI step) DORMANT until SVG masters land;
-  CI Lighthouse PWA gate ≥0.9 pinned to Lighthouse 11.x (v12 REMOVED the
-  PWA category — pin is deliberate), report as artifact.
-- **Tests**: 63 pass locally (no Docker); new suites: StreakMath, anomaly
-  math, badges.json brand-lint (BRAND.md prohibited-language stems) +
-  ADR-016 metric pin; BadgeFlowTests, ProvenanceWeightingTests,
-  ModerationFlowTests, MigrationFromSprint5Tests; e2e badges.spec.ts +
-  moderation.spec.ts (screenshots for the acceptance criteria).
-  NOTE: integration harness skips startup seeding — badge suites replay
-  BadgeSeeder themselves.
-
-## Deferred within Sprint 6 (noted in PR)
-- Rating queue-and-sync while offline: the spec's own "stretch" — not built.
-  Offline = browse + shell; writes need a connection (banner says so).
-- Maskable icon is the placeholder 512 doubling via `purpose` until the SVG
-  masters land; generate-icons.mjs prints the manifest-swap reminder.
-- Admin auth is still the Sprint 0 token stub (real admin identity is
-  outside every sprint spec so far); moderation_actions.Actor is a label.
+## Deferred within Sprint 7 (noted for the PR)
+- CSP script-src keeps 'unsafe-inline' for Blazor's build-injected import
+  map — follow-up: hash the import map at publish and drop it.
+- JSON-log "verified" = config + RUNBOOK; no automated Production-env boot
+  test (WebApplicationFactory boots Development).
+- gitleaks-action needs a (free personal) license var if the repo moves to
+  the org — recheck at the ADR-005 transfer.
 
 ## Doc inconsistency to flag (carried)
 - Muted-text token: BRAND.md `--bb-text-muted` vs DESIGN-REFERENCE
   `--bb-muted` (alias in place; founder may standardize).
-- Charter: P1–P3 adjudicated (approved 2026-07-10); docs/project-charter.md
-  carries the adjudication record. Settled v7 text remains uncommitted —
-  founder to paste it above the marker (spec + ADRs used as scope record).
+- Charter settled v7 text still uncommitted — founder holds it; repo file
+  carries the adjudication record (P1–P3 approved 2026-07-10).
 
 ## Environment note (this build machine)
 Docker/Node absent: Testcontainers + Playwright suites authored-not-run
 locally; CI runs them — CI green is the done gate. Verified locally: build
-0 warnings; `dotnet test` 63 passed / 125 skipped.
+0 warnings; `dotnet test` 79 passed / 135 skipped.
 
 ## Backlog (unscheduled — revisit on a concrete trigger, not speculatively)
-- beer.db rejection is docs-only; the registry has no rejected-source
-  semantics. Trigger: next time importer code is touched, add a rejected
-  flag to the embedded registry, loud refusal on import, flip the CI test
-  accordingly.
-- Events table has no user_id column (userId lives in jsonb Properties) —
-  fine for audit, awkward for per-user analytics; if the Sprint 7 dashboard
-  needs per-user event queries, consider an additive indexed column then.
+- beer.db rejection is docs-only; registry has no rejected-source semantics.
+  Trigger: next importer-code touch — rejected flag, loud refusal, CI test.
+- Events table has no user_id column (jsonb only) — was fine; the Sprint 7
+  dashboard shipped WITHOUT per-user event queries (aggregates come from
+  ratings/checkins tables), so the trigger did NOT fire. Unchanged.
+- Admin auth is still the Sprint 0 token stub (outside every sprint spec so
+  far); the authz matrix now pins its perimeter behavior.
 
 ## Blockers / needs founder
-- HUMAN-CHECKLIST 14: SVG logo masters (wordmark, mark, single-node) +
-  WOFF2 fonts into the repo — activates the icon pipeline; fonts also
-  affect Lighthouse/brand fidelity.
-- Carried: VERIFY backlog for beer-national ABVs (allagash/firestone/
-  dogfish/anchor); VPS bulk seed run (RUNBOOK); HUMAN-CHECKLIST 6 (SMTP +
-  physical address), 7–9 (OAuth/Turnstile creds); Gate C2 follow-ups.
+- HUMAN-CHECKLIST 15 (NEW): external uptime monitor on /health;
+  monitoring.alert_email flag; BACKUP_PASSPHRASE on the VPS + off-box copy.
+- Carried: HC 14 (SVG masters + WOFF2 — icon pipeline dormant); HC 6 (SMTP +
+  physical address — gates digest AND deletion-confirmation + alert email
+  delivery); HC 7–9 (OAuth/Turnstile creds); HC 10 (object storage →
+  RCLONE_REMOTE); VPS bulk seed run; beer-national VERIFY-ABV backlog;
+  Cloudflare TLS Flexible→Full before launch (ARCHITECTURE.md; LAUNCH.md).
+- Gate E: walk docs/LAUNCH.md after this PR merges.
 
 ## Next session should
-- Sprint 6 PR (#13) is MERGED. Next: the Sprint 6 founder Gate (phone,
-  ~10 min): earn a badge on a real account, file + action a report in
-  /admin, install the PWA to the home screen. Approve → Sprint 7 kickoff
-  (pre-launch hardening, spec now includes the live-catalog eval verb).
-- Sprint 7 heads-up: JSON export must include badges (spec says so — the
-  badge tables are ready for it); deletion flow interacts with
-  moderation_actions' no-FK design (audit survives deletion, by design).
+- Watch Sprint 7 PR CI (new jobs: backup-drill + Security workflow + the
+  rec-eval artifact ride the existing e2e job); fix red if any.
+- Then Gate E (founder, ~30 min): walk docs/LAUNCH.md top to bottom — export,
+  both deletion modes on throwaways, restore-drill log, test alert,
+  dashboard review. The infra/legal gates (TLS Full, uptime monitor,
+  knockout, LLC, SMTP…) are founder-paced; launch is the DNS flip at the end.
