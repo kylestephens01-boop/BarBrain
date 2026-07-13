@@ -14,7 +14,7 @@
     <!-- Community Apple Sign In handler (generates the ES256 client secret from
          the .p8 key). Registered only when Apple creds are configured. -->
     <PackageReference Include="AspNet.Security.OAuth.Apple" Version="10.0.0" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <!-- Npgsql 10.0.2 pins EF Relational 10.0.4; bump it so the whole EF graph
          (Design, tests) unifies on 10.0.9 and the build stays warning-free. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.9" />
@@ -22,8 +22,8 @@
     <!-- QR table-tent kit (Sprint 5). QRCoder is MIT. QuestPDF is Community-
          licensed (free under $1M annual revenue) — ADR-029 records the
          revisit trigger if BarBrain crosses into real revenue. -->
-    <PackageReference Include="QRCoder" Version="1.6.0" />
-    <PackageReference Include="QuestPDF" Version="2025.7.0" />
+    <PackageReference Include="QRCoder" Version="1.8.0" />
+    <PackageReference Include="QuestPDF" Version="2026.7.1" />
   </ItemGroup>
 
   <PropertyGroup>
