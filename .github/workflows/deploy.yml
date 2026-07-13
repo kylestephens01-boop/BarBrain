@@ -39,7 +39,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build & push api
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: src/api/Dockerfile
@@ -50,7 +50,7 @@ jobs:
             ghcr.io/${{ steps.meta.outputs.repo }}-api:${{ github.sha }}
 
       - name: Build & push web
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: src/web/Dockerfile
