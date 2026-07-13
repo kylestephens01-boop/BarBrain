@@ -26,7 +26,7 @@ jobs:
     outputs:
       repo: ${{ steps.meta.outputs.repo }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - id: meta
         name: Lowercase image base (GHCR requires lowercase)
