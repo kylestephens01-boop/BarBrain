@@ -1,6 +1,22 @@
 # STATE — agent session handoff
 > Agents: update this at the END of every session. Keep it short and factual.
 
+## Done (2026-07-15 session — outage fix, branch `sprint-7-fix-email-failopen`)
+- **Incident**: merging PR #22 took dev down (502) — the VPS .env had
+  SMTP_HOST but no EMAIL_FROM, and the Email:From startup fail-fast
+  crash-looped the api; deploy health check red; no rollback step exists, so
+  the broken container stayed up. Restore = set the five SMTP_*/EMAIL_FROM
+  vars in /opt/barbrain/infra/.env + `up -d api` (RUNBOOK "Transactional
+  email").
+- **Fix (PR #23)**: Production now degrades half-configured email to the
+  log-only senders with one ERROR log line (EmailMisconfigurationAlert);
+  dev/CI keep the fail-fast. Test pins the prod degrade path.
+- **Follow-ups surfaced, NOT done**: (a) infra/backup.sh dies on line 53
+  (`set -u` + bare `$1`) whenever run in loop mode — the backup service has
+  been crash-looping since abe2441, so NIGHTLY BACKUPS ARE NOT RUNNING;
+  needs `${1:-}` guard. (b) deploy.yml has no rollback on failed health
+  check — a bad deploy strands the broken stack.
+
 ## Done (2026-07-14 session — SMTP email wiring, branch `sprint-7-fix-email-smtp`)
 - **Real SMTP sender (HUMAN-CHECKLIST 6)**: `src/api/Email/` — MailKit-backed
   `SmtpEmailClient` + SMTP implementations of all three email interfaces
