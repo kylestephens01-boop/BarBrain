@@ -79,7 +79,7 @@ public sealed class EmailWiringTests
     }
 
     [Fact]
-    public void Smtp_host_without_a_from_address_fails_startup()
+    public void Smtp_host_without_a_from_address_fails_startup_outside_production()
     {
         using var factory = new ApiFactory { Settings = { ["Email:Smtp:Host"] = "smtp.resend.com" } };
 
@@ -87,6 +87,22 @@ public sealed class EmailWiringTests
         for (Exception? e = ex; e is not null; e = e.InnerException)
             if (e.Message.Contains("Email:From")) return;
         Assert.Fail($"expected an Email:From configuration error, got: {ex.Message}");
+    }
+
+    [Fact]
+    public void Smtp_host_without_a_from_address_in_production_degrades_to_log_only()
+    {
+        // Half-configured email must not crash-loop the prod api (2026-07-15
+        // outage): boot succeeds, senders fall back to log-only.
+        using var factory = new ApiFactory
+        {
+            EnvironmentOverride = "Production",
+            Settings = { ["Email:Smtp:Host"] = "smtp.resend.com" },
+        };
+
+        Assert.IsType<LoggingVerificationEmailSender>(factory.Services.GetRequiredService<IVerificationEmailSender>());
+        Assert.IsType<LoggingAccountEmailSender>(factory.Services.GetRequiredService<IAccountEmailSender>());
+        Assert.IsType<LoggingDigestSender>(factory.Services.GetRequiredService<IDigestSender>());
     }
 
     [Fact]
