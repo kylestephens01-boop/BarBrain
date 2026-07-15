@@ -1,10 +1,10 @@
 namespace BarBrain.Api.Auth;
 
 /// <summary>
-/// Sends the email-verification link (ADR-011 soft verification). No SMTP
-/// provider exists yet (HUMAN-CHECKLIST) — the default implementation logs the
-/// link so dev/CI flows work end to end; swap in an SMTP sender when creds
-/// arrive. Copy stays within BRAND.md voice: no urgency framing.
+/// Sends the email-verification link (ADR-011 soft verification). Backend is
+/// chosen by EmailRegistration: SMTP (Email:Smtp:Host set) or this logging
+/// implementation so dev/CI flows work end to end without a provider. Copy
+/// stays within BRAND.md voice: no urgency framing.
 /// </summary>
 public interface IVerificationEmailSender
 {

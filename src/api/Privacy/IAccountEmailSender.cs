@@ -2,9 +2,9 @@ namespace BarBrain.Api.Privacy;
 
 /// <summary>
 /// Sends the account-deletion confirmation email (Sprint 7, ADR-018). Same
-/// posture as <see cref="Auth.IVerificationEmailSender"/>: no SMTP provider
-/// exists yet (HUMAN-CHECKLIST 6), so the default implementation logs the
-/// message and a real sender swaps in when creds arrive.
+/// posture as <see cref="Auth.IVerificationEmailSender"/>: EmailRegistration
+/// picks SMTP when Email:Smtp:Host is configured, this logging implementation
+/// otherwise (dev/CI).
 /// </summary>
 public interface IAccountEmailSender
 {

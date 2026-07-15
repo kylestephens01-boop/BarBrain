@@ -49,6 +49,13 @@ services:
       Auth__Apple__PrivateKey: ${APPLE_PRIVATE_KEY:-}
       Turnstile__SiteKey: ${TURNSTILE_SITE_KEY:-}
       Turnstile__SecretKey: ${TURNSTILE_SECRET_KEY:-}
+      # Transactional email via SMTP (HUMAN-CHECKLIST 6). Empty SMTP_HOST =
+      # every email path logs instead of sending (the dev/CI default).
+      Email__Smtp__Host: ${SMTP_HOST:-}
+      Email__Smtp__Port: ${SMTP_PORT:-465}
+      Email__Smtp__Username: ${SMTP_USERNAME:-}
+      Email__Smtp__Password: ${SMTP_PASSWORD:-}
+      Email__From: ${EMAIL_FROM:-}
     ports:
       # Loopback only, for direct API testing during dev. Prod reaches the API
       # solely through Caddy; the overlay removes this mapping.

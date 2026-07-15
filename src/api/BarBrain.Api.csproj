@@ -14,6 +14,10 @@
     <!-- Community Apple Sign In handler (generates the ES256 client secret from
          the .p8 key). Registered only when Apple creds are configured. -->
     <PackageReference Include="AspNet.Security.OAuth.Apple" Version="10.0.0" />
+    <!-- SMTP sender for transactional email (HUMAN-CHECKLIST 6). MailKit is
+         the maintained replacement for System.Net.Mail.SmtpClient and does
+         implicit TLS on 465 (Resend's SMTP endpoint). -->
+    <PackageReference Include="MailKit" Version="4.17.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <!-- Npgsql 10.0.2 pins EF Relational 10.0.4; bump it so the whole EF graph
          (Design, tests) unifies on 10.0.9 and the build stays warning-free. -->

@@ -1,6 +1,23 @@
 # STATE — agent session handoff
 > Agents: update this at the END of every session. Keep it short and factual.
 
+## Done (2026-07-14 session — SMTP email wiring, branch `sprint-7-fix-email-smtp`)
+- **Real SMTP sender (HUMAN-CHECKLIST 6)**: `src/api/Email/` — MailKit-backed
+  `SmtpEmailClient` + SMTP implementations of all three email interfaces
+  (verification, deletion confirmation, digest/alerts). `AddBarBrainEmail()`
+  picks SMTP vs the existing logging stubs off `Email:Smtp:Host` — dev/CI
+  behavior unchanged (empty = log-only). Digest sender honors the CAN-SPAM
+  `deliver:false` contract.
+- **Config convention settled**: infra/.env vars `SMTP_HOST/SMTP_PORT/
+  SMTP_USERNAME/SMTP_PASSWORD/EMAIL_FROM` → compose maps to `Email__*` → the
+  `Email` section. `RESEND_API_KEY` / raw `Email__Smtp__*` in .env are NOT
+  read; RUNBOOK + .env.example document this. EmailWiringTests prove binding,
+  DI selection, fail-fast on missing From, and a real send against a loopback
+  SMTP server (no Docker needed).
+- Resend creds (smtp.resend.com:465, sender noreply@barbrain.co) live on the
+  dev VPS `.env`; founder to normalize var names there + confirm a real
+  delivery post-merge.
+
 ## Current sprint
 Sprint 7 — pre-launch hardening (branch `sprint-7`, off `main` after PR #14
 merged the charter adjudication). Spec: docs/specs/sprint-7.md (includes the

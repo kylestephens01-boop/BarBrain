@@ -1,9 +1,9 @@
 namespace BarBrain.Api.Digest;
 
 /// <summary>
-/// Sends (or logs) the weekly digest (ADR-019). No SMTP provider exists yet
-/// (HUMAN-CHECKLIST 6) — the default implementation LOGS, exactly like
-/// <c>IVerificationEmailSender</c>. Swap in an SMTP sender when creds arrive.
+/// Sends (or logs) the weekly digest (ADR-019). Backend chosen by
+/// EmailRegistration: SMTP when Email:Smtp:Host is configured, this logging
+/// implementation otherwise — exactly like <c>IVerificationEmailSender</c>.
 ///
 /// <paramref name="deliver"/> is the CAN-SPAM guard, decided by the caller:
 /// false means "compose but do not actually deliver" (no physical address
