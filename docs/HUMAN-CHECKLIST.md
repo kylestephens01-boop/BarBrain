@@ -15,8 +15,11 @@ Est. ~45–60 min total. Items 1–5 block Sprint 0; the rest block later sprint
 6. Transactional email provider (free tier: Resend/Brevo/SES). API key → secrets.
    PLUS a non-home physical mailing address for email footers (CAN-SPAM
    requires one): virtual mailbox or registered-agent service address. [Sprint 2]
-   → Until wired, the API logs verification links (IVerificationEmailSender);
-   swap in an SMTP sender + creds when this lands.
+   → SMTP sender is WIRED (post-Sprint 7). Set exactly these in infra/.env on
+   the VPS: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`,
+   `EMAIL_FROM` (see infra/.env.example; Resend = smtp.resend.com:465, user
+   "resend", password = API key). Empty SMTP_HOST = the API logs verification
+   links instead of sending (dev default). No other naming convention is read.
    → [Sprint 4] The SAME provider + physical address now also gate the WEEKLY
    DIGEST. Set the address in setting `digest.physical_address` (admin API, no
    deploy). BLOCKER: the digest is log-only (IDigestSender logs the rendered

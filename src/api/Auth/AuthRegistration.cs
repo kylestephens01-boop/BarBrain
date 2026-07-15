@@ -21,7 +21,8 @@ public static class AuthRegistration
         services.AddSingleton(TimeProvider.System);
         services.AddHttpClient("turnstile");
         services.AddScoped<ITurnstileVerifier, TurnstileVerifier>();
-        services.AddScoped<IVerificationEmailSender, LoggingVerificationEmailSender>();
+        // IVerificationEmailSender is registered by AddBarBrainEmail (SMTP or
+        // logging, chosen by config) alongside the other email paths.
         services.AddScoped<AccountService>();
 
         services.AddIdentityCore<User>(o =>

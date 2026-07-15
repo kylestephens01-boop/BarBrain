@@ -2,6 +2,7 @@ using BarBrain.Api;
 using BarBrain.Api.Auth;
 using BarBrain.Api.Catalog;
 using BarBrain.Api.Data;
+using BarBrain.Api.Email;
 using BarBrain.Api.Endpoints;
 using BarBrain.Api.Ratings;
 using BarBrain.Api.Settings;
@@ -33,6 +34,10 @@ builder.Services.AddCatalogServices();
 builder.AddBarBrainAuth();
 builder.Services.AddScoped<RatingService>();
 
+// --- Transactional email (HUMAN-CHECKLIST 6): SMTP when configured, logging
+// stubs otherwise. One backend for verification, deletion, digest, alerts. ---
+builder.AddBarBrainEmail();
+
 // --- Palate engine: profiles, sectioned feed, quiz (Sprint 3, ADR-025/027) --
 builder.Services.AddScoped<BarBrain.Api.Palate.PalateProfileService>();
 builder.Services.AddScoped<BarBrain.Api.Palate.RecommendationService>();
@@ -62,7 +67,6 @@ builder.Services.AddScoped<BarBrain.Api.Analytics.AnalyticsService>();
 
 // --- Privacy self-serve: export + deletion (Sprint 7, ADR-018) ---------------
 builder.Services.AddScoped<BarBrain.Api.Privacy.AccountDataService>();
-builder.Services.AddSingleton<BarBrain.Api.Privacy.IAccountEmailSender, BarBrain.Api.Privacy.LoggingAccountEmailSender>();
 builder.Services.AddHostedService<BarBrain.Api.Privacy.PrivacyNightlyService>();
 
 // --- Matching + weekly digest (Sprint 4, ADR-014/007/019) -------------------
@@ -70,7 +74,6 @@ builder.Services.AddScoped<BarBrain.Api.Palate.MatchService>();
 builder.Services.AddHostedService<BarBrain.Api.Palate.MatchNightlyService>();
 builder.Services.AddScoped<BarBrain.Api.Digest.DigestComposer>();
 builder.Services.AddScoped<BarBrain.Api.Digest.DigestService>();
-builder.Services.AddSingleton<BarBrain.Api.Digest.IDigestSender, BarBrain.Api.Digest.LoggingDigestSender>();
 builder.Services.AddHostedService<BarBrain.Api.Digest.WeeklyDigestService>();
 
 // Caddy fronts the API in every deployed shape and sets X-Forwarded-Proto;

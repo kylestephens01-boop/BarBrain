@@ -136,6 +136,19 @@ dotnet dotnet-ef migrations add <Name> --project src/api --output-dir Data/Migra
 - Prod: VPS `.env` + GitHub Actions secrets (`VPS_HOST`, `VPS_SSH_KEY`, GHCR
   token). Postgres is never exposed publicly.
 
+## Transactional email (SMTP)
+All email (verification links, deletion confirmations, weekly digest, error
+alerts) goes through one SMTP sender, configured by exactly five vars in
+`infra/.env`: `SMTP_HOST`, `SMTP_PORT` (465 = implicit TLS, 587 = STARTTLS),
+`SMTP_USERNAME`, `SMTP_PASSWORD`, `EMAIL_FROM` (address on a domain verified
+with the provider). Compose maps them to the `Email:*` config section — no
+other naming convention (e.g. `RESEND_API_KEY`) is read. Empty `SMTP_HOST` =
+every email path logs instead of sending (dev/CI default). For Resend:
+`smtp.resend.com` / `465` / `resend` / the API key. After editing `.env`,
+recreate the api container (`docker compose … up -d api`) to pick it up.
+Note the digest ALSO needs `digest.physical_address` + `digest.enabled`
+(CAN-SPAM guard) before it delivers to real inboxes.
+
 ## Feature flags
 DB-backed (`settings` table, ADR-006). Read/flip via `GET|PUT /api/admin/settings`.
 A flip takes effect on the next read (cache invalidated on write) — no redeploy.
