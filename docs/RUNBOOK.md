@@ -143,7 +143,10 @@ alerts) goes through one SMTP sender, configured by exactly five vars in
 `SMTP_USERNAME`, `SMTP_PASSWORD`, `EMAIL_FROM` (address on a domain verified
 with the provider). Compose maps them to the `Email:*` config section — no
 other naming convention (e.g. `RESEND_API_KEY`) is read. Empty `SMTP_HOST` =
-every email path logs instead of sending (dev/CI default). For Resend:
+every email path logs instead of sending (dev/CI default). `SMTP_HOST` set
+but `EMAIL_FROM` empty = prod boots log-only with an ERROR in the api logs
+(dev/CI fail startup instead) — the site never goes down over email config.
+For Resend:
 `smtp.resend.com` / `465` / `resend` / the API key. After editing `.env`,
 recreate the api container (`docker compose … up -d api`) to pick it up.
 Note the digest ALSO needs `digest.physical_address` + `digest.enabled`

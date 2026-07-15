@@ -16,8 +16,13 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     /// <summary>Extra configuration keys (e.g. Auth:EnableMockExternal).</summary>
     public Dictionary<string, string?> Settings { get; init; } = [];
 
+    /// <summary>Host environment override (tests default to Development).</summary>
+    public string? EnvironmentOverride { get; init; }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        if (EnvironmentOverride is not null)
+            builder.UseEnvironment(EnvironmentOverride);
         builder.UseSetting("Database:MigrateOnStartup", MigrateOnStartup ? "true" : "false");
         builder.UseSetting("Admin:Token", string.Empty); // Sprint 0 stub allows the demo flip
 
